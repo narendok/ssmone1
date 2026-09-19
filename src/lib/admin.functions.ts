@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function requireSystemAdmin(context: Parameters<Parameters<typeof requireSupabaseAuth>[0]>[0]) {
+async function requireSystemAdmin(context: { supabase: any; userId: string }) {
   const { data, error } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
   if (error || !data) throw new Error("You do not have permission to perform this action.");
 }
