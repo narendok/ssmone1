@@ -1,1 +1,1 @@
-// auto-generated and intentionally left blank, do not edit
+// Managed by Lovable Database migrations. Do not edit.
