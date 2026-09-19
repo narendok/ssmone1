@@ -9,6 +9,9 @@ const targets = [
   { name: "PartsBench inventory", hint: "Engineering", to: "/", permission: "engineering.view" },
   { name: "Projects", hint: "Work", to: "/projects", permission: "projects.view" },
   { name: "Task board", hint: "Work", to: "/tasks", permission: "my_work.view" },
+  { name: "HR overview", hint: "HR", to: "/hr", permission: "hr.view" },
+  { name: "Recruitment", hint: "HR", to: "/hr/recruitment", permission: "recruitment.manage" },
+  { name: "Leave desk", hint: "HR", to: "/hr/leave", permission: "hr.view" },
   { name: "Purchase orders", hint: "Operations", to: "/procurement/orders", permission: "procurement.view" },
   { name: "Administration", hint: "System", to: "/admin", permission: "admin.view" },
 ];

@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   Building2, CircuitBoard, ClipboardList, FileSpreadsheet, FolderKanban, FolderOpen,
-  History, LayoutGrid, ListChecks, MapPin, PackageCheck, Settings2, ShoppingCart,
+  GraduationCap, History, LayoutGrid, ListChecks, MapPin, PackageCheck, PlaneTakeoff, Settings2, ShoppingCart,
   Truck, Users, Wrench, type LucideIcon,
 } from "lucide-react";
 import {
@@ -33,6 +33,12 @@ const groups: NavGroup[] = [
     { label: "Pending deliveries", to: "/procurement/pending", icon: Truck, permission: "procurement.view" },
     { label: "Inwarding (GRN)", to: "/procurement/inward", icon: PackageCheck, permission: "procurement.view" },
     { label: "Vendors", to: "/procurement/vendors", icon: Building2, permission: "procurement.view" },
+  ] },
+  { label: "HR", items: [
+    { label: "HR overview", to: "/hr", icon: Users, permission: "hr.view" },
+    { label: "Recruitment", to: "/hr/recruitment", icon: ClipboardList, permission: "recruitment.manage" },
+    { label: "Leave desk", to: "/hr/leave", icon: PlaneTakeoff, permission: "hr.view" },
+    { label: "Learning", to: "/hr", icon: GraduationCap, permission: "training.manage" },
   ] },
   { label: "System", items: [
     { label: "PartsBench history", to: "/history", icon: History, permission: "engineering.view" },
