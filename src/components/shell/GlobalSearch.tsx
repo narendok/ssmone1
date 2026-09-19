@@ -1,0 +1,43 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
+import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/useAuth";
+
+const targets = [
+  { name: "PartsBench inventory", hint: "Engineering", to: "/", permission: "engineering.view" },
+  { name: "Projects", hint: "Work", to: "/projects", permission: "projects.view" },
+  { name: "Task board", hint: "Work", to: "/tasks", permission: "my_work.view" },
+  { name: "Purchase orders", hint: "Operations", to: "/procurement/orders", permission: "procurement.view" },
+  { name: "Administration", hint: "System", to: "/admin", permission: "admin.view" },
+];
+
+export function GlobalSearch() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const { role, permissions } = useAuth();
+  const results = useMemo(() => targets.filter((target) => (role === "admin" || permissions.includes(target.permission)) && target.name.toLowerCase().includes(query.toLowerCase())), [permissions, query, role]);
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setOpen(true); }
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+  return <>
+    <Button variant="outline" className="hidden h-8 w-full max-w-md justify-between text-muted-foreground md:flex" onClick={() => setOpen(true)}>
+      <span className="flex items-center gap-2"><Search /> Search workspace</span><kbd className="text-[10px]">Ctrl K</kbd>
+    </Button>
+    {open && <div className="fixed inset-0 z-50 flex items-start justify-center bg-foreground/20 p-4 pt-[15vh]" onMouseDown={() => setOpen(false)}>
+      <div className="w-full max-w-xl rounded-lg border bg-popover p-3 shadow-elevated" onMouseDown={(event) => event.stopPropagation()}>
+        <div className="flex items-center gap-2 border-b pb-3"><Search className="size-4 text-muted-foreground" /><Input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search accessible workspace areas" className="border-0 shadow-none focus-visible:ring-0" /></div>
+        <div className="max-h-72 overflow-auto py-2">
+          {results.map((result) => <Link key={result.name} to={result.to} onClick={() => setOpen(false)} className="flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-accent"><span>{result.name}</span><span className="text-xs text-muted-foreground">{result.hint}</span></Link>)}
+          {!results.length && <p className="px-3 py-5 text-sm text-muted-foreground">No accessible results found.</p>}
+        </div>
+      </div>
+    </div>}
+  </>;
+}
