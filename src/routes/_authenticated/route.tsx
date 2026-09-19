@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { SsmOneSidebar } from "@/components/shell/SsmOneSidebar";
@@ -7,6 +7,7 @@ import { NotificationCenter } from "@/components/shell/NotificationCenter";
 import { VoiceAssistant } from "@/components/inventory/VoiceAssistant";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { LogOut, Settings } from "lucide-react";
 
@@ -22,6 +23,10 @@ export const Route = createFileRoute("/_authenticated")({
 
 function AppLayout() {
   const { user, role, displayName, employeeStatus, signOut } = useAuth();
+  const navigate = useNavigate();
+  const suspended = employeeStatus === "SUSPENDED" || employeeStatus === "EXITED";
+  useEffect(() => { if (suspended) { void signOut().finally(() => navigate({ to: "/auth" })); } }, [navigate, signOut, suspended]);
+  if (suspended) return <main className="flex min-h-screen items-center justify-center p-6"><section className="max-w-md text-center"><h1 className="text-xl font-semibold">Access unavailable</h1><p className="mt-2 text-sm text-muted-foreground">Your workspace access is not active. Please contact your system administrator.</p></section></main>;
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">

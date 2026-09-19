@@ -16,8 +16,8 @@ const targets = [
 export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const { role, permissions } = useAuth();
-  const results = useMemo(() => targets.filter((target) => (role === "admin" || permissions.includes(target.permission)) && target.name.toLowerCase().includes(query.toLowerCase())), [permissions, query, role]);
+  const { role, permissions, employeeStatus } = useAuth();
+  const results = useMemo(() => targets.filter((target) => employeeStatus !== "SUSPENDED" && employeeStatus !== "EXITED" && (role === "admin" || permissions.includes(target.permission)) && target.name.toLowerCase().includes(query.toLowerCase())), [employeeStatus, permissions, query, role]);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setOpen(true); }

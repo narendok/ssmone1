@@ -43,9 +43,9 @@ const groups: NavGroup[] = [
 export function SsmOneSidebar() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { state } = useSidebar();
-  const { role, permissions } = useAuth();
+  const { role, permissions, employeeStatus } = useAuth();
   const collapsed = state === "collapsed";
-  const can = (permission?: string) => role === "admin" || !permission || permissions.includes(permission);
+  const can = (permission?: string) => employeeStatus !== "SUSPENDED" && employeeStatus !== "EXITED" && (role === "admin" || !permission || permissions.includes(permission));
 
   return (
     <Sidebar collapsible="icon">
