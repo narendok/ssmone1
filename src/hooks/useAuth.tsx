@@ -35,18 +35,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const loadIdentity = useCallback(async (user: User) => {
-    const [roleResult, profileResult, employeeResult, employeeRoleResult] = await Promise.all([
+    const [roleResult, profileResult, employeeResult] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle(),
       supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle(),
       supabase.from("employees").select("id, display_name, employment_status").eq("user_id", user.id).maybeSingle(),
-      supabase.from("employees").select("id").eq("user_id", user.id).maybeSingle(),
     ]);
 
     setRole((roleResult.data?.role as Role | undefined) ?? "member");
     setDisplayName(employeeResult.data?.display_name ?? profileResult.data?.display_name ?? user.user_metadata?.display_name ?? null);
     setEmployeeStatus(employeeResult.data?.employment_status ?? null);
 
-    if (!employeeRoleResult.data?.id) {
+    if (!employeeResult.data?.id) {
       setPermissions([]);
       return;
     }
@@ -54,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await supabase
       .from("employee_access_roles")
       .select("access_roles(access_role_permissions(permissions(key)))")
-      .eq("employee_id", employeeRoleResult.data.id);
+      .eq("employee_id", employeeResult.data.id);
     const keys = (data ?? []).flatMap((assignment) => {
       const accessRole = assignment.access_roles as unknown as { access_role_permissions?: { permissions?: { key?: string | null } | null }[] } | null;
       return (accessRole?.access_role_permissions ?? []).flatMap((item) => item.permissions?.key ? [item.permissions.key] : []);
