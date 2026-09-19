@@ -1,12 +1,13 @@
 import { createFileRoute, Link, Outlet, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/inventory/AppSidebar";
+import { SsmOneSidebar } from "@/components/shell/SsmOneSidebar";
+import { GlobalSearch } from "@/components/shell/GlobalSearch";
 import { VoiceAssistant } from "@/components/inventory/VoiceAssistant";
 
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings } from "lucide-react";
+import { Bell, LogOut, Settings } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -19,24 +20,27 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AppLayout() {
-  const { user, role, signOut } = useAuth();
+  const { user, role, displayName, employeeStatus, signOut } = useAuth();
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+         <SsmOneSidebar />
         <SidebarInset className="flex-1 flex flex-col">
           <header className="h-14 flex items-center gap-3 border-b bg-card px-4 sticky top-0 z-10">
             <SidebarTrigger />
-            <div className="flex-1" />
-            <div className="text-sm text-muted-foreground hidden sm:flex items-center gap-2">
-              <span>{user?.email}</span>
-              {role && <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium">{role}</span>}
-            </div>
-            <Button asChild size="sm" variant="ghost" title="Manage categories">
-              <Link to="/settings/categories"><Settings className="h-4 w-4" /></Link>
+             <div className="flex-1"><GlobalSearch /></div>
+             <Button size="icon" variant="ghost" title="Notifications" aria-label="Notifications">
+               <Bell className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant="ghost" onClick={signOut}>
-              <LogOut className="h-4 w-4" /> Sign out
+             <div className="hidden sm:flex flex-col items-end leading-tight">
+               <span className="text-xs font-medium">{displayName ?? user?.email}</span>
+               <span className="text-[11px] text-muted-foreground">{employeeStatus === "SUSPENDED" ? "Access suspended" : role === "admin" ? "System Admin" : "Employee"}</span>
+             </div>
+             {role === "admin" && <Button asChild size="icon" variant="ghost" title="Administration" aria-label="Administration">
+               <Link to="/admin"><Settings className="h-4 w-4" /></Link>
+             </Button>}
+             <Button size="icon" variant="ghost" onClick={signOut} title="Sign out" aria-label="Sign out">
+               <LogOut className="h-4 w-4" />
             </Button>
           </header>
           <main className="flex-1 p-4 md:p-6">
