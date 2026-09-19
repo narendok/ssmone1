@@ -8,6 +8,13 @@
       "when": 1789796116726,
       "tag": "0000_add_ssm_one_enterprise_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789829558545,
+      "tag": "0001_add_hr_module_foundation",
+      "breakpoints": true
     }
   ]
 }
