@@ -1,6 +1,6 @@
 # Phase 1 roadmap
 
-- [ ] Build full administration forms and activity logging (blocked by role-safe server operations).
-- [ ] Add real notification center, searchable entities, and activity timeline.
-- [ ] Add content-route metadata across preserved PartsBench pages.
-- [ ] Validate authenticated authorization and responsive acceptance checks.
+- [ ] Build remaining administration forms: users, role/permission assignment, module status, document numbering, and audit log.
+- [ ] Expand global search from navigation shortcuts to permission-safe entity results and add activity timelines/entity links.
+- [x] Add notification center basics and page metadata across preserved PartsBench routes.
+- [ ] Validate authenticated authorization and responsive acceptance checks (requires an active administrator session in preview).
