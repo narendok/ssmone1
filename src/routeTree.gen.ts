@@ -21,6 +21,7 @@ import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedDriveRouteImport } from './routes/_authenticated/drive'
 import { Route as AuthenticatedBomRouteImport } from './routes/_authenticated/bom'
 import { Route as AuthenticatedAssignmentsRouteImport } from './routes/_authenticated/assignments'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks.index'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as ApiPublicDatasheetProxyRouteImport } from './routes/api/public/datasheet-proxy'
@@ -95,6 +96,11 @@ const AuthenticatedAssignmentsRoute =
     path: '/assignments',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedTasksIndexRoute = AuthenticatedTasksIndexRouteImport.update({
   id: '/tasks/',
   path: '/tasks/',
@@ -175,6 +181,7 @@ const ApiPublicHooksRefreshSupplierDataRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
   '/drive': typeof AuthenticatedDriveRoute
@@ -200,6 +207,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/admin': typeof AuthenticatedAdminRoute
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
   '/drive': typeof AuthenticatedDriveRoute
@@ -228,6 +236,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/assignments': typeof AuthenticatedAssignmentsRoute
   '/_authenticated/bom': typeof AuthenticatedBomRoute
   '/_authenticated/drive': typeof AuthenticatedDriveRoute
@@ -257,6 +266,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/admin'
     | '/assignments'
     | '/bom'
     | '/drive'
@@ -282,6 +292,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/admin'
     | '/assignments'
     | '/bom'
     | '/drive'
@@ -309,6 +320,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/admin'
     | '/_authenticated/assignments'
     | '/_authenticated/bom'
     | '/_authenticated/drive'
@@ -429,6 +441,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAssignmentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tasks/': {
       id: '/_authenticated/tasks/'
       path: '/tasks'
@@ -524,6 +543,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAssignmentsRoute: typeof AuthenticatedAssignmentsRoute
   AuthenticatedBomRoute: typeof AuthenticatedBomRoute
   AuthenticatedDriveRoute: typeof AuthenticatedDriveRoute
@@ -546,6 +566,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAssignmentsRoute: AuthenticatedAssignmentsRoute,
   AuthenticatedBomRoute: AuthenticatedBomRoute,
   AuthenticatedDriveRoute: AuthenticatedDriveRoute,
