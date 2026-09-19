@@ -1,0 +1,1773 @@
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  public: {
+    Tables: {
+      assignment_batches: {
+        Row: {
+          assignee_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          project_id: string | null
+        }
+        Insert: {
+          assignee_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+        }
+        Update: {
+          assignee_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_batches_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "rd_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignment_batches_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          assignee_id: string
+          batch_id: string | null
+          component_id: string
+          id: string
+          location_id: string | null
+          notes: string | null
+          project_id: string | null
+          project_name: string | null
+          quantity: number
+          quantity_returned: number
+          returned_at: string | null
+          status: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assignee_id: string
+          batch_id?: string | null
+          component_id: string
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          project_id?: string | null
+          project_name?: string | null
+          quantity: number
+          quantity_returned?: number
+          returned_at?: string | null
+          status?: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          assignee_id?: string
+          batch_id?: string | null
+          component_id?: string
+          id?: string
+          location_id?: string | null
+          notes?: string | null
+          project_id?: string | null
+          project_name?: string | null
+          quantity?: number
+          quantity_returned?: number
+          returned_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignments_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "rd_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "assignment_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assignments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      categories: {
+        Row: {
+          created_at: string
+          icon: string | null
+          id: string
+          name: string
+          parent_id: string | null
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name: string
+          parent_id?: string | null
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          icon?: string | null
+          id?: string
+          name?: string
+          parent_id?: string | null
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      component_projects: {
+        Row: {
+          component_id: string
+          created_at: string
+          project_id: string
+        }
+        Insert: {
+          component_id: string
+          created_at?: string
+          project_id: string
+        }
+        Update: {
+          component_id?: string
+          created_at?: string
+          project_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "component_projects_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "component_projects_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      component_substitutes: {
+        Row: {
+          component_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          substitute_id: string
+        }
+        Insert: {
+          component_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          substitute_id: string
+        }
+        Update: {
+          component_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          substitute_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "component_substitutes_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "component_substitutes_substitute_id_fkey"
+            columns: ["substitute_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      components: {
+        Row: {
+          alternates: Json | null
+          bom_compatibility: string | null
+          category_id: string
+          cost: number | null
+          created_at: string
+          current_rating: string | null
+          datasheet_url: string | null
+          footprint: string | null
+          id: string
+          image_url: string | null
+          low_stock_threshold: number
+          manufacturer: string | null
+          name: string
+          needs_review: boolean
+          nexar_part_id: string | null
+          notes: string | null
+          package_case: string | null
+          part_number: string
+          short_description: string | null
+          specs: Json | null
+          supplier: string | null
+          supplier_synced_at: string | null
+          supplier_url: string | null
+          temperature_rating: string | null
+          updated_at: string
+          value: string | null
+          voltage_rating: string | null
+        }
+        Insert: {
+          alternates?: Json | null
+          bom_compatibility?: string | null
+          category_id?: string
+          cost?: number | null
+          created_at?: string
+          current_rating?: string | null
+          datasheet_url?: string | null
+          footprint?: string | null
+          id?: string
+          image_url?: string | null
+          low_stock_threshold?: number
+          manufacturer?: string | null
+          name: string
+          needs_review?: boolean
+          nexar_part_id?: string | null
+          notes?: string | null
+          package_case?: string | null
+          part_number: string
+          short_description?: string | null
+          specs?: Json | null
+          supplier?: string | null
+          supplier_synced_at?: string | null
+          supplier_url?: string | null
+          temperature_rating?: string | null
+          updated_at?: string
+          value?: string | null
+          voltage_rating?: string | null
+        }
+        Update: {
+          alternates?: Json | null
+          bom_compatibility?: string | null
+          category_id?: string
+          cost?: number | null
+          created_at?: string
+          current_rating?: string | null
+          datasheet_url?: string | null
+          footprint?: string | null
+          id?: string
+          image_url?: string | null
+          low_stock_threshold?: number
+          manufacturer?: string | null
+          name?: string
+          needs_review?: boolean
+          nexar_part_id?: string | null
+          notes?: string | null
+          package_case?: string | null
+          part_number?: string
+          short_description?: string | null
+          specs?: Json | null
+          supplier?: string | null
+          supplier_synced_at?: string | null
+          supplier_url?: string | null
+          temperature_rating?: string | null
+          updated_at?: string
+          value?: string | null
+          voltage_rating?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "components_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      datasheet_cache: {
+        Row: {
+          datasheet_url: string | null
+          manufacturer: string
+          mpn: string
+          resolved_at: string
+          source: string
+        }
+        Insert: {
+          datasheet_url?: string | null
+          manufacturer?: string
+          mpn: string
+          resolved_at?: string
+          source: string
+        }
+        Update: {
+          datasheet_url?: string | null
+          manufacturer?: string
+          mpn?: string
+          resolved_at?: string
+          source?: string
+        }
+        Relationships: []
+      }
+      drive_node_revisions: {
+        Row: {
+          change_summary: string | null
+          created_at: string
+          file_size_bytes: number
+          id: string
+          node_id: string
+          sha256_checksum: string | null
+          storage_path: string
+          uploaded_by: string | null
+          version: number
+        }
+        Insert: {
+          change_summary?: string | null
+          created_at?: string
+          file_size_bytes?: number
+          id?: string
+          node_id: string
+          sha256_checksum?: string | null
+          storage_path: string
+          uploaded_by?: string | null
+          version: number
+        }
+        Update: {
+          change_summary?: string | null
+          created_at?: string
+          file_size_bytes?: number
+          id?: string
+          node_id?: string
+          sha256_checksum?: string | null
+          storage_path?: string
+          uploaded_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_node_revisions_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drive_nodes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_version: number
+          file_size_bytes: number | null
+          file_type: string | null
+          id: string
+          is_locked: boolean
+          is_starred: boolean
+          is_trashed: boolean
+          metadata: Json
+          mime_type: string | null
+          name: string
+          node_type: string
+          parent_id: string | null
+          project_id: string | null
+          sha256_checksum: string | null
+          slug: string
+          starred_reason: string | null
+          storage_bucket: string | null
+          storage_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          file_size_bytes?: number | null
+          file_type?: string | null
+          id?: string
+          is_locked?: boolean
+          is_starred?: boolean
+          is_trashed?: boolean
+          metadata?: Json
+          mime_type?: string | null
+          name: string
+          node_type: string
+          parent_id?: string | null
+          project_id?: string | null
+          sha256_checksum?: string | null
+          slug: string
+          starred_reason?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          file_size_bytes?: number | null
+          file_type?: string | null
+          id?: string
+          is_locked?: boolean
+          is_starred?: boolean
+          is_trashed?: boolean
+          metadata?: Json
+          mime_type?: string | null
+          name?: string
+          node_type?: string
+          parent_id?: string | null
+          project_id?: string | null
+          sha256_checksum?: string | null
+          slug?: string
+          starred_reason?: string | null
+          storage_bucket?: string | null
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "drive_nodes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drive_share_links: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          node_id: string
+          permission_level: string
+          revoked_at: string | null
+          share_token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          node_id: string
+          permission_level: string
+          revoked_at?: string | null
+          share_token?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          node_id?: string
+          permission_level?: string
+          revoked_at?: string | null
+          share_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_share_links_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      drive_user_favorites: {
+        Row: {
+          created_at: string
+          node_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          node_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          node_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_user_favorites_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_receipt_items: {
+        Row: {
+          component_id: string
+          created_at: string
+          grn_id: string
+          id: string
+          location_id: string | null
+          lot_number: string | null
+          po_item_id: string | null
+          quantity_received: number
+          quantity_rejected: number
+          rejection_note: string | null
+          rejection_reason: string | null
+        }
+        Insert: {
+          component_id: string
+          created_at?: string
+          grn_id: string
+          id?: string
+          location_id?: string | null
+          lot_number?: string | null
+          po_item_id?: string | null
+          quantity_received: number
+          quantity_rejected?: number
+          rejection_note?: string | null
+          rejection_reason?: string | null
+        }
+        Update: {
+          component_id?: string
+          created_at?: string
+          grn_id?: string
+          id?: string
+          location_id?: string | null
+          lot_number?: string | null
+          po_item_id?: string | null
+          quantity_received?: number
+          quantity_rejected?: number
+          rejection_note?: string | null
+          rejection_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_items_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_items_grn_id_fkey"
+            columns: ["grn_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipt_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_items_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_items_po_item_id_fkey"
+            columns: ["po_item_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goods_receipt_notes: {
+        Row: {
+          created_at: string
+          grn_number: string
+          id: string
+          po_id: string | null
+          received_by: string | null
+          storage_location_notes: string | null
+          vendor_invoice_date: string | null
+          vendor_invoice_number: string
+        }
+        Insert: {
+          created_at?: string
+          grn_number: string
+          id?: string
+          po_id?: string | null
+          received_by?: string | null
+          storage_location_notes?: string | null
+          vendor_invoice_date?: string | null
+          vendor_invoice_number: string
+        }
+        Update: {
+          created_at?: string
+          grn_number?: string
+          id?: string
+          po_id?: string | null
+          received_by?: string | null
+          storage_location_notes?: string | null
+          vendor_invoice_date?: string | null
+          vendor_invoice_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goods_receipt_notes_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          component_id: string
+          created_at: string
+          id: string
+          label: string
+          location_type: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          component_id: string
+          created_at?: string
+          id?: string
+          label: string
+          location_type: string
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          component_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          location_type?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "locations_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pcb_task_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          note: string | null
+          task_id: string
+          to_status: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          task_id: string
+          to_status: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          task_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pcb_task_history_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "pcb_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pcb_task_notes: {
+        Row: {
+          author_id: string | null
+          body: string
+          created_at: string
+          id: string
+          task_id: string
+        }
+        Insert: {
+          author_id?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          task_id: string
+        }
+        Update: {
+          author_id?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pcb_task_notes_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "pcb_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pcb_task_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          storage_path: string
+          task_id: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          storage_path: string
+          task_id: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          storage_path?: string
+          task_id?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pcb_task_photos_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "pcb_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pcb_tasks: {
+        Row: {
+          assignee_id: string | null
+          board_name: string
+          created_at: string
+          created_by: string | null
+          id: string
+          issue: string
+          priority: string
+          project_id: string | null
+          root_cause: string | null
+          root_cause_notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          board_name: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          issue: string
+          priority?: string
+          project_id?: string | null
+          root_cause?: string | null
+          root_cause_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          board_name?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          issue?: string
+          priority?: string
+          project_id?: string | null
+          root_cause?: string | null
+          root_cause_notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pcb_tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "rd_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pcb_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          department: Database["public"]["Enums"]["department_type"] | null
+          display_name: string | null
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          department?: Database["public"]["Enums"]["department_type"] | null
+          display_name?: string | null
+          email: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          department?: Database["public"]["Enums"]["department_type"] | null
+          display_name?: string | null
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      project_bom_items: {
+        Row: {
+          bom_id: string
+          created_at: string
+          description: string | null
+          footprint: string | null
+          id: string
+          line_index: number
+          manufacturer: string | null
+          match_status: string | null
+          matched_component_id: string | null
+          mpn: string | null
+          quantity: number
+          refs: string | null
+          remark: string | null
+          shortage: number
+          total_cost: number | null
+          unit_cost: number | null
+          value: string | null
+        }
+        Insert: {
+          bom_id: string
+          created_at?: string
+          description?: string | null
+          footprint?: string | null
+          id?: string
+          line_index: number
+          manufacturer?: string | null
+          match_status?: string | null
+          matched_component_id?: string | null
+          mpn?: string | null
+          quantity: number
+          refs?: string | null
+          remark?: string | null
+          shortage?: number
+          total_cost?: number | null
+          unit_cost?: number | null
+          value?: string | null
+        }
+        Update: {
+          bom_id?: string
+          created_at?: string
+          description?: string | null
+          footprint?: string | null
+          id?: string
+          line_index?: number
+          manufacturer?: string | null
+          match_status?: string | null
+          matched_component_id?: string | null
+          mpn?: string | null
+          quantity?: number
+          refs?: string | null
+          remark?: string | null
+          shortage?: number
+          total_cost?: number | null
+          unit_cost?: number | null
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_bom_items_bom_id_fkey"
+            columns: ["bom_id"]
+            isOneToOne: false
+            referencedRelation: "project_boms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_bom_items_matched_component_id_fkey"
+            columns: ["matched_component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_boms: {
+        Row: {
+          bom_number: string
+          created_at: string
+          created_by: string | null
+          id: string
+          line_count: number
+          name: string
+          notes: string | null
+          project_id: string
+          revision: string | null
+          source_filename: string | null
+          total_cost: number | null
+          updated_at: string
+        }
+        Insert: {
+          bom_number: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          line_count?: number
+          name: string
+          notes?: string | null
+          project_id: string
+          revision?: string | null
+          source_filename?: string | null
+          total_cost?: number | null
+          updated_at?: string
+        }
+        Update: {
+          bom_number?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          line_count?: number
+          name?: string
+          notes?: string | null
+          project_id?: string
+          revision?: string | null
+          source_filename?: string | null
+          total_cost?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_boms_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_task_activity: {
+        Row: {
+          actor_id: string | null
+          body: string | null
+          created_at: string
+          from_status: Database["public"]["Enums"]["task_status"] | null
+          id: string
+          kind: string
+          task_id: string
+          to_status: Database["public"]["Enums"]["task_status"] | null
+        }
+        Insert: {
+          actor_id?: string | null
+          body?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["task_status"] | null
+          id?: string
+          kind?: string
+          task_id: string
+          to_status?: Database["public"]["Enums"]["task_status"] | null
+        }
+        Update: {
+          actor_id?: string | null
+          body?: string | null
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["task_status"] | null
+          id?: string
+          kind?: string
+          task_id?: string
+          to_status?: Database["public"]["Enums"]["task_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_task_activity_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_task_checklists: {
+        Row: {
+          created_at: string
+          id: string
+          is_done: boolean
+          label: string
+          sort_order: number
+          task_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_done?: boolean
+          label: string
+          sort_order?: number
+          task_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_done?: boolean
+          label?: string
+          sort_order?: number
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_task_checklists_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_tasks: {
+        Row: {
+          assignee_id: string | null
+          created_at: string
+          created_by: string | null
+          department: Database["public"]["Enums"]["department_type"]
+          description: string | null
+          drive_node_id: string | null
+          due_date: string | null
+          estimated_hours: number | null
+          id: string
+          logged_hours: number
+          pcb_task_id: string | null
+          ppap_element: string | null
+          priority: Database["public"]["Enums"]["task_priority"]
+          project_id: string | null
+          sort_order: number
+          status: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          department?: Database["public"]["Enums"]["department_type"]
+          description?: string | null
+          drive_node_id?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          logged_hours?: number
+          pcb_task_id?: string | null
+          ppap_element?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          project_id?: string | null
+          sort_order?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          department?: Database["public"]["Enums"]["department_type"]
+          description?: string | null
+          drive_node_id?: string | null
+          due_date?: string | null
+          estimated_hours?: number | null
+          id?: string
+          logged_hours?: number
+          pcb_task_id?: string | null
+          ppap_element?: string | null
+          priority?: Database["public"]["Enums"]["task_priority"]
+          project_id?: string | null
+          sort_order?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "rd_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_drive_node_id_fkey"
+            columns: ["drive_node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_pcb_task_id_fkey"
+            columns: ["pcb_task_id"]
+            isOneToOne: false
+            referencedRelation: "pcb_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          code: string
+          color: string
+          created_at: string
+          design_link: string | null
+          id: string
+          name: string
+          revision: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          color?: string
+          created_at?: string
+          design_link?: string | null
+          id?: string
+          name: string
+          revision?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          color?: string
+          created_at?: string
+          design_link?: string | null
+          id?: string
+          name?: string
+          revision?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      purchase_order_items: {
+        Row: {
+          component_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          mpn: string
+          po_id: string
+          quantity_ordered: number
+          quantity_received: number
+          quantity_rejected: number
+          short_close_reason: string | null
+          short_closed: boolean
+          total_cost: number | null
+          unit_cost: number
+        }
+        Insert: {
+          component_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          mpn: string
+          po_id: string
+          quantity_ordered: number
+          quantity_received?: number
+          quantity_rejected?: number
+          short_close_reason?: string | null
+          short_closed?: boolean
+          total_cost?: number | null
+          unit_cost?: number
+        }
+        Update: {
+          component_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          mpn?: string
+          po_id?: string
+          quantity_ordered?: number
+          quantity_received?: number
+          quantity_rejected?: number
+          short_close_reason?: string | null
+          short_closed?: boolean
+          total_cost?: number | null
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: string
+          expected_delivery_date: string | null
+          id: string
+          notes: string | null
+          po_number: string
+          sent_at: string | null
+          sent_by: string | null
+          sent_to: string | null
+          status: string
+          tax_amount: number
+          total_amount: number
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          expected_delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          po_number: string
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_to?: string | null
+          status?: string
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          expected_delivery_date?: string | null
+          id?: string
+          notes?: string | null
+          po_number?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          sent_to?: string | null
+          status?: string
+          tax_amount?: number
+          total_amount?: number
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rd_members: {
+        Row: {
+          active: boolean
+          created_at: string
+          department: Database["public"]["Enums"]["department_type"] | null
+          email: string
+          id: string
+          name: string
+          role: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          department?: Database["public"]["Enums"]["department_type"] | null
+          email: string
+          id?: string
+          name: string
+          role?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          department?: Database["public"]["Enums"]["department_type"] | null
+          email?: string
+          id?: string
+          name?: string
+          role?: string | null
+        }
+        Relationships: []
+      }
+      shared_boms: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          id: string
+          payload: Json
+          revoked_at: string | null
+          title: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          payload: Json
+          revoked_at?: string | null
+          title?: string
+          token: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          id?: string
+          payload?: Json
+          revoked_at?: string | null
+          title?: string
+          token?: string
+        }
+        Relationships: []
+      }
+      stock_history: {
+        Row: {
+          action: string
+          component_id: string
+          created_at: string
+          delta: number
+          id: string
+          location_id: string | null
+          note: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          component_id: string
+          created_at?: string
+          delta: number
+          id?: string
+          location_id?: string | null
+          note?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          component_id?: string
+          created_at?: string
+          delta?: number
+          id?: string
+          location_id?: string | null
+          note?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_history_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_history_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vendors: {
+        Row: {
+          address: string | null
+          contact_person: string | null
+          created_at: string
+          email: string | null
+          gstin: string | null
+          id: string
+          is_active: boolean
+          name: string
+          payment_terms: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_person?: string | null
+          created_at?: string
+          email?: string | null
+          gstin?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          payment_terms?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_person?: string | null
+          created_at?: string
+          email?: string | null
+          gstin?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          payment_terms?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      can_inward: { Args: { _uid: string }; Returns: boolean }
+      can_purchase: { Args: { _uid: string }; Returns: boolean }
+      create_grn: {
+        Args: {
+          _items: Json
+          _po_id: string
+          _storage_notes: string
+          _vendor_invoice_date: string
+          _vendor_invoice_number: string
+        }
+        Returns: Json
+      }
+      create_purchase_order: {
+        Args: {
+          _expected_delivery_date: string
+          _items: Json
+          _notes: string
+          _tax_amount: number
+          _vendor_id: string
+        }
+        Returns: Json
+      }
+      get_drive_breadcrumbs: {
+        Args: { p_node_id: string }
+        Returns: {
+          depth: number
+          id: string
+          name: string
+          node_type: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      mark_po_sent: {
+        Args: { _address: string; _po_id: string }
+        Returns: Json
+      }
+      next_document_number: { Args: { _kind: string }; Returns: string }
+      provision_drive_for_project: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
+      short_close_po_item: {
+        Args: { _item_id: string; _reason: string; _undo?: boolean }
+        Returns: Json
+      }
+      toggle_node_star: { Args: { p_node_id: string }; Returns: boolean }
+    }
+    Enums: {
+      app_role:
+        | "admin"
+        | "member"
+        | "purchase"
+        | "storekeeper"
+        | "project_manager"
+        | "lead_engineer"
+      department_type:
+        | "hardware"
+        | "firmware"
+        | "mechanical"
+        | "qa"
+        | "procurement"
+        | "production"
+        | "executive"
+      task_priority: "low" | "medium" | "high" | "urgent"
+      task_status: "todo" | "in_progress" | "in_review" | "blocked" | "done"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      app_role: [
+        "admin",
+        "member",
+        "purchase",
+        "storekeeper",
+        "project_manager",
+        "lead_engineer",
+      ],
+      department_type: [
+        "hardware",
+        "firmware",
+        "mechanical",
+        "qa",
+        "procurement",
+        "production",
+        "executive",
+      ],
+      task_priority: ["low", "medium", "high", "urgent"],
+      task_status: ["todo", "in_progress", "in_review", "blocked", "done"],
+    },
+  },
+} as const

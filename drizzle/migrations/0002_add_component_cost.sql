@@ -1,0 +1,1 @@
+ALTER TABLE public.components ADD COLUMN cost NUMERIC(10,4);
