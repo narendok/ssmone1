@@ -9,14 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as CareersRouteImport } from './routes/careers'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as FileTokenRouteImport } from './routes/file.$token'
+import { Route as CareersSlugRouteImport } from './routes/careers.$slug'
 import { Route as AuthenticatedRdTeamRouteImport } from './routes/_authenticated/rd-team'
 import { Route as AuthenticatedPcbRouteImport } from './routes/_authenticated/pcb'
 import { Route as AuthenticatedLocationsRouteImport } from './routes/_authenticated/locations'
+import { Route as AuthenticatedHrRouteImport } from './routes/_authenticated/hr'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedDriveRouteImport } from './routes/_authenticated/drive'
 import { Route as AuthenticatedBomRouteImport } from './routes/_authenticated/bom'
@@ -33,9 +36,16 @@ import { Route as AuthenticatedProcurementVendorsRouteImport } from './routes/_a
 import { Route as AuthenticatedProcurementPendingRouteImport } from './routes/_authenticated/procurement.pending'
 import { Route as AuthenticatedProcurementOrdersRouteImport } from './routes/_authenticated/procurement.orders'
 import { Route as AuthenticatedProcurementInwardRouteImport } from './routes/_authenticated/procurement.inward'
+import { Route as AuthenticatedHrRecruitmentRouteImport } from './routes/_authenticated/hr.recruitment'
+import { Route as AuthenticatedHrLeaveRouteImport } from './routes/_authenticated/hr.leave'
 import { Route as AuthenticatedCategorySlugRouteImport } from './routes/_authenticated/category.$slug'
 import { Route as ApiPublicHooksRefreshSupplierDataRouteImport } from './routes/api/public/hooks/refresh-supplier-data'
 
+const CareersRoute = CareersRouteImport.update({
+  id: '/careers',
+  path: '/careers',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -60,6 +70,11 @@ const FileTokenRoute = FileTokenRouteImport.update({
   path: '/file/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CareersSlugRoute = CareersSlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
+  getParentRoute: () => CareersRoute,
+} as any)
 const AuthenticatedRdTeamRoute = AuthenticatedRdTeamRouteImport.update({
   id: '/rd-team',
   path: '/rd-team',
@@ -73,6 +88,11 @@ const AuthenticatedPcbRoute = AuthenticatedPcbRouteImport.update({
 const AuthenticatedLocationsRoute = AuthenticatedLocationsRouteImport.update({
   id: '/locations',
   path: '/locations',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHrRoute = AuthenticatedHrRouteImport.update({
+  id: '/hr',
+  path: '/hr',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
@@ -165,6 +185,17 @@ const AuthenticatedProcurementInwardRoute =
     path: '/procurement/inward',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedHrRecruitmentRoute =
+  AuthenticatedHrRecruitmentRouteImport.update({
+    id: '/recruitment',
+    path: '/recruitment',
+    getParentRoute: () => AuthenticatedHrRoute,
+  } as any)
+const AuthenticatedHrLeaveRoute = AuthenticatedHrLeaveRouteImport.update({
+  id: '/leave',
+  path: '/leave',
+  getParentRoute: () => AuthenticatedHrRoute,
+} as any)
 const AuthenticatedCategorySlugRoute =
   AuthenticatedCategorySlugRouteImport.update({
     id: '/category/$slug',
@@ -181,17 +212,22 @@ const ApiPublicHooksRefreshSupplierDataRoute =
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRoute
+  '/careers': typeof CareersRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
   '/drive': typeof AuthenticatedDriveRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/hr': typeof AuthenticatedHrRouteWithChildren
   '/locations': typeof AuthenticatedLocationsRoute
   '/pcb': typeof AuthenticatedPcbRoute
   '/rd-team': typeof AuthenticatedRdTeamRoute
+  '/careers/$slug': typeof CareersSlugRoute
   '/file/$token': typeof FileTokenRoute
   '/share/$token': typeof ShareTokenRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
+  '/hr/leave': typeof AuthenticatedHrLeaveRoute
+  '/hr/recruitment': typeof AuthenticatedHrRecruitmentRoute
   '/procurement/inward': typeof AuthenticatedProcurementInwardRoute
   '/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
   '/procurement/pending': typeof AuthenticatedProcurementPendingRoute
@@ -207,18 +243,23 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/careers': typeof CareersRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
   '/drive': typeof AuthenticatedDriveRoute
   '/history': typeof AuthenticatedHistoryRoute
+  '/hr': typeof AuthenticatedHrRouteWithChildren
   '/locations': typeof AuthenticatedLocationsRoute
   '/pcb': typeof AuthenticatedPcbRoute
   '/rd-team': typeof AuthenticatedRdTeamRoute
+  '/careers/$slug': typeof CareersSlugRoute
   '/file/$token': typeof FileTokenRoute
   '/share/$token': typeof ShareTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
+  '/hr/leave': typeof AuthenticatedHrLeaveRoute
+  '/hr/recruitment': typeof AuthenticatedHrRecruitmentRoute
   '/procurement/inward': typeof AuthenticatedProcurementInwardRoute
   '/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
   '/procurement/pending': typeof AuthenticatedProcurementPendingRoute
@@ -236,18 +277,23 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/careers': typeof CareersRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/assignments': typeof AuthenticatedAssignmentsRoute
   '/_authenticated/bom': typeof AuthenticatedBomRoute
   '/_authenticated/drive': typeof AuthenticatedDriveRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
+  '/_authenticated/hr': typeof AuthenticatedHrRouteWithChildren
   '/_authenticated/locations': typeof AuthenticatedLocationsRoute
   '/_authenticated/pcb': typeof AuthenticatedPcbRoute
   '/_authenticated/rd-team': typeof AuthenticatedRdTeamRoute
+  '/careers/$slug': typeof CareersSlugRoute
   '/file/$token': typeof FileTokenRoute
   '/share/$token': typeof ShareTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/category/$slug': typeof AuthenticatedCategorySlugRoute
+  '/_authenticated/hr/leave': typeof AuthenticatedHrLeaveRoute
+  '/_authenticated/hr/recruitment': typeof AuthenticatedHrRecruitmentRoute
   '/_authenticated/procurement/inward': typeof AuthenticatedProcurementInwardRoute
   '/_authenticated/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
   '/_authenticated/procurement/pending': typeof AuthenticatedProcurementPendingRoute
@@ -266,17 +312,22 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/careers'
     | '/admin'
     | '/assignments'
     | '/bom'
     | '/drive'
     | '/history'
+    | '/hr'
     | '/locations'
     | '/pcb'
     | '/rd-team'
+    | '/careers/$slug'
     | '/file/$token'
     | '/share/$token'
     | '/category/$slug'
+    | '/hr/leave'
+    | '/hr/recruitment'
     | '/procurement/inward'
     | '/procurement/orders'
     | '/procurement/pending'
@@ -292,18 +343,23 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/careers'
     | '/admin'
     | '/assignments'
     | '/bom'
     | '/drive'
     | '/history'
+    | '/hr'
     | '/locations'
     | '/pcb'
     | '/rd-team'
+    | '/careers/$slug'
     | '/file/$token'
     | '/share/$token'
     | '/'
     | '/category/$slug'
+    | '/hr/leave'
+    | '/hr/recruitment'
     | '/procurement/inward'
     | '/procurement/orders'
     | '/procurement/pending'
@@ -320,18 +376,23 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/careers'
     | '/_authenticated/admin'
     | '/_authenticated/assignments'
     | '/_authenticated/bom'
     | '/_authenticated/drive'
     | '/_authenticated/history'
+    | '/_authenticated/hr'
     | '/_authenticated/locations'
     | '/_authenticated/pcb'
     | '/_authenticated/rd-team'
+    | '/careers/$slug'
     | '/file/$token'
     | '/share/$token'
     | '/_authenticated/'
     | '/_authenticated/category/$slug'
+    | '/_authenticated/hr/leave'
+    | '/_authenticated/hr/recruitment'
     | '/_authenticated/procurement/inward'
     | '/_authenticated/procurement/orders'
     | '/_authenticated/procurement/pending'
@@ -349,6 +410,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  CareersRoute: typeof CareersRouteWithChildren
   FileTokenRoute: typeof FileTokenRoute
   ShareTokenRoute: typeof ShareTokenRoute
   ApiPublicDatasheetProxyRoute: typeof ApiPublicDatasheetProxyRoute
@@ -357,6 +419,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/careers': {
+      id: '/careers'
+      path: '/careers'
+      fullPath: '/careers'
+      preLoaderRoute: typeof CareersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -392,6 +461,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FileTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/careers/$slug': {
+      id: '/careers/$slug'
+      path: '/$slug'
+      fullPath: '/careers/$slug'
+      preLoaderRoute: typeof CareersSlugRouteImport
+      parentRoute: typeof CareersRoute
+    }
     '/_authenticated/rd-team': {
       id: '/_authenticated/rd-team'
       path: '/rd-team'
@@ -411,6 +487,13 @@ declare module '@tanstack/react-router' {
       path: '/locations'
       fullPath: '/locations'
       preLoaderRoute: typeof AuthenticatedLocationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hr': {
+      id: '/_authenticated/hr'
+      path: '/hr'
+      fullPath: '/hr'
+      preLoaderRoute: typeof AuthenticatedHrRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/history': {
@@ -525,6 +608,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProcurementInwardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/hr/recruitment': {
+      id: '/_authenticated/hr/recruitment'
+      path: '/recruitment'
+      fullPath: '/hr/recruitment'
+      preLoaderRoute: typeof AuthenticatedHrRecruitmentRouteImport
+      parentRoute: typeof AuthenticatedHrRoute
+    }
+    '/_authenticated/hr/leave': {
+      id: '/_authenticated/hr/leave'
+      path: '/leave'
+      fullPath: '/hr/leave'
+      preLoaderRoute: typeof AuthenticatedHrLeaveRouteImport
+      parentRoute: typeof AuthenticatedHrRoute
+    }
     '/_authenticated/category/$slug': {
       id: '/_authenticated/category/$slug'
       path: '/category/$slug'
@@ -542,12 +639,27 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedHrRouteChildren {
+  AuthenticatedHrLeaveRoute: typeof AuthenticatedHrLeaveRoute
+  AuthenticatedHrRecruitmentRoute: typeof AuthenticatedHrRecruitmentRoute
+}
+
+const AuthenticatedHrRouteChildren: AuthenticatedHrRouteChildren = {
+  AuthenticatedHrLeaveRoute: AuthenticatedHrLeaveRoute,
+  AuthenticatedHrRecruitmentRoute: AuthenticatedHrRecruitmentRoute,
+}
+
+const AuthenticatedHrRouteWithChildren = AuthenticatedHrRoute._addFileChildren(
+  AuthenticatedHrRouteChildren,
+)
+
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAssignmentsRoute: typeof AuthenticatedAssignmentsRoute
   AuthenticatedBomRoute: typeof AuthenticatedBomRoute
   AuthenticatedDriveRoute: typeof AuthenticatedDriveRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
+  AuthenticatedHrRoute: typeof AuthenticatedHrRouteWithChildren
   AuthenticatedLocationsRoute: typeof AuthenticatedLocationsRoute
   AuthenticatedPcbRoute: typeof AuthenticatedPcbRoute
   AuthenticatedRdTeamRoute: typeof AuthenticatedRdTeamRoute
@@ -571,6 +683,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBomRoute: AuthenticatedBomRoute,
   AuthenticatedDriveRoute: AuthenticatedDriveRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
+  AuthenticatedHrRoute: AuthenticatedHrRouteWithChildren,
   AuthenticatedLocationsRoute: AuthenticatedLocationsRoute,
   AuthenticatedPcbRoute: AuthenticatedPcbRoute,
   AuthenticatedRdTeamRoute: AuthenticatedRdTeamRoute,
@@ -591,9 +704,21 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface CareersRouteChildren {
+  CareersSlugRoute: typeof CareersSlugRoute
+}
+
+const CareersRouteChildren: CareersRouteChildren = {
+  CareersSlugRoute: CareersSlugRoute,
+}
+
+const CareersRouteWithChildren =
+  CareersRoute._addFileChildren(CareersRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  CareersRoute: CareersRouteWithChildren,
   FileTokenRoute: FileTokenRoute,
   ShareTokenRoute: ShareTokenRoute,
   ApiPublicDatasheetProxyRoute: ApiPublicDatasheetProxyRoute,
