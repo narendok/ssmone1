@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/history")({
+  head: () => ({ meta: [{ title: "PartsBench History — SSM One" }, { name: "description", content: "Inventory activity and stock change history." }, { property: "og:title", content: "PartsBench History — SSM One" }, { property: "og:description", content: "Inventory activity and stock change history." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: HistoryPage,
 });
 

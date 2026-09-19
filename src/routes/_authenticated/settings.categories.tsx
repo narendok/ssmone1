@@ -14,6 +14,7 @@ import type { Category } from "@/lib/inventory";
 import { SettingsNav } from "@/components/SettingsNav";
 
 export const Route = createFileRoute("/_authenticated/settings/categories")({
+  head: () => ({ meta: [{ title: "Category Settings — SSM One" }, { name: "description", content: "PartsBench inventory category configuration." }, { property: "og:title", content: "Category Settings — SSM One" }, { property: "og:description", content: "PartsBench inventory category configuration." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: CategorySettings,
 });
 

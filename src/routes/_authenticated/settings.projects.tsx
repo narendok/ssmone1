@@ -16,6 +16,7 @@ import { fetchProjects, type Project } from "@/lib/projects";
 import { SettingsNav } from "@/components/SettingsNav";
 
 export const Route = createFileRoute("/_authenticated/settings/projects")({
+  head: () => ({ meta: [{ title: "Project Settings — SSM One" }, { name: "description", content: "Project portfolio configuration for SSM One." }, { property: "og:title", content: "Project Settings — SSM One" }, { property: "og:description", content: "Project portfolio configuration for SSM One." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: ProjectsSettings,
 });
 

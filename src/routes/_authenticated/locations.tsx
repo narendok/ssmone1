@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/locations")({
+  head: () => ({ meta: [{ title: "Inventory Locations — SSM One" }, { name: "description", content: "Component stock by storage location." }, { property: "og:title", content: "Inventory Locations — SSM One" }, { property: "og:description", content: "Component stock by storage location." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: LocationsPage,
 });
 

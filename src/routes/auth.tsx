@@ -12,6 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
+  head: () => ({ meta: [
+    { title: "Sign in — SSM One" }, { name: "description", content: "Sign in to the SSM One operations workspace." },
+    { property: "og:title", content: "Sign in — SSM One" }, { property: "og:description", content: "Sign in to the SSM One operations workspace." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (data.session) throw redirect({ to: "/" });
