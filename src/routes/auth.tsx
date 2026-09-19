@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, redirect, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { CircuitBoard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -61,7 +60,7 @@ function AuthPage() {
         <div className="space-y-3">
            <h1 className="text-4xl font-bold leading-tight">One workspace for every operating team.</h1>
           <p className="text-primary-foreground/80 max-w-md">
-             Six Sense Mobility teams coordinate engineering, procurement, quality, and company operations from a unified workspace.
+             Six Sense Mobility teams coordinate engineering, procurement, quality, HR, and company operations from a unified workspace.
           </p>
         </div>
          <p className="text-xs text-primary-foreground/60">HEXENSE LABS PRIVATE LIMITED · SIX SENSE MOBILITY</p>
@@ -92,6 +91,11 @@ function AuthPage() {
           <Button variant="outline" className="w-full" onClick={handleGoogle} disabled={loading}>
             Continue with Google
           </Button>
+          <div className="rounded-lg border p-4 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">Exploring openings?</p>
+            <p className="mt-1">Public job pages are now live.</p>
+            <Button asChild variant="link" className="mt-2 h-auto p-0"><Link to="/careers">Open Careers</Link></Button>
+          </div>
            <p className="text-center text-xs text-muted-foreground">Access is provided by invitation. Contact your system administrator for help.</p>
 
         </div>
