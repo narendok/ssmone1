@@ -70,6 +70,7 @@ function AuthPage() {
            <Tabs defaultValue="signin">
              <TabsList className="grid w-full grid-cols-1">
                <TabsTrigger value="signin">Sign in</TabsTrigger>
+              </TabsList>
             <TabsContent value="signin" className="space-y-4 pt-4">
               <form onSubmit={handleSignIn} className="space-y-3">
                 <div className="space-y-1.5"><Label>Email</Label><Input name="email" type="email" required /></div>
