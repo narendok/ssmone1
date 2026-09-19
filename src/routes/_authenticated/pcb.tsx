@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import type { RDMember } from "@/lib/inventory";
 
 export const Route = createFileRoute("/_authenticated/pcb")({
+  head: () => ({ meta: [{ title: "PCB Repair — SSM One" }, { name: "description", content: "PCB repair task tracking for engineering teams." }, { property: "og:title", content: "PCB Repair — SSM One" }, { property: "og:description", content: "PCB repair task tracking for engineering teams." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: PcbBoardPage,
 });
 

@@ -15,6 +15,7 @@ import { DEPARTMENTS, department as findDepartment } from "@/lib/tasks";
 import type { RDMember } from "@/lib/inventory";
 
 export const Route = createFileRoute("/_authenticated/rd-team")({
+  head: () => ({ meta: [{ title: "R&D Team — SSM One" }, { name: "description", content: "Research and development team directory." }, { property: "og:title", content: "R&D Team — SSM One" }, { property: "og:description", content: "Research and development team directory." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: RDTeamPage,
 });
 

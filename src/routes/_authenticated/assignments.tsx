@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export const Route = createFileRoute("/_authenticated/assignments")({
+  head: () => ({ meta: [{ title: "Assignments — SSM One" }, { name: "description", content: "Component assignment and return tracking." }, { property: "og:title", content: "Assignments — SSM One" }, { property: "og:description", content: "Component assignment and return tracking." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
   component: AssignmentsPage,
 });
 
