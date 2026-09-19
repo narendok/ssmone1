@@ -14,6 +14,147 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_role_permissions: {
+        Row: {
+          created_at: string
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "access_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      access_roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      activity_log: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          module_key: string
+          reason: string | null
+          summary: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          module_key: string
+          reason?: string | null
+          summary: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          module_key?: string
+          reason?: string | null
+          summary?: string
+        }
+        Relationships: []
+      }
+      application_modules: {
+        Row: {
+          created_at: string
+          group_key: string
+          icon_key: string | null
+          id: string
+          key: string
+          name: string
+          route_path: string | null
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_key: string
+          icon_key?: string | null
+          id?: string
+          key: string
+          name: string
+          route_path?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_key?: string
+          icon_key?: string | null
+          id?: string
+          key?: string
+          name?: string
+          route_path?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assignment_batches: {
         Row: {
           assignee_id: string
@@ -378,6 +519,98 @@ export type Database = {
         }
         Relationships: []
       }
+      departments: {
+        Row: {
+          code: string | null
+          color: string | null
+          created_at: string
+          department_lead_user_id: string | null
+          description: string | null
+          document_code_enabled: boolean
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          parent_department_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          color?: string | null
+          created_at?: string
+          department_lead_user_id?: string | null
+          description?: string | null
+          document_code_enabled?: boolean
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          parent_department_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          color?: string | null
+          created_at?: string
+          department_lead_user_id?: string | null
+          description?: string | null
+          document_code_enabled?: boolean
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          parent_department_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "departments_parent_department_id_fkey"
+            columns: ["parent_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_numbering_config: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          key: string
+          label: string
+          metadata: Json
+          prefix_template: string
+          serial_padding: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          label: string
+          metadata?: Json
+          prefix_template: string
+          serial_padding?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          label?: string
+          metadata?: Json
+          prefix_template?: string
+          serial_padding?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       drive_node_revisions: {
         Row: {
           change_summary: string | null
@@ -576,6 +809,185 @@ export type Database = {
           },
         ]
       }
+      employee_access_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by_user_id: string | null
+          employee_id: string
+          role_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by_user_id?: string | null
+          employee_id: string
+          role_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by_user_id?: string | null
+          employee_id?: string
+          role_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_access_roles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_access_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "access_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_departments: {
+        Row: {
+          created_at: string
+          department_id: string
+          employee_id: string
+          is_primary: boolean
+        }
+        Insert: {
+          created_at?: string
+          department_id: string
+          employee_id: string
+          is_primary?: boolean
+        }
+        Update: {
+          created_at?: string
+          department_id?: string
+          employee_id?: string
+          is_primary?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_departments_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_departments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          created_at: string
+          current_work_location: string | null
+          date_of_joining: string | null
+          default_role_id: string | null
+          department_lead_user_id: string | null
+          designation: string | null
+          display_name: string | null
+          employee_code: string | null
+          employment_status: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          official_email: string | null
+          onboarding_completed_at: string | null
+          personal_email: string | null
+          phone: string | null
+          primary_department_id: string | null
+          profile_photo_url: string | null
+          reporting_manager_user_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_work_location?: string | null
+          date_of_joining?: string | null
+          default_role_id?: string | null
+          department_lead_user_id?: string | null
+          designation?: string | null
+          display_name?: string | null
+          employee_code?: string | null
+          employment_status?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          official_email?: string | null
+          onboarding_completed_at?: string | null
+          personal_email?: string | null
+          phone?: string | null
+          primary_department_id?: string | null
+          profile_photo_url?: string | null
+          reporting_manager_user_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_work_location?: string | null
+          date_of_joining?: string | null
+          default_role_id?: string | null
+          department_lead_user_id?: string | null
+          designation?: string | null
+          display_name?: string | null
+          employee_code?: string | null
+          employment_status?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          official_email?: string | null
+          onboarding_completed_at?: string | null
+          personal_email?: string | null
+          phone?: string | null
+          primary_department_id?: string | null
+          profile_photo_url?: string | null
+          reporting_manager_user_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_primary_department_id_fkey"
+            columns: ["primary_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_registry: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          permalink: string
+          qr_payload: string
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          permalink: string
+          qr_payload: string
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          permalink?: string
+          qr_payload?: string
+        }
+        Relationships: []
+      }
       goods_receipt_items: {
         Row: {
           component_id: string
@@ -725,6 +1137,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          category: string
+          created_at: string
+          id: string
+          is_read: boolean
+          read_at: string | null
+          target_url: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          read_at?: string | null
+          target_url?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          read_at?: string | null
+          target_url?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      organizations: {
+        Row: {
+          address: string | null
+          brand_name: string
+          created_at: string
+          date_format: string
+          default_classification: string
+          default_currency: string
+          default_email: string | null
+          document_branding: Json
+          financial_year_start_month: number
+          footer_text: string | null
+          header_logo_url: string | null
+          id: string
+          legal_name: string
+          logo_url: string | null
+          phone: string | null
+          timezone: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          address?: string | null
+          brand_name?: string
+          created_at?: string
+          date_format?: string
+          default_classification?: string
+          default_currency?: string
+          default_email?: string | null
+          document_branding?: Json
+          financial_year_start_month?: number
+          footer_text?: string | null
+          header_logo_url?: string | null
+          id?: string
+          legal_name?: string
+          logo_url?: string | null
+          phone?: string | null
+          timezone?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          address?: string | null
+          brand_name?: string
+          created_at?: string
+          date_format?: string
+          default_classification?: string
+          default_currency?: string
+          default_email?: string | null
+          document_branding?: Json
+          financial_year_start_month?: number
+          footer_text?: string | null
+          header_logo_url?: string | null
+          id?: string
+          legal_name?: string
+          logo_url?: string | null
+          phone?: string | null
+          timezone?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
       }
       pcb_task_history: {
         Row: {
@@ -890,6 +1401,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      permissions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          key: string
+          label: string
+          module_key: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key: string
+          label: string
+          module_key: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          key?: string
+          label?: string
+          module_key?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -1581,6 +2119,10 @@ export type Database = {
           name: string
           node_type: string
         }[]
+      }
+      has_permission: {
+        Args: { _permission_key: string; _user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
