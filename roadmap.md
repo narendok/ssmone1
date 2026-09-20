@@ -1,5 +1,9 @@
 # Unified platform roadmap
 
+## Maintenance
+
+- [x] Repair the sign-in page hydration mismatch.
+
 ## Phase 4 — Sales, customer requirements & handover
 
 - [x] Build the sales foundation: customer master, contacts, enquiries, opportunities, owner assignment, navigation and dashboard. Customer, contact, enquiry, opportunity database foundations and sales/customer overview screens are complete; enquiry and opportunity creation forms remain.
