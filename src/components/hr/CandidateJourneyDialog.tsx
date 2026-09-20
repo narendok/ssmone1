@@ -27,12 +27,13 @@ export function CandidateJourneyDialog({ application, interviews, offer, intervi
 
   if (!application) return null;
   const candidateName = application.candidate?.full_name ?? "Candidate";
+  const applicationId = application.id;
 
   async function handleSchedule(formData: FormData) {
     setPending("schedule");
     try {
       const scheduledFor = String(formData.get("scheduledFor") ?? "");
-      await schedule({ data: { applicationId: application.id, title: String(formData.get("title") ?? ""), interviewerUserId: String(formData.get("interviewer") ?? ""), scheduledFor: scheduledFor ? new Date(scheduledFor).toISOString() : null, meetingNotes: String(formData.get("notes") ?? "").trim() || null } });
+      await schedule({ data: { applicationId, title: String(formData.get("title") ?? ""), interviewerUserId: String(formData.get("interviewer") ?? ""), scheduledFor: scheduledFor ? new Date(scheduledFor).toISOString() : null, meetingNotes: String(formData.get("notes") ?? "").trim() || null } });
       toast.success("Interview scheduled");
       await queryClient.invalidateQueries({ queryKey: ["hr_recruitment_snapshot"] });
     } catch (error: any) { toast.error(error?.message ?? "Could not schedule the interview."); } finally { setPending(null); }
@@ -52,7 +53,7 @@ export function CandidateJourneyDialog({ application, interviews, offer, intervi
     setPending("offer");
     try {
       const annual = String(formData.get("annualCompensation") ?? "");
-      await save({ data: { applicationId: application.id, status: String(formData.get("status") ?? "draft") as typeof OFFER_STATUSES[number], annualCompensation: annual ? Number(annual) : null, currency: String(formData.get("currency") ?? "INR"), notes: String(formData.get("notes") ?? "").trim() || null } });
+      await save({ data: { applicationId, status: String(formData.get("status") ?? "draft") as typeof OFFER_STATUSES[number], annualCompensation: annual ? Number(annual) : null, currency: String(formData.get("currency") ?? "INR"), notes: String(formData.get("notes") ?? "").trim() || null } });
       toast.success("Offer updated");
       await queryClient.invalidateQueries({ queryKey: ["hr_recruitment_snapshot"] });
     } catch (error: any) { toast.error(error?.message ?? "Could not save the offer."); } finally { setPending(null); }
