@@ -2757,6 +2757,16 @@ export type Database = {
           node_type: string
         }[]
       }
+      get_public_application_status: {
+        Args: { _status_token: string }
+        Returns: {
+          application_id: string
+          role_title: string
+          stage: string
+          status: string
+          submitted_at: string
+        }[]
+      }
       has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean
