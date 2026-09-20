@@ -11,6 +11,8 @@ export const LEGACY_DEPARTMENTS = [
   { value: "production", label: "Production", dot: "bg-teal-500", pill: "bg-teal-500/15 text-teal-600 border-teal-500/30" },
   { value: "executive", label: "Executive / PM", dot: "bg-rose-500", pill: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
 ] as const;
+// Transitional export retained for existing read-only task views while forms use the canonical master.
+export const DEPARTMENTS = LEGACY_DEPARTMENTS;
 
 export type Department = (typeof LEGACY_DEPARTMENTS)[number]["value"];
 
