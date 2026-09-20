@@ -47,7 +47,7 @@ const MODULES = [
   ["my_work", "My Work", "Work", "/tasks", "ENABLED", 20],
   ["projects", "Projects", "Work", "/projects", "ENABLED", 30],
   ["engineering", "R&D / PartsBench", "Engineering", "/", "ENABLED", 40],
-  ["procurement", "Procurement", "Operations", "/procurement/orders", "ENABLED", 50],
+  ["procurement", "Procurement", "Operations", "/procurement/requests", "ENABLED", 50],
   ["stores", "Stores", "Operations", "/stores/inventory", "ENABLED", 55],
   ["quality", "Quality", "Operations", "/quality/incoming", "ENABLED", 60],
   ["finance", "Finance", "Operations", "/finance/expenses", "ENABLED", 65],
