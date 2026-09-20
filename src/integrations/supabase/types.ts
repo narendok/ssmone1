@@ -695,7 +695,7 @@ export type Database = {
           id: string
           opportunity_id: string
           requirement_data: Json
-          requirement_number: string
+          requirement_number: string | null
           status: string
           submitted_at: string | null
           title: string
@@ -711,7 +711,7 @@ export type Database = {
           id?: string
           opportunity_id: string
           requirement_data?: Json
-          requirement_number: string
+          requirement_number?: string | null
           status?: string
           submitted_at?: string | null
           title: string
@@ -727,7 +727,7 @@ export type Database = {
           id?: string
           opportunity_id?: string
           requirement_data?: Json
-          requirement_number?: string
+          requirement_number?: string | null
           status?: string
           submitted_at?: string | null
           title?: string
@@ -3948,7 +3948,7 @@ export type Database = {
         Row: {
           approved_at: string
           approved_by: string | null
-          baseline_number: string
+          baseline_number: string | null
           commercial_snapshot: Json
           created_at: string
           id: string
@@ -3960,7 +3960,7 @@ export type Database = {
         Insert: {
           approved_at?: string
           approved_by?: string | null
-          baseline_number: string
+          baseline_number?: string | null
           commercial_snapshot?: Json
           created_at?: string
           id?: string
@@ -3972,7 +3972,7 @@ export type Database = {
         Update: {
           approved_at?: string
           approved_by?: string | null
-          baseline_number?: string
+          baseline_number?: string | null
           commercial_snapshot?: Json
           created_at?: string
           id?: string
@@ -4172,7 +4172,7 @@ export type Database = {
           created_by: string | null
           customer_id: string | null
           enquiry_date: string
-          enquiry_number: string
+          enquiry_number: string | null
           estimated_volume: string | null
           expected_timeline: string | null
           id: string
@@ -4194,7 +4194,7 @@ export type Database = {
           created_by?: string | null
           customer_id?: string | null
           enquiry_date?: string
-          enquiry_number: string
+          enquiry_number?: string | null
           estimated_volume?: string | null
           expected_timeline?: string | null
           id?: string
@@ -4216,7 +4216,7 @@ export type Database = {
           created_by?: string | null
           customer_id?: string | null
           enquiry_date?: string
-          enquiry_number?: string
+          enquiry_number?: string | null
           estimated_volume?: string | null
           expected_timeline?: string | null
           id?: string
@@ -4361,7 +4361,7 @@ export type Database = {
           next_action_date: string | null
           next_action_owner_user_id: string | null
           notes: string | null
-          opportunity_number: string
+          opportunity_number: string | null
           primary_contact_id: string | null
           primary_sales_owner_user_id: string | null
           priority: string
@@ -4387,7 +4387,7 @@ export type Database = {
           next_action_date?: string | null
           next_action_owner_user_id?: string | null
           notes?: string | null
-          opportunity_number: string
+          opportunity_number?: string | null
           primary_contact_id?: string | null
           primary_sales_owner_user_id?: string | null
           priority?: string
@@ -4413,7 +4413,7 @@ export type Database = {
           next_action_date?: string | null
           next_action_owner_user_id?: string | null
           notes?: string | null
-          opportunity_number?: string
+          opportunity_number?: string | null
           primary_contact_id?: string | null
           primary_sales_owner_user_id?: string | null
           priority?: string
