@@ -2896,6 +2896,79 @@ export type Database = {
           },
         ]
       }
+      project_change_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by_employee_id: string | null
+          change_code: string
+          change_type: string
+          created_at: string
+          description: string | null
+          id: string
+          impact_summary: string | null
+          implemented_at: string | null
+          project_id: string
+          requested_by_employee_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_employee_id?: string | null
+          change_code: string
+          change_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact_summary?: string | null
+          implemented_at?: string | null
+          project_id: string
+          requested_by_employee_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_employee_id?: string | null
+          change_code?: string
+          change_type?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          impact_summary?: string | null
+          implemented_at?: string | null
+          project_id?: string
+          requested_by_employee_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_change_requests_approved_by_employee_id_fkey"
+            columns: ["approved_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_change_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_change_requests_requested_by_employee_id_fkey"
+            columns: ["requested_by_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_design_inputs: {
         Row: {
           acceptance_criteria: string | null
@@ -3046,6 +3119,72 @@ export type Database = {
           },
         ]
       }
+      project_issues: {
+        Row: {
+          closed_at: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          issue_code: string
+          issue_type: string
+          owner_employee_id: string | null
+          project_id: string
+          resolution: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          issue_code: string
+          issue_type?: string
+          owner_employee_id?: string | null
+          project_id: string
+          resolution?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          issue_code?: string
+          issue_type?: string
+          owner_employee_id?: string | null
+          project_id?: string
+          resolution?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_issues_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_issues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_research_records: {
         Row: {
           component_id: string | null
@@ -3116,6 +3255,66 @@ export type Database = {
           },
           {
             foreignKeyName: "project_research_records_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_stage_gates: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          evidence_note: string | null
+          gate_code: string
+          gate_type: string
+          id: string
+          owner_employee_id: string | null
+          project_id: string
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          evidence_note?: string | null
+          gate_code: string
+          gate_type?: string
+          id?: string
+          owner_employee_id?: string | null
+          project_id: string
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          evidence_note?: string | null
+          gate_code?: string
+          gate_type?: string
+          id?: string
+          owner_employee_id?: string | null
+          project_id?: string
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_stage_gates_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_stage_gates_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -4363,6 +4562,7 @@ export type Database = {
         }
         Returns: Json
       }
+      ensure_phase5_project_access_catalog: { Args: never; Returns: undefined }
       get_drive_breadcrumbs: {
         Args: { p_node_id: string }
         Returns: {

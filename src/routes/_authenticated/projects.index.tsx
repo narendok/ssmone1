@@ -31,7 +31,7 @@ function ProjectsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Projects</h1>
-          <p className="text-sm text-muted-foreground">Open a project for its files, firmware and mechanical parts.</p>
+          <p className="text-sm text-muted-foreground">Open a project workspace for delivery controls, engineering records and PartsBench files.</p>
         </div>
         <Button asChild variant="outline">
           <Link to="/settings/projects"><Settings className="h-4 w-4 mr-1" /> Manage</Link>
@@ -56,7 +56,11 @@ function ProjectsPage() {
                   {p.status === "archived" && <Badge variant="secondary">archived</Badge>}
                 </div>
                 <p className="mt-2 font-medium">{p.name}</p>
-                {p.revision && <p className="text-xs text-muted-foreground">rev {p.revision}</p>}
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <Badge variant="outline">{p.project_stage.replaceAll("_", " ")}</Badge>
+                  <Badge variant="secondary">{p.health_status}</Badge>
+                  {p.revision && <Badge variant="outline">rev {p.revision}</Badge>}
+                </div>
               </Card>
             </Link>
           ))}

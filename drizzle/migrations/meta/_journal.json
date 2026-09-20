@@ -78,6 +78,20 @@
       "when": 1789916331216,
       "tag": "0010_phase5_project_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789916448875,
+      "tag": "0011_phase5_project_delivery_registers",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789916568827,
+      "tag": "0012_phase5_project_access_catalog",
+      "breakpoints": true
     }
   ]
 }
