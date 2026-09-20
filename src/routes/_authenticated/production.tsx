@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/production" as any)({
+export const Route = createFileRoute("/_authenticated/production")({
   component: ProductionPage,
   head: () => ({ meta: [{ title: "Production — SSM One" }, { name: "description", content: "Controlled work orders, BOM material readiness, routes, kits, and production traceability." }] }),
 });
