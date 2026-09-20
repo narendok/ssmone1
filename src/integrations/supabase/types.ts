@@ -1264,6 +1264,142 @@ export type Database = {
         }
         Relationships: []
       }
+      hr_employee_onboarding_items: {
+        Row: {
+          completed_at: string | null
+          completed_by_user_id: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          is_required: boolean
+          onboarding_id: string
+          owner_kind: string
+          owner_user_id: string | null
+          sort_order: number
+          source_item_id: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by_user_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_required?: boolean
+          onboarding_id: string
+          owner_kind?: string
+          owner_user_id?: string | null
+          sort_order?: number
+          source_item_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by_user_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_required?: boolean
+          onboarding_id?: string
+          owner_kind?: string
+          owner_user_id?: string | null
+          sort_order?: number
+          source_item_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_employee_onboarding_items_onboarding_id_fkey"
+            columns: ["onboarding_id"]
+            isOneToOne: false
+            referencedRelation: "hr_employee_onboardings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_employee_onboarding_items_source_item_id_fkey"
+            columns: ["source_item_id"]
+            isOneToOne: false
+            referencedRelation: "hr_onboarding_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_employee_onboardings: {
+        Row: {
+          application_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          plan_id: string | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          welcome_kit_notes: string | null
+          welcome_kit_status: string
+        }
+        Insert: {
+          application_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          plan_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          welcome_kit_notes?: string | null
+          welcome_kit_status?: string
+        }
+        Update: {
+          application_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          plan_id?: string | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          welcome_kit_notes?: string | null
+          welcome_kit_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_employee_onboardings_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: true
+            referencedRelation: "hr_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_employee_onboardings_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_employee_onboardings_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "hr_onboarding_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_interview_feedback: {
         Row: {
           concerns: string | null
