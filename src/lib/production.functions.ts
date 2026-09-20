@@ -39,7 +39,7 @@ export const recordPhase7UnitExecution = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireProductionAccess(context, "production.edit");
     const { data: id, error } = await context.supabase.rpc("record_phase7_unit_execution", {
-      _work_order_id: data.workOrderId, _production_unit_id: data.unitId, _route_step_id: data.routeStepId ?? undefined,
+      _work_order_id: data.workOrderId, _production_unit_id: data.unitId, _route_step_id: data.routeStepId ?? "",
       _status: data.status, _notes: data.notes?.trim() || undefined,
     });
     if (error || !id) throw new Error(error?.message || "Could not record shop-floor execution.");
@@ -52,7 +52,7 @@ export const recordPhase7UnitInspection = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireProductionAccess(context, "production.edit");
     const { data: id, error } = await context.supabase.rpc("record_phase7_unit_inspection", {
-      _work_order_id: data.workOrderId, _production_unit_id: data.unitId, _route_step_id: data.routeStepId ?? undefined,
+      _work_order_id: data.workOrderId, _production_unit_id: data.unitId, _route_step_id: data.routeStepId ?? "",
       _result: data.result, _findings: data.findings?.trim() || undefined,
     });
     if (error || !id) throw new Error(error?.message || "Could not record the in-process inspection.");
