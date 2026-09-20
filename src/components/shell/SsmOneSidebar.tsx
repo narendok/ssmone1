@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BriefcaseBusiness, Building2, CircuitBoard, ClipboardList, FileSpreadsheet, FolderKanban, FolderOpen,
   GraduationCap, History, LayoutGrid, ListChecks, MapPin, PackageCheck, PlaneTakeoff, Settings2, ShoppingCart,
-  Truck, Users, Wrench, type LucideIcon,
+  Truck, Users, Wrench, WalletCards, ShieldCheck, Boxes, type LucideIcon,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -33,10 +33,17 @@ const groups: NavGroup[] = [
     { label: "R&D team", to: "/rd-team", icon: Users, permission: "engineering.view" },
   ] },
   { label: "Operations", items: [
+    { label: "Purchase requests", to: "/procurement/requests", icon: ClipboardList, permission: "procurement.view" },
     { label: "Purchase orders", to: "/procurement/orders", icon: ShoppingCart, permission: "procurement.view" },
     { label: "Pending deliveries", to: "/procurement/pending", icon: Truck, permission: "procurement.view" },
+    { label: "Supplier shipments", to: "/procurement/shipments", icon: Truck, permission: "procurement.view" },
     { label: "Inwarding (GRN)", to: "/procurement/inward", icon: PackageCheck, permission: "procurement.view" },
     { label: "Vendors", to: "/procurement/vendors", icon: Building2, permission: "procurement.view" },
+    { label: "Supplier quality", to: "/procurement/supplier-quality", icon: ShieldCheck, permission: "quality.view" },
+    { label: "Stores inventory", to: "/stores/inventory", icon: Boxes, permission: "stores.view" },
+    { label: "Incoming quality", to: "/quality/incoming", icon: ShieldCheck, permission: "quality.view" },
+    { label: "Finance", to: "/finance/expenses", icon: WalletCards, permission: "finance.view" },
+    { label: "Payment milestones", to: "/finance/payment-plans", icon: WalletCards, permission: "finance.view" },
   ] },
   { label: "HR", items: [
     { label: "HR overview", to: "/hr", icon: Users, permission: "hr.view" },

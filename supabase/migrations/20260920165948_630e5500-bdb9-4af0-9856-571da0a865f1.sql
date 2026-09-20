@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.create_purchase_request_from_bom_shortage(uuid,date) FROM PUBLIC, anon, authenticated; GRANT EXECUTE ON FUNCTION public.create_purchase_request_from_bom_shortage(uuid,date) TO service_role;

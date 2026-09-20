@@ -47,14 +47,16 @@ const MODULES = [
   ["my_work", "My Work", "Work", "/tasks", "ENABLED", 20],
   ["projects", "Projects", "Work", "/projects", "ENABLED", 30],
   ["engineering", "R&D / PartsBench", "Engineering", "/", "ENABLED", 40],
-  ["procurement", "Procurement", "Operations", "/procurement/orders", "ENABLED", 50],
-  ["quality", "Quality", "Operations", "/coming-soon/quality", "COMING_SOON", 60],
+  ["procurement", "Procurement", "Operations", "/procurement/requests", "ENABLED", 50],
+  ["stores", "Stores", "Operations", "/stores/inventory", "ENABLED", 55],
+  ["quality", "Quality", "Operations", "/quality/incoming", "ENABLED", 60],
+  ["finance", "Finance", "Operations", "/finance/expenses", "ENABLED", 65],
   ["people", "People", "Workplace", "/coming-soon/people", "COMING_SOON", 70],
   ["documents", "Documents", "Workplace", "/coming-soon/documents", "COMING_SOON", 80],
   ["admin", "Administration", "System", "/admin", "ENABLED", 90],
 ] as const;
 
-const PERMISSION_MODULES = ["home", "my_work", "projects", "engineering", "procurement", "quality", "people", "documents", "admin"];
+const PERMISSION_MODULES = ["home", "my_work", "projects", "engineering", "procurement", "stores", "quality", "finance", "people", "documents", "admin"];
 const PERMISSION_ACTIONS = ["view", "create", "edit", "delete", "approve", "share", "export", "admin"];
 const HR_PERMISSIONS = [
   ["hr.view", "hr", "View HR workspace", "Allows access to the HR workspace and employee self-service."],

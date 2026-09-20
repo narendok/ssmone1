@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { saveDepartment, saveOrganizationSettings } from "@/lib/admin.functions";
 import { confirmProvenance, updateAutomationRule } from "@/lib/automation.functions";
+import { bootstrapSsmOneFoundation } from "@/lib/ssm-admin.functions";
 import { toast } from "sonner";
 
 const areas = [
@@ -41,9 +42,9 @@ function AdminHome() {
   </PermissionGate>;
 }
 
-function AdminOverview() { return <div className="grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-2 lg:grid-cols-3">
+function AdminOverview() { const [isSynchronizing, setIsSynchronizing] = useState(false); const sync = useServerFn(bootstrapSsmOneFoundation); return <div className="space-y-4"><div className="grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-2 lg:grid-cols-3">
   {areas.map((area) => <div key={area.title} className="bg-card p-5"><area.icon className="size-5 text-primary" /><h2 className="mt-4 text-sm font-semibold">{area.title}</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">{area.detail}</p><span className="mt-5 inline-block text-xs font-medium text-muted-foreground">Configuration workspace</span></div>)}
-</div>; }
+ </div><div className="rounded-lg border bg-card p-5"><h2 className="font-semibold">System configuration</h2><p className="mt-1 text-sm text-muted-foreground">Synchronize enabled modules, departments, roles, and permission keys after an application update.</p><Button className="mt-4" disabled={isSynchronizing} onClick={async () => { setIsSynchronizing(true); try { await sync(); toast.success("System configuration synchronized."); } catch (error) { toast.error(error instanceof Error ? error.message : "Could not synchronize system configuration."); } finally { setIsSynchronizing(false); } }}>{isSynchronizing ? "Synchronizing…" : "Synchronize system configuration"}</Button></div></div>; }
 
 function OrganizationSettings() {
   const [organization, setOrganization] = useState<{ id: string; legal_name: string; brand_name: string; default_email: string | null; phone: string | null; website: string | null; address: string | null; footer_text: string | null } | null>(null);
