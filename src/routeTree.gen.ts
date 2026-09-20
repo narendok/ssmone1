@@ -17,6 +17,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as FileTokenRouteImport } from './routes/file.$token'
 import { Route as CareersSlugRouteImport } from './routes/careers.$slug'
+import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
 import { Route as AuthenticatedRdTeamRouteImport } from './routes/_authenticated/rd-team'
 import { Route as AuthenticatedPcbRouteImport } from './routes/_authenticated/pcb'
 import { Route as AuthenticatedLocationsRouteImport } from './routes/_authenticated/locations'
@@ -83,6 +84,11 @@ const CareersSlugRoute = CareersSlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
   getParentRoute: () => CareersRoute,
+} as any)
+const AuthenticatedSalesRoute = AuthenticatedSalesRouteImport.update({
+  id: '/sales',
+  path: '/sales',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedRdTeamRoute = AuthenticatedRdTeamRouteImport.update({
   id: '/rd-team',
@@ -248,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/locations': typeof AuthenticatedLocationsRoute
   '/pcb': typeof AuthenticatedPcbRoute
   '/rd-team': typeof AuthenticatedRdTeamRoute
+  '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/file/$token': typeof FileTokenRoute
   '/share/$token': typeof ShareTokenRoute
@@ -283,6 +290,7 @@ export interface FileRoutesByTo {
   '/locations': typeof AuthenticatedLocationsRoute
   '/pcb': typeof AuthenticatedPcbRoute
   '/rd-team': typeof AuthenticatedRdTeamRoute
+  '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/file/$token': typeof FileTokenRoute
   '/share/$token': typeof ShareTokenRoute
@@ -321,6 +329,7 @@ export interface FileRoutesById {
   '/_authenticated/locations': typeof AuthenticatedLocationsRoute
   '/_authenticated/pcb': typeof AuthenticatedPcbRoute
   '/_authenticated/rd-team': typeof AuthenticatedRdTeamRoute
+  '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/file/$token': typeof FileTokenRoute
   '/share/$token': typeof ShareTokenRoute
@@ -360,6 +369,7 @@ export interface FileRouteTypes {
     | '/locations'
     | '/pcb'
     | '/rd-team'
+    | '/sales'
     | '/careers/$slug'
     | '/file/$token'
     | '/share/$token'
@@ -395,6 +405,7 @@ export interface FileRouteTypes {
     | '/locations'
     | '/pcb'
     | '/rd-team'
+    | '/sales'
     | '/careers/$slug'
     | '/file/$token'
     | '/share/$token'
@@ -432,6 +443,7 @@ export interface FileRouteTypes {
     | '/_authenticated/locations'
     | '/_authenticated/pcb'
     | '/_authenticated/rd-team'
+    | '/_authenticated/sales'
     | '/careers/$slug'
     | '/file/$token'
     | '/share/$token'
@@ -524,6 +536,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/careers/$slug'
       preLoaderRoute: typeof CareersSlugRouteImport
       parentRoute: typeof CareersRoute
+    }
+    '/_authenticated/sales': {
+      id: '/_authenticated/sales'
+      path: '/sales'
+      fullPath: '/sales'
+      preLoaderRoute: typeof AuthenticatedSalesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/rd-team': {
       id: '/_authenticated/rd-team'
@@ -747,6 +766,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLocationsRoute: typeof AuthenticatedLocationsRoute
   AuthenticatedPcbRoute: typeof AuthenticatedPcbRoute
   AuthenticatedRdTeamRoute: typeof AuthenticatedRdTeamRoute
+  AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCategorySlugRoute: typeof AuthenticatedCategorySlugRoute
   AuthenticatedProcurementInwardRoute: typeof AuthenticatedProcurementInwardRoute
@@ -771,6 +791,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedLocationsRoute: AuthenticatedLocationsRoute,
   AuthenticatedPcbRoute: AuthenticatedPcbRoute,
   AuthenticatedRdTeamRoute: AuthenticatedRdTeamRoute,
+  AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCategorySlugRoute: AuthenticatedCategorySlugRoute,
   AuthenticatedProcurementInwardRoute: AuthenticatedProcurementInwardRoute,

@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
-  Building2, CircuitBoard, ClipboardList, FileSpreadsheet, FolderKanban, FolderOpen,
+  BriefcaseBusiness, Building2, CircuitBoard, ClipboardList, FileSpreadsheet, FolderKanban, FolderOpen,
   GraduationCap, History, LayoutGrid, ListChecks, MapPin, PackageCheck, PlaneTakeoff, Settings2, ShoppingCart,
   Truck, Users, Wrench, type LucideIcon,
 } from "lucide-react";
