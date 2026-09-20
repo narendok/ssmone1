@@ -1,7 +1,7 @@
 # Phase 3 roadmap
 
 - [ ] Establish any missing shared operational primitives required by the HR module without duplicating Phase 2 systems.
-- [ ] Build secure HR recruitment and public Careers flows. Public candidate intake is complete; resume intake and candidate status remain.
+- [ ] Build secure HR recruitment and public Careers flows. Public candidate intake and secure resume uploads are complete; candidate status remains.
 - [ ] Add assessments, interviews, offers, controlled candidate-to-employee conversion and invitations.
 - [ ] Build onboarding, digital ID, welcome-kit, employee self-service, leave, policies and training foundations.
 - [ ] Add connection-aware Google Workspace integration settings and guarded actions.
