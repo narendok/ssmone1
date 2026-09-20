@@ -35,6 +35,15 @@ const postingSchema = z.object({
   isPublished: z.boolean(),
 });
 
+const publicApplicationSchema = z.object({
+  postingSlug: z.string().min(2).max(120).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+  fullName: z.string().trim().min(2).max(160),
+  email: z.string().trim().email().max(254),
+  phone: z.string().trim().max(40).nullable(),
+  currentLocation: z.string().trim().max(160).nullable(),
+  coverLetter: z.string().trim().max(4000).nullable(),
+});
+
 async function getEmployeeId(sb: any, userId: string) {
   const { data, error } = await sb.from("employees").select("id").eq("user_id", userId).maybeSingle();
   if (error) throw new Error(error.message);
@@ -176,4 +185,23 @@ export const createJobPosting = createServerFn({ method: "POST" })
     });
 
     return { id: inserted.id };
+  });
+
+export const submitPublicJobApplication = createServerFn({ method: "POST" })
+  .inputValidator((data) => publicApplicationSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { createServerClient } = await import("@/integrations/supabase/client.server");
+    const sb = createServerClient();
+    const { data: result, error } = await sb.rpc("submit_public_job_application", {
+      _posting_slug: data.postingSlug,
+      _full_name: data.fullName,
+      _email: data.email,
+      _phone: data.phone ?? "",
+      _current_location: data.currentLocation ?? "",
+      _cover_letter: data.coverLetter ?? "",
+    });
+    if (error || !result) throw new Error(error?.message ?? "Could not submit your application.");
+    const parsed = result as { status_token?: string };
+    if (!parsed.status_token) throw new Error("Your application was saved, but its reference could not be created.");
+    return { statusToken: parsed.status_token };
   });
