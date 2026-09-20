@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/_authenticated/production/shop-floor")({
+export const Route = createFileRoute("/_authenticated/production/shopfloor")({
   component: ShopFloorPage,
   head: () => ({ meta: [{ title: "Shop floor — SSM One" }, { name: "description", content: "Record serialized unit execution, in-process inspection, and test evidence." }, { property: "og:title", content: "Shop floor — SSM One" }, { property: "og:description", content: "Controlled production execution and unit traceability." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
 });

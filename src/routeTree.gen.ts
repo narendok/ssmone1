@@ -39,7 +39,7 @@ import { Route as AuthenticatedSettingsProjectsRouteImport } from './routes/_aut
 import { Route as AuthenticatedSettingsCategoriesRouteImport } from './routes/_authenticated/settings.categories'
 import { Route as AuthenticatedQualityIncomingRouteImport } from './routes/_authenticated/quality.incoming'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects.$projectId'
-import { Route as AuthenticatedProductionShopFloorRouteImport } from './routes/_authenticated/production.shop-floor'
+import { Route as AuthenticatedProductionShopfloorRouteImport } from './routes/_authenticated/production.shopfloor'
 import { Route as AuthenticatedProcurementVendorsRouteImport } from './routes/_authenticated/procurement.vendors'
 import { Route as AuthenticatedProcurementSupplierQualityRouteImport } from './routes/_authenticated/procurement.supplier-quality'
 import { Route as AuthenticatedProcurementShipmentsRouteImport } from './routes/_authenticated/procurement.shipments'
@@ -217,10 +217,10 @@ const AuthenticatedProjectsProjectIdRoute =
     path: '/projects/$projectId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedProductionShopFloorRoute =
-  AuthenticatedProductionShopFloorRouteImport.update({
-    id: '/shop-floor',
-    path: '/shop-floor',
+const AuthenticatedProductionShopfloorRoute =
+  AuthenticatedProductionShopfloorRouteImport.update({
+    id: '/shopfloor',
+    path: '/shopfloor',
     getParentRoute: () => AuthenticatedProductionRoute,
   } as any)
 const AuthenticatedProcurementVendorsRoute =
@@ -374,7 +374,7 @@ export interface FileRoutesByFullPath {
   '/procurement/shipments': typeof AuthenticatedProcurementShipmentsRoute
   '/procurement/supplier-quality': typeof AuthenticatedProcurementSupplierQualityRoute
   '/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
-  '/production/shop-floor': typeof AuthenticatedProductionShopFloorRoute
+  '/production/shopfloor': typeof AuthenticatedProductionShopfloorRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/quality/incoming': typeof AuthenticatedQualityIncomingRoute
   '/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
@@ -425,7 +425,7 @@ export interface FileRoutesByTo {
   '/procurement/shipments': typeof AuthenticatedProcurementShipmentsRoute
   '/procurement/supplier-quality': typeof AuthenticatedProcurementSupplierQualityRoute
   '/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
-  '/production/shop-floor': typeof AuthenticatedProductionShopFloorRoute
+  '/production/shopfloor': typeof AuthenticatedProductionShopfloorRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/quality/incoming': typeof AuthenticatedQualityIncomingRoute
   '/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
@@ -478,7 +478,7 @@ export interface FileRoutesById {
   '/_authenticated/procurement/shipments': typeof AuthenticatedProcurementShipmentsRoute
   '/_authenticated/procurement/supplier-quality': typeof AuthenticatedProcurementSupplierQualityRoute
   '/_authenticated/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
-  '/_authenticated/production/shop-floor': typeof AuthenticatedProductionShopFloorRoute
+  '/_authenticated/production/shopfloor': typeof AuthenticatedProductionShopfloorRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/_authenticated/quality/incoming': typeof AuthenticatedQualityIncomingRoute
   '/_authenticated/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
@@ -531,7 +531,7 @@ export interface FileRouteTypes {
     | '/procurement/shipments'
     | '/procurement/supplier-quality'
     | '/procurement/vendors'
-    | '/production/shop-floor'
+    | '/production/shopfloor'
     | '/projects/$projectId'
     | '/quality/incoming'
     | '/settings/categories'
@@ -582,7 +582,7 @@ export interface FileRouteTypes {
     | '/procurement/shipments'
     | '/procurement/supplier-quality'
     | '/procurement/vendors'
-    | '/production/shop-floor'
+    | '/production/shopfloor'
     | '/projects/$projectId'
     | '/quality/incoming'
     | '/settings/categories'
@@ -634,7 +634,7 @@ export interface FileRouteTypes {
     | '/_authenticated/procurement/shipments'
     | '/_authenticated/procurement/supplier-quality'
     | '/_authenticated/procurement/vendors'
-    | '/_authenticated/production/shop-floor'
+    | '/_authenticated/production/shopfloor'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/quality/incoming'
     | '/_authenticated/settings/categories'
@@ -871,11 +871,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/production/shop-floor': {
-      id: '/_authenticated/production/shop-floor'
-      path: '/shop-floor'
-      fullPath: '/production/shop-floor'
-      preLoaderRoute: typeof AuthenticatedProductionShopFloorRouteImport
+    '/_authenticated/production/shopfloor': {
+      id: '/_authenticated/production/shopfloor'
+      path: '/shopfloor'
+      fullPath: '/production/shopfloor'
+      preLoaderRoute: typeof AuthenticatedProductionShopfloorRouteImport
       parentRoute: typeof AuthenticatedProductionRoute
     }
     '/_authenticated/procurement/vendors': {
@@ -1035,13 +1035,13 @@ const AuthenticatedHrRouteWithChildren = AuthenticatedHrRoute._addFileChildren(
 )
 
 interface AuthenticatedProductionRouteChildren {
-  AuthenticatedProductionShopFloorRoute: typeof AuthenticatedProductionShopFloorRoute
+  AuthenticatedProductionShopfloorRoute: typeof AuthenticatedProductionShopfloorRoute
 }
 
 const AuthenticatedProductionRouteChildren: AuthenticatedProductionRouteChildren =
   {
-    AuthenticatedProductionShopFloorRoute:
-      AuthenticatedProductionShopFloorRoute,
+    AuthenticatedProductionShopfloorRoute:
+      AuthenticatedProductionShopfloorRoute,
   }
 
 const AuthenticatedProductionRouteWithChildren =
