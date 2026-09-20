@@ -53,9 +53,64 @@ export const updateIncomingInspection = createServerFn({ method: "POST" })
   .inputValidator((input: { id: string; status: "ACCEPTED" | "ACCEPTED_WITH_DEVIATION" | "HOLD" | "REJECTED" | "REINSPECTION_REQUIRED"; findings?: string | null }) => input)
   .handler(async ({ data, context }) => {
     await requirePermission(context, "quality.edit");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("incoming_inspections").update({ status: data.status, findings: data.findings ?? null, disposition_by: context.userId, disposition_at: new Date().toISOString() }).eq("id", data.id);
+    const { error } = await context.supabase.rpc("decide_incoming_inspection", {
+      _inspection_id: data.id,
+      _status: data.status,
+      _findings: data.findings ?? null,
+    });
     if (error) throw new Error("Could not record the incoming-inspection decision.");
+  });
+
+type Phase6ReviewType = "purchase_request" | "quotation" | "delivery_revision" | "rtv" | "expense" | "payment_milestone";
+
+export const reviewPhase6Record = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { recordType: Phase6ReviewType; recordId: string; decision: string; notes?: string | null }) => input)
+  .handler(async ({ data, context }) => {
+    const permission = data.recordType === "expense" || data.recordType === "payment_milestone" ? "finance.edit" : data.recordType === "rtv" ? "quality.edit" : "procurement.edit";
+    await requirePermission(context, permission);
+    const { error } = await context.supabase.rpc("review_phase6_record", {
+      _record_type: data.recordType,
+      _record_id: data.recordId,
+      _decision: data.decision,
+      _notes: data.notes ?? null,
+    });
+    if (error) throw new Error("Could not record this decision.");
+  });
+
+export const createRfq = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { purchaseRequestId?: string | null; projectId?: string | null; responseDueDate?: string | null; terms?: string | null; vendorIds: string[] }) => input)
+  .handler(async ({ data, context }) => {
+    await requirePermission(context, "procurement.edit");
+    const { data: id, error } = await context.supabase.rpc("create_phase6_rfq", {
+      _purchase_request_id: data.purchaseRequestId ?? null,
+      _project_id: data.projectId ?? null,
+      _response_due_date: data.responseDueDate ?? null,
+      _terms: data.terms ?? null,
+      _vendor_ids: data.vendorIds,
+    });
+    if (error || !id) throw new Error("Could not create the RFQ.");
+    return id as string;
+  });
+
+export const createQuotation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { rfqId?: string | null; vendorId: string; quotedAt?: string | null; validUntil?: string | null; leadTimeDays?: number | null; paymentTerms?: string | null; items: { component_id?: string | null; mpn?: string | null; description?: string | null; quantity: number; unit_price: number; moq?: number | null; lead_time_days?: number | null; notes?: string | null }[] }) => input)
+  .handler(async ({ data, context }) => {
+    await requirePermission(context, "procurement.edit");
+    if (!data.vendorId || !data.items.length || data.items.some((item) => item.quantity <= 0 || item.unit_price < 0)) throw new Error("Add a vendor and at least one valid quotation line.");
+    const { data: id, error } = await context.supabase.rpc("create_phase6_quotation", {
+      _rfq_id: data.rfqId ?? null,
+      _vendor_id: data.vendorId,
+      _quoted_at: data.quotedAt ?? null,
+      _valid_until: data.validUntil ?? null,
+      _lead_time_days: data.leadTimeDays ?? null,
+      _payment_terms: data.paymentTerms ?? null,
+      _items: data.items,
+    });
+    if (error || !id) throw new Error("Could not record the supplier quotation.");
+    return id as string;
   });
 
 export const savePhase6Record = createServerFn({ method: "POST" })

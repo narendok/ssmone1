@@ -180,13 +180,14 @@ export function CreateGRNDialog({
         items,
       });
       toast.success(
-        `Stock updated. ${res.total_quantity} units accepted into ${storeNotes || "stores"} (${res.grn_number})` +
-          (res.total_rejected ? `, ${res.total_rejected} rejected.` : "."),
+        `${res.grn_number} posted. ${res.total_quantity} units are on quality hold pending incoming inspection` +
+          (res.total_rejected ? `; ${res.total_rejected} rejected.` : "."),
       );
       qc.invalidateQueries({ queryKey: ["purchase_orders"] });
       qc.invalidateQueries({ queryKey: ["grns"] });
       qc.invalidateQueries({ queryKey: ["procurement_parts"] });
       qc.invalidateQueries({ queryKey: ["components"] });
+       qc.invalidateQueries({ queryKey: ["incoming_inspections"] });
       onOpenChange(false);
     } catch (e: any) {
       toast.error(e.message ?? "Could not record the goods receipt");
@@ -320,7 +321,7 @@ export function CreateGRNDialog({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-            <Button onClick={submit} disabled={saving || !po}>{saving ? "Posting…" : "Post GRN & update stock"}</Button>
+            <Button onClick={submit} disabled={saving || !po}>{saving ? "Posting…" : "Post GRN for quality review"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
