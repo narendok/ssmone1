@@ -394,7 +394,6 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
         if (itemError) throw new Error(itemError.message);
       }
     }
-
     if (!matchedUser) {
       const redirectTo = `${process.env['PUBLIC_APP_URL'] ?? ""}/auth`;
       const invite = await supabaseAdmin.auth.admin.inviteUserByEmail(data.officialEmail, {
