@@ -839,6 +839,7 @@ export type Database = {
       }
       departments: {
         Row: {
+          aliases: string[]
           code: string | null
           color: string | null
           created_at: string
@@ -854,6 +855,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aliases?: string[]
           code?: string | null
           color?: string | null
           created_at?: string
@@ -869,6 +871,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aliases?: string[]
           code?: string | null
           color?: string | null
           created_at?: string
@@ -896,35 +899,59 @@ export type Database = {
       document_numbering_config: {
         Row: {
           created_at: string
+          current_sequence: number
+          entity_type: string | null
           id: string
+          include_department: boolean
+          include_project: boolean
+          include_year: boolean
           is_active: boolean
           key: string
           label: string
           metadata: Json
           prefix_template: string
+          reset_policy: string
+          separator: string
           serial_padding: number
+          starting_number: number
           updated_at: string
         }
         Insert: {
           created_at?: string
+          current_sequence?: number
+          entity_type?: string | null
           id?: string
+          include_department?: boolean
+          include_project?: boolean
+          include_year?: boolean
           is_active?: boolean
           key: string
           label: string
           metadata?: Json
           prefix_template: string
+          reset_policy?: string
+          separator?: string
           serial_padding?: number
+          starting_number?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
+          current_sequence?: number
+          entity_type?: string | null
           id?: string
+          include_department?: boolean
+          include_project?: boolean
+          include_year?: boolean
           is_active?: boolean
           key?: string
           label?: string
           metadata?: Json
           prefix_template?: string
+          reset_policy?: string
+          separator?: string
           serial_padding?: number
+          starting_number?: number
           updated_at?: string
         }
         Relationships: []
@@ -1527,6 +1554,7 @@ export type Database = {
       }
       hr_candidates: {
         Row: {
+          candidate_code: string | null
           confirmed_profile: Json
           created_at: string
           created_by: string | null
@@ -1545,6 +1573,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          candidate_code?: string | null
           confirmed_profile?: Json
           created_at?: string
           created_by?: string | null
@@ -1563,6 +1592,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          candidate_code?: string | null
           confirmed_profile?: Json
           created_at?: string
           created_by?: string | null
@@ -1821,6 +1851,7 @@ export type Database = {
           employment_type: string
           id: string
           is_published: boolean
+          job_code: string | null
           location: string | null
           published_at: string | null
           requisition_id: string | null
@@ -1838,6 +1869,7 @@ export type Database = {
           employment_type?: string
           id?: string
           is_published?: boolean
+          job_code?: string | null
           location?: string | null
           published_at?: string | null
           requisition_id?: string | null
@@ -1855,6 +1887,7 @@ export type Database = {
           employment_type?: string
           id?: string
           is_published?: boolean
+          job_code?: string | null
           location?: string | null
           published_at?: string | null
           requisition_id?: string | null
@@ -1881,6 +1914,71 @@ export type Database = {
           },
         ]
       }
+      hr_job_profiles: {
+        Row: {
+          assessment_template: string | null
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          designation: string | null
+          education: string | null
+          experience: string | null
+          id: string
+          interview_template: string | null
+          is_active: boolean
+          job_description: string | null
+          preferred_skills: string | null
+          profile_name: string
+          required_skills: string | null
+          responsibilities: string | null
+          updated_at: string
+        }
+        Insert: {
+          assessment_template?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          designation?: string | null
+          education?: string | null
+          experience?: string | null
+          id?: string
+          interview_template?: string | null
+          is_active?: boolean
+          job_description?: string | null
+          preferred_skills?: string | null
+          profile_name: string
+          required_skills?: string | null
+          responsibilities?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assessment_template?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          designation?: string | null
+          education?: string | null
+          experience?: string | null
+          id?: string
+          interview_template?: string | null
+          is_active?: boolean
+          job_description?: string | null
+          preferred_skills?: string | null
+          profile_name?: string
+          required_skills?: string | null
+          responsibilities?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_job_profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_job_requisitions: {
         Row: {
           created_at: string
@@ -1890,8 +1988,10 @@ export type Database = {
           headcount: number
           hiring_manager_user_id: string | null
           id: string
+          job_profile_id: string | null
           justification: string | null
           location: string | null
+          requisition_code: string | null
           status: string
           target_start_date: string | null
           title: string
@@ -1906,8 +2006,10 @@ export type Database = {
           headcount?: number
           hiring_manager_user_id?: string | null
           id?: string
+          job_profile_id?: string | null
           justification?: string | null
           location?: string | null
+          requisition_code?: string | null
           status?: string
           target_start_date?: string | null
           title: string
@@ -1922,8 +2024,10 @@ export type Database = {
           headcount?: number
           hiring_manager_user_id?: string | null
           id?: string
+          job_profile_id?: string | null
           justification?: string | null
           location?: string | null
+          requisition_code?: string | null
           status?: string
           target_start_date?: string | null
           title?: string
@@ -1936,6 +2040,13 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_job_requisitions_job_profile_id_fkey"
+            columns: ["job_profile_id"]
+            isOneToOne: false
+            referencedRelation: "hr_job_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -4600,6 +4711,14 @@ export type Database = {
       mark_po_sent: {
         Args: { _address: string; _po_id: string }
         Returns: Json
+      }
+      next_business_number: {
+        Args: {
+          _department_code?: string
+          _entity_type: string
+          _project_code?: string
+        }
+        Returns: string
       }
       next_document_number: { Args: { _kind: string }; Returns: string }
       provision_drive_for_project: {

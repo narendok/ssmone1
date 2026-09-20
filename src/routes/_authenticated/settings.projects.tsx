@@ -144,11 +144,11 @@ function ProjectDialog({ open, onClose, editing, onSaved }: {
   }, [open, editing]);
 
   async function handleSave() {
-    if (!name.trim() || !code.trim()) return toast.error("Name and code are required");
+    if (!name.trim()) return toast.error("Name is required");
     setSaving(true);
     const payload = {
       name: name.trim(),
-      code: code.trim().toUpperCase(),
+      ...(editing ? { code: code.trim().toUpperCase() } : {}),
       color,
       status,
       revision: revision.trim() || null,
@@ -180,7 +180,7 @@ function ProjectDialog({ open, onClose, editing, onSaved }: {
         <div className="grid gap-3">
           <div className="grid grid-cols-3 gap-3">
             <div className="col-span-2"><Label>Name</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-            <div><Label>Short code</Label><Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} className="font-mono" placeholder="ALPHA" /></div>
+            <div><Label>Project code</Label><Input value={code} disabled={!editing} onChange={(e) => setCode(e.target.value.toUpperCase())} className="font-mono" placeholder={editing ? "Project code" : "Generated on save"} /></div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>

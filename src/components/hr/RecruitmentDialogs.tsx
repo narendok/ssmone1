@@ -69,7 +69,7 @@ export function CreateRequisitionDialog({
           targetStartDate: form.targetStartDate || null,
         },
       });
-      toast.success("Requisition saved");
+      toast.success("Job opening created");
       onOpenChange(false);
       onSubmitted();
     } catch (error: any) {
@@ -83,8 +83,8 @@ export function CreateRequisitionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>New requisition</DialogTitle>
-          <DialogDescription>Capture the hiring need before publishing an opening.</DialogDescription>
+          <DialogTitle>New job opening</DialogTitle>
+          <DialogDescription>The opening code is assigned automatically. Add the essentials now; publish the careers page when ready.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5 sm:col-span-2">
@@ -98,7 +98,7 @@ export function CreateRequisitionDialog({
               <SelectContent>
                 <SelectItem value={NONE}>Not set</SelectItem>
                 {departments.map((department) => (
-                  <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>
+                    <SelectItem key={department.id} value={department.id}>{department.code ? `${department.code} — ` : ""}{department.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -130,7 +130,7 @@ export function CreateRequisitionDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={saving}>{saving ? "Saving…" : "Save requisition"}</Button>
+          <Button onClick={handleSubmit} disabled={saving}>{saving ? "Saving…" : "Create job opening"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -231,7 +231,7 @@ export function CreatePostingDialog({
               <SelectContent>
                 <SelectItem value={NONE}>Standalone opening</SelectItem>
                 {requisitions.map((requisition) => (
-                  <SelectItem key={requisition.id} value={requisition.id}>{requisition.title}</SelectItem>
+                  <SelectItem key={requisition.id} value={requisition.id}>{requisition.requisition_code ? `${requisition.requisition_code} — ` : ""}{requisition.title}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -255,7 +255,7 @@ export function CreatePostingDialog({
               <SelectContent>
                 <SelectItem value={NONE}>Not set</SelectItem>
                 {departments.map((department) => (
-                  <SelectItem key={department.id} value={department.id}>{department.name}</SelectItem>
+                  <SelectItem key={department.id} value={department.id}>{department.code ? `${department.code} — ` : ""}{department.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
