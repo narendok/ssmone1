@@ -1,0 +1,14 @@
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { LoaderCircle } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { createPolicy } from "@/lib/hr.functions";
+
+export function CreatePolicyDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) { const create = useServerFn(createPolicy); const queryClient = useQueryClient(); const [pending, setPending] = useState(false); async function submit(event: React.FormEvent<HTMLFormElement>) { event.preventDefault(); setPending(true); const form = new FormData(event.currentTarget); try { await create({ data: { policyCode: String(form.get("code") ?? "").trim().toUpperCase(), title: String(form.get("title") ?? ""), summary: String(form.get("summary") ?? "").trim() || null, version: String(form.get("version") ?? "1.0"), isActive: form.get("active") === "on" } }); toast.success("Policy saved"); onOpenChange(false); await queryClient.invalidateQueries({ queryKey: ["hr_policies"] }); } catch (error: any) { toast.error(error?.message ?? "Could not save policy."); } finally { setPending(false); } } return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent><DialogHeader><DialogTitle>New policy</DialogTitle><DialogDescription>Create a versioned policy for employees to review and acknowledge.</DialogDescription></DialogHeader><form className="space-y-4" onSubmit={submit}><div className="grid gap-3 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="policy-code">Policy code</Label><Input id="policy-code" name="code" required placeholder="HR-LEAVE" /></div><div className="space-y-1.5"><Label htmlFor="policy-version">Version</Label><Input id="policy-version" name="version" defaultValue="1.0" required /></div></div><div className="space-y-1.5"><Label htmlFor="policy-title">Title</Label><Input id="policy-title" name="title" required placeholder="Leave policy" /></div><Textarea name="summary" rows={5} placeholder="Policy summary and acknowledgement context" /><div className="flex items-center gap-2"><Checkbox id="policy-active" name="active" defaultChecked /><Label htmlFor="policy-active">Publish for employee acknowledgement</Label></div><DialogFooter><Button disabled={pending}>{pending && <LoaderCircle className="size-4 animate-spin" />} Save policy</Button></DialogFooter></form></DialogContent></Dialog>; }
