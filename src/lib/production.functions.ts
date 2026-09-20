@@ -39,8 +39,8 @@ export const recordPhase7UnitExecution = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireProductionAccess(context, "production.edit");
     const { data: id, error } = await context.supabase.rpc("record_phase7_unit_execution", {
-      _work_order_id: data.workOrderId, _production_unit_id: data.unitId, _route_step_id: data.routeStepId ?? null,
-      _status: data.status, _notes: data.notes?.trim() || null,
+      _work_order_id: data.workOrderId, _production_unit_id: data.unitId, _route_step_id: data.routeStepId ?? undefined,
+      _status: data.status, _notes: data.notes?.trim() || undefined,
     });
     if (error || !id) throw new Error(error?.message || "Could not record shop-floor execution.");
     return id as string;
@@ -52,8 +52,8 @@ export const recordPhase7UnitInspection = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireProductionAccess(context, "production.edit");
     const { data: id, error } = await context.supabase.rpc("record_phase7_unit_inspection", {
-      _work_order_id: data.workOrderId, _production_unit_id: data.unitId, _route_step_id: data.routeStepId ?? null,
-      _result: data.result, _findings: data.findings?.trim() || null,
+      _work_order_id: data.workOrderId, _production_unit_id: data.unitId, _route_step_id: data.routeStepId ?? undefined,
+      _result: data.result, _findings: data.findings?.trim() || undefined,
     });
     if (error || !id) throw new Error(error?.message || "Could not record the in-process inspection.");
     return id as string;
@@ -67,7 +67,7 @@ export const recordPhase7UnitTest = createServerFn({ method: "POST" })
     if (!data.testType.trim()) throw new Error("Enter the test type.");
     const { data: id, error } = await context.supabase.rpc("record_phase7_unit_test", {
       _work_order_id: data.workOrderId, _production_unit_id: data.unitId, _test_type: data.testType.trim(),
-      _result: data.result, _notes: data.notes?.trim() || null,
+      _result: data.result, _notes: data.notes?.trim() || undefined,
     });
     if (error || !id) throw new Error(error?.message || "Could not record the production test.");
     return id as string;
@@ -78,6 +78,6 @@ export const dispositionPhase7Ncr = createServerFn({ method: "POST" })
   .inputValidator((input: { ncrId: string; status: "UNDER_REVIEW" | "REWORK" | "SCRAP" | "CLOSED"; notes?: string | null }) => input)
   .handler(async ({ data, context }) => {
     await requireProductionAccess(context, "production.approve");
-    const { error } = await context.supabase.rpc("disposition_phase7_ncr", { _ncr_id: data.ncrId, _status: data.status, _notes: data.notes?.trim() || null });
+    const { error } = await context.supabase.rpc("disposition_phase7_ncr", { _ncr_id: data.ncrId, _status: data.status, _notes: data.notes?.trim() || undefined });
     if (error) throw new Error(error.message || "Could not disposition the production NCR.");
   });
