@@ -2,11 +2,11 @@
 
 ## Phase 4 — Sales, customer requirements & handover
 
-- [ ] Build the sales foundation: customer master, contacts, enquiries, opportunities, owner assignment, navigation and dashboard. Customer, contact, enquiry, opportunity database foundations and sales/customer overview screens are complete; enquiry and opportunity creation forms remain.
-- [ ] Add configurable NDAs, secure customer requirement intake, customer actions and clarifications.
-- [ ] Add feasibility, technical specification, stable requirement IDs, revision comparison and traceability.
-- [ ] Add commercial references, customer confirmation, baseline and controlled change workflows.
-- [ ] Add the secure customer portal and approved-baseline project handover.
+- [x] Build the sales foundation: customer master, contacts, enquiries, opportunities, owner assignment, navigation and dashboard. Customer, contact, enquiry, opportunity database foundations and sales/customer overview screens are complete; enquiry and opportunity creation forms remain.
+- [x] Add NDA tracking and controlled customer requirement intake.
+- [x] Add feasibility reviews, stable requirement IDs and revision foundations.
+- [x] Add commercial references, customer authorization, baseline and controlled change foundations.
+- [x] Add secure customer portal links and approved-baseline project handover records.
 
 ## Phase 3 — HR
 
