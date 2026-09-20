@@ -52,4 +52,5 @@
 
 - [x] Establish the controlled production foundation: role-gated Production workspace, configurable routes, BOM-snapshotted work orders, material readiness, lot-linked kitting records, and unique unit serialization.
 - [x] Add server-controlled work-order creation and lifecycle transitions, including material-readiness blocking before release and approval-gated release/completion.
-- [ ] Add shop-floor execution, in-process quality, testing, NCR/rework/scrap, finished-goods release, PPAP, and dispatch controls without duplicating shared systems.
+- [x] Add shop-floor execution, in-process quality, testing, and approval-gated NCR/rework/scrap dispositions with unit-level traceability.
+- [ ] Add finished-goods release, PPAP, and dispatch controls without duplicating shared systems.

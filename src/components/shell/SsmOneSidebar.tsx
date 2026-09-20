@@ -44,6 +44,7 @@ const groups: NavGroup[] = [
     { label: "Supplier quality", to: "/procurement/supplier-quality", icon: ShieldCheck, permission: "quality.view" },
      { label: "Supplier returns", to: "/procurement/returns", icon: Truck, permission: "quality.view" },
     { label: "Stores inventory", to: "/stores/inventory", icon: Boxes, permission: "stores.view" },
+     { label: "Production control", to: "/production", icon: Factory, permission: "production.view" },
     { label: "Incoming quality", to: "/quality/incoming", icon: ShieldCheck, permission: "quality.view" },
     { label: "Finance", to: "/finance/expenses", icon: WalletCards, permission: "finance.view" },
     { label: "Payment milestones", to: "/finance/payment-plans", icon: WalletCards, permission: "finance.view" },
