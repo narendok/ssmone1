@@ -68,7 +68,6 @@ const onboardingItemSchema = z.object({
 const launchOnboardingSchema = z.object({
   applicationId: z.string().uuid(),
   planId: z.string().uuid().nullable(),
-  employeeCode: z.string().trim().min(2).max(64),
   officialEmail: z.string().trim().email().max(254),
   designation: z.string().trim().max(160).nullable(),
   departmentId: z.string().uuid().nullable(),
@@ -330,7 +329,6 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
 
     const { data: employee, error: employeeError } = await supabaseAdmin.from("employees").insert({
       user_id: matchedUser?.id ?? null,
-      employee_code: data.employeeCode,
       first_name: firstName || null,
       last_name: lastNameParts.join(" ") || null,
       display_name: fullName,
@@ -342,7 +340,7 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
       reporting_manager_user_id: data.reportingManagerUserId,
       employment_status: matchedUser ? "ACTIVE" : "INVITED",
       date_of_joining: data.startDate,
-    }).select("id").single();
+    }).select("id,employee_code").single();
     if (employeeError || !employee) throw new Error(employeeError?.message ?? "Could not create the employee profile.");
 
     if (data.departmentId) {
@@ -408,7 +406,7 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
     }
 
     await logActivity(sb, context.userId, "employee_onboarding", onboarding.id, "launched", `Started onboarding for ${fullName}`, { employeeId: employee.id, applicationId: data.applicationId });
-    return { employeeId: employee.id, onboardingId: onboarding.id };
+    return { employeeId: employee.id, onboardingId: onboarding.id, employeeCode: employee.employee_code };
   });
 
 export const updateEmployeeOnboardingItem = createServerFn({ method: "POST" })
