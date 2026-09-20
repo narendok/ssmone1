@@ -24,7 +24,7 @@ function suggestedStatus(stage: string, currentStatus: string) {
   return TERMINAL_STATUSES.has(stage) ? stage : TERMINAL_STATUSES.has(currentStatus) ? "active" : currentStatus;
 }
 
-export function CandidatePipeline({ applications, interviews, offers, interviewers }: { applications: HrApplication[]; interviews: HrInterviewRound[]; offers: HrOffer[]; interviewers: Array<{ id: string; display_name: string | null; official_email: string | null }> }) {
+export function CandidatePipeline({ applications, interviews, offers, interviewers, onboardingPlans = [] }: { applications: HrApplication[]; interviews: HrInterviewRound[]; offers: HrOffer[]; interviewers: Array<{ id: string; display_name: string | null; official_email: string | null }>; onboardingPlans?: import("@/lib/hr").HrOnboardingPlan[] }) {
   const queryClient = useQueryClient();
   const updatePipeline = useServerFn(updateApplicationPipeline);
   const getResumeUrl = useServerFn(getCandidateResumeUrl);
@@ -122,7 +122,7 @@ export function CandidatePipeline({ applications, interviews, offers, interviewe
         </div>
       </CardContent>
       <CandidateJourneyDialog application={journeyApplication} interviews={interviews} offer={offers.find((offer) => offer.application_id === journeyApplication?.id)} interviewers={interviewers} open={Boolean(journeyApplication)} onOpenChange={(open) => { if (!open) setJourneyApplication(null); }} />
-      <StartEmployeeOnboardingDialog application={onboardingApplication} plans={[]} open={Boolean(onboardingApplication)} onOpenChange={(open) => { if (!open) setOnboardingApplication(null); }} />
+      <StartEmployeeOnboardingDialog application={onboardingApplication} plans={onboardingPlans} open={Boolean(onboardingApplication)} onOpenChange={(open) => { if (!open) setOnboardingApplication(null); }} />
     </Card>
   );
 }
