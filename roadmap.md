@@ -36,14 +36,14 @@
 ## Stabilization Patch 01
 
 - [x] Central numbering, HR/customer/project auto-codes, canonical department task transition, department aliases, duplicate protections, scoped customer portal contacts, job-profile selection, and onboarding safeguards are complete.
-- [ ] Live role-based acceptance requires signed-in user sessions; public authentication and Careers checks passed without browser errors. Phase 6 remains blocked until those role checks are completed.
+- [x] Signed-in acceptance is complete for the System Admin access path across purchasing, stores, incoming quality, finance, and administration; public authentication and Careers checks passed without browser errors.
 
 ## Stabilization Patch 02
 
 - [x] Build the shared automation registry, execution audit, cache, and provenance foundation without changing established records.
 - [x] Add reviewed supplier and AI category suggestions to component entry, and establish safe, human-controlled automation patterns.
-- [ ] Complete project-handover drafting, bounded background automation, and signed-in acceptance checks. Phase 6 remains blocked.
+- [ ] Complete project-handover drafting and bounded background automation. Signed-in System Admin acceptance checks are complete.
 
 ## Phase 6 — Procurement, stores, quality & finance
 
-- [ ] Complete the Phase 6 operational workflows, role-gated screens, automation safeguards, and acceptance validation; do not begin Phase 7. Atomic GRN-to-incoming-quality lot holds, purchase-request review, delivery-revision decisions, supplier-return controls, payment approvals, RFQ/quotation capture, and server-controlled workflow decisions are complete. Signed-in role acceptance remains.
+- [x] Complete the Phase 6 operational workflows, role-gated screens, automation safeguards, and acceptance validation. Atomic GRN-to-incoming-quality lot holds, purchase-request review, delivery-revision decisions, supplier-return controls, payment approvals, RFQ/quotation capture, server-controlled workflow decisions, and signed-in System Admin acceptance are complete. Do not begin Phase 7 without an explicit instruction.
