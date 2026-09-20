@@ -41,10 +41,12 @@ import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_au
 import { Route as AuthenticatedProcurementVendorsRouteImport } from './routes/_authenticated/procurement.vendors'
 import { Route as AuthenticatedProcurementSupplierQualityRouteImport } from './routes/_authenticated/procurement.supplier-quality'
 import { Route as AuthenticatedProcurementShipmentsRouteImport } from './routes/_authenticated/procurement.shipments'
+import { Route as AuthenticatedProcurementReturnsRouteImport } from './routes/_authenticated/procurement.returns'
 import { Route as AuthenticatedProcurementRequestsRouteImport } from './routes/_authenticated/procurement.requests'
 import { Route as AuthenticatedProcurementPendingRouteImport } from './routes/_authenticated/procurement.pending'
 import { Route as AuthenticatedProcurementOrdersRouteImport } from './routes/_authenticated/procurement.orders'
 import { Route as AuthenticatedProcurementInwardRouteImport } from './routes/_authenticated/procurement.inward'
+import { Route as AuthenticatedProcurementDeliveryRevisionsRouteImport } from './routes/_authenticated/procurement.delivery-revisions'
 import { Route as AuthenticatedHrTrainingRouteImport } from './routes/_authenticated/hr.training'
 import { Route as AuthenticatedHrRecruitmentRouteImport } from './routes/_authenticated/hr.recruitment'
 import { Route as AuthenticatedHrPoliciesRouteImport } from './routes/_authenticated/hr.policies'
@@ -225,6 +227,12 @@ const AuthenticatedProcurementShipmentsRoute =
     path: '/procurement/shipments',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedProcurementReturnsRoute =
+  AuthenticatedProcurementReturnsRouteImport.update({
+    id: '/procurement/returns',
+    path: '/procurement/returns',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProcurementRequestsRoute =
   AuthenticatedProcurementRequestsRouteImport.update({
     id: '/procurement/requests',
@@ -247,6 +255,12 @@ const AuthenticatedProcurementInwardRoute =
   AuthenticatedProcurementInwardRouteImport.update({
     id: '/procurement/inward',
     path: '/procurement/inward',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProcurementDeliveryRevisionsRoute =
+  AuthenticatedProcurementDeliveryRevisionsRouteImport.update({
+    id: '/procurement/delivery-revisions',
+    path: '/procurement/delivery-revisions',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedHrTrainingRoute = AuthenticatedHrTrainingRouteImport.update({
@@ -329,10 +343,12 @@ export interface FileRoutesByFullPath {
   '/hr/policies': typeof AuthenticatedHrPoliciesRoute
   '/hr/recruitment': typeof AuthenticatedHrRecruitmentRoute
   '/hr/training': typeof AuthenticatedHrTrainingRoute
+  '/procurement/delivery-revisions': typeof AuthenticatedProcurementDeliveryRevisionsRoute
   '/procurement/inward': typeof AuthenticatedProcurementInwardRoute
   '/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
   '/procurement/pending': typeof AuthenticatedProcurementPendingRoute
   '/procurement/requests': typeof AuthenticatedProcurementRequestsRoute
+  '/procurement/returns': typeof AuthenticatedProcurementReturnsRoute
   '/procurement/shipments': typeof AuthenticatedProcurementShipmentsRoute
   '/procurement/supplier-quality': typeof AuthenticatedProcurementSupplierQualityRoute
   '/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
@@ -375,10 +391,12 @@ export interface FileRoutesByTo {
   '/hr/policies': typeof AuthenticatedHrPoliciesRoute
   '/hr/recruitment': typeof AuthenticatedHrRecruitmentRoute
   '/hr/training': typeof AuthenticatedHrTrainingRoute
+  '/procurement/delivery-revisions': typeof AuthenticatedProcurementDeliveryRevisionsRoute
   '/procurement/inward': typeof AuthenticatedProcurementInwardRoute
   '/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
   '/procurement/pending': typeof AuthenticatedProcurementPendingRoute
   '/procurement/requests': typeof AuthenticatedProcurementRequestsRoute
+  '/procurement/returns': typeof AuthenticatedProcurementReturnsRoute
   '/procurement/shipments': typeof AuthenticatedProcurementShipmentsRoute
   '/procurement/supplier-quality': typeof AuthenticatedProcurementSupplierQualityRoute
   '/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
@@ -423,10 +441,12 @@ export interface FileRoutesById {
   '/_authenticated/hr/policies': typeof AuthenticatedHrPoliciesRoute
   '/_authenticated/hr/recruitment': typeof AuthenticatedHrRecruitmentRoute
   '/_authenticated/hr/training': typeof AuthenticatedHrTrainingRoute
+  '/_authenticated/procurement/delivery-revisions': typeof AuthenticatedProcurementDeliveryRevisionsRoute
   '/_authenticated/procurement/inward': typeof AuthenticatedProcurementInwardRoute
   '/_authenticated/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
   '/_authenticated/procurement/pending': typeof AuthenticatedProcurementPendingRoute
   '/_authenticated/procurement/requests': typeof AuthenticatedProcurementRequestsRoute
+  '/_authenticated/procurement/returns': typeof AuthenticatedProcurementReturnsRoute
   '/_authenticated/procurement/shipments': typeof AuthenticatedProcurementShipmentsRoute
   '/_authenticated/procurement/supplier-quality': typeof AuthenticatedProcurementSupplierQualityRoute
   '/_authenticated/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
@@ -471,10 +491,12 @@ export interface FileRouteTypes {
     | '/hr/policies'
     | '/hr/recruitment'
     | '/hr/training'
+    | '/procurement/delivery-revisions'
     | '/procurement/inward'
     | '/procurement/orders'
     | '/procurement/pending'
     | '/procurement/requests'
+    | '/procurement/returns'
     | '/procurement/shipments'
     | '/procurement/supplier-quality'
     | '/procurement/vendors'
@@ -517,10 +539,12 @@ export interface FileRouteTypes {
     | '/hr/policies'
     | '/hr/recruitment'
     | '/hr/training'
+    | '/procurement/delivery-revisions'
     | '/procurement/inward'
     | '/procurement/orders'
     | '/procurement/pending'
     | '/procurement/requests'
+    | '/procurement/returns'
     | '/procurement/shipments'
     | '/procurement/supplier-quality'
     | '/procurement/vendors'
@@ -564,10 +588,12 @@ export interface FileRouteTypes {
     | '/_authenticated/hr/policies'
     | '/_authenticated/hr/recruitment'
     | '/_authenticated/hr/training'
+    | '/_authenticated/procurement/delivery-revisions'
     | '/_authenticated/procurement/inward'
     | '/_authenticated/procurement/orders'
     | '/_authenticated/procurement/pending'
     | '/_authenticated/procurement/requests'
+    | '/_authenticated/procurement/returns'
     | '/_authenticated/procurement/shipments'
     | '/_authenticated/procurement/supplier-quality'
     | '/_authenticated/procurement/vendors'
@@ -821,6 +847,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProcurementShipmentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/procurement/returns': {
+      id: '/_authenticated/procurement/returns'
+      path: '/procurement/returns'
+      fullPath: '/procurement/returns'
+      preLoaderRoute: typeof AuthenticatedProcurementReturnsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/procurement/requests': {
       id: '/_authenticated/procurement/requests'
       path: '/procurement/requests'
@@ -847,6 +880,13 @@ declare module '@tanstack/react-router' {
       path: '/procurement/inward'
       fullPath: '/procurement/inward'
       preLoaderRoute: typeof AuthenticatedProcurementInwardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/procurement/delivery-revisions': {
+      id: '/_authenticated/procurement/delivery-revisions'
+      path: '/procurement/delivery-revisions'
+      fullPath: '/procurement/delivery-revisions'
+      preLoaderRoute: typeof AuthenticatedProcurementDeliveryRevisionsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/hr/training': {
@@ -951,10 +991,12 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCategorySlugRoute: typeof AuthenticatedCategorySlugRoute
   AuthenticatedFinanceExpensesRoute: typeof AuthenticatedFinanceExpensesRoute
   AuthenticatedFinancePaymentPlansRoute: typeof AuthenticatedFinancePaymentPlansRoute
+  AuthenticatedProcurementDeliveryRevisionsRoute: typeof AuthenticatedProcurementDeliveryRevisionsRoute
   AuthenticatedProcurementInwardRoute: typeof AuthenticatedProcurementInwardRoute
   AuthenticatedProcurementOrdersRoute: typeof AuthenticatedProcurementOrdersRoute
   AuthenticatedProcurementPendingRoute: typeof AuthenticatedProcurementPendingRoute
   AuthenticatedProcurementRequestsRoute: typeof AuthenticatedProcurementRequestsRoute
+  AuthenticatedProcurementReturnsRoute: typeof AuthenticatedProcurementReturnsRoute
   AuthenticatedProcurementShipmentsRoute: typeof AuthenticatedProcurementShipmentsRoute
   AuthenticatedProcurementSupplierQualityRoute: typeof AuthenticatedProcurementSupplierQualityRoute
   AuthenticatedProcurementVendorsRoute: typeof AuthenticatedProcurementVendorsRoute
@@ -984,10 +1026,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCategorySlugRoute: AuthenticatedCategorySlugRoute,
   AuthenticatedFinanceExpensesRoute: AuthenticatedFinanceExpensesRoute,
   AuthenticatedFinancePaymentPlansRoute: AuthenticatedFinancePaymentPlansRoute,
+  AuthenticatedProcurementDeliveryRevisionsRoute:
+    AuthenticatedProcurementDeliveryRevisionsRoute,
   AuthenticatedProcurementInwardRoute: AuthenticatedProcurementInwardRoute,
   AuthenticatedProcurementOrdersRoute: AuthenticatedProcurementOrdersRoute,
   AuthenticatedProcurementPendingRoute: AuthenticatedProcurementPendingRoute,
   AuthenticatedProcurementRequestsRoute: AuthenticatedProcurementRequestsRoute,
+  AuthenticatedProcurementReturnsRoute: AuthenticatedProcurementReturnsRoute,
   AuthenticatedProcurementShipmentsRoute:
     AuthenticatedProcurementShipmentsRoute,
   AuthenticatedProcurementSupplierQualityRoute:
