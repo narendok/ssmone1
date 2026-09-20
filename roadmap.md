@@ -32,3 +32,7 @@
 - [x] Add the project portfolio and workspace surfaces for delivery governance, BOMs, files, firmware, CAD and project tasks.
 - [x] Preserve existing PartsBench project, BOM, Drive, firmware, CAD and task workflows.
 - [x] Add the Projects access module, Project Manager role, and project view/manage permissions to the shared administration catalog.
+
+## Stabilization Patch 01
+
+- [ ] Complete central numbering, master-data quick creation, selector reuse, auto-fill, duplicate protections, form simplification, and regression review across existing Phases 1–5.
