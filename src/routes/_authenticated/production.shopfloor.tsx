@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ClipboardCheck, Play, TestTube2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,12 +16,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/production/shopfloor")({
-  component: ShopFloorPage,
+  component: ShopFloorRoute,
   head: () => ({ meta: [{ title: "Shop floor — SSM One" }, { name: "description", content: "Record serialized unit execution, in-process inspection, and test evidence." }, { property: "og:title", content: "Shop floor — SSM One" }, { property: "og:description", content: "Controlled production execution and unit traceability." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
 });
 
 const sb = supabase as any;
 const pretty = (value: string) => value.replaceAll("_", " ");
+
+function ShopFloorRoute() { return <><ShopFloorPage /><Outlet /></>; }
 
 function ShopFloorPage() {
   const qc = useQueryClient();
