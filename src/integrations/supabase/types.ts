@@ -554,6 +554,202 @@ export type Database = {
           },
         ]
       }
+      customer_portal_access: {
+        Row: {
+          access_token: string
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          label: string
+        }
+        Insert: {
+          access_token?: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+        }
+        Update: {
+          access_token?: string
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_portal_access_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_access_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_portal_shares: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          permission: string
+          portal_access_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          permission?: string
+          portal_access_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          permission?: string
+          portal_access_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_portal_shares_portal_access_id_fkey"
+            columns: ["portal_access_id"]
+            isOneToOne: false
+            referencedRelation: "customer_portal_access"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_requirement_revisions: {
+        Row: {
+          change_summary: string
+          created_at: string
+          created_by: string | null
+          id: string
+          requirement_data: Json
+          requirement_id: string
+          revision_number: number
+          status: string
+        }
+        Insert: {
+          change_summary: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          requirement_data?: Json
+          requirement_id: string
+          revision_number: number
+          status?: string
+        }
+        Update: {
+          change_summary?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          requirement_data?: Json
+          requirement_id?: string
+          revision_number?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_requirement_revisions_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "customer_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_requirements: {
+        Row: {
+          approved_at: string | null
+          created_at: string
+          created_by: string | null
+          current_revision: number
+          customer_id: string
+          customer_reference: string | null
+          id: string
+          opportunity_id: string
+          requirement_data: Json
+          requirement_number: string
+          status: string
+          submitted_at: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_revision?: number
+          customer_id: string
+          customer_reference?: string | null
+          id?: string
+          opportunity_id: string
+          requirement_data?: Json
+          requirement_number: string
+          status?: string
+          submitted_at?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_revision?: number
+          customer_id?: string
+          customer_reference?: string | null
+          id?: string
+          opportunity_id?: string
+          requirement_data?: Json
+          requirement_number?: string
+          status?: string
+          submitted_at?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_requirements_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_requirements_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           account_owner_user_id: string | null
@@ -3059,6 +3255,226 @@ export type Database = {
         }
         Relationships: []
       }
+      requirement_baselines: {
+        Row: {
+          approved_at: string
+          approved_by: string | null
+          baseline_number: string
+          commercial_snapshot: Json
+          created_at: string
+          id: string
+          requirement_id: string
+          requirement_snapshot: Json
+          revision_number: number
+          status: string
+        }
+        Insert: {
+          approved_at?: string
+          approved_by?: string | null
+          baseline_number: string
+          commercial_snapshot?: Json
+          created_at?: string
+          id?: string
+          requirement_id: string
+          requirement_snapshot: Json
+          revision_number: number
+          status?: string
+        }
+        Update: {
+          approved_at?: string
+          approved_by?: string | null
+          baseline_number?: string
+          commercial_snapshot?: Json
+          created_at?: string
+          id?: string
+          requirement_id?: string
+          requirement_snapshot?: Json
+          revision_number?: number
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requirement_baselines_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "customer_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requirement_change_requests: {
+        Row: {
+          baseline_id: string
+          change_number: string
+          created_at: string
+          created_by: string | null
+          id: string
+          impact_summary: string | null
+          requested_by: string | null
+          requirement_id: string
+          resolution_notes: string | null
+          status: string
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          baseline_id: string
+          change_number: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          impact_summary?: string | null
+          requested_by?: string | null
+          requirement_id: string
+          resolution_notes?: string | null
+          status?: string
+          summary: string
+          updated_at?: string
+        }
+        Update: {
+          baseline_id?: string
+          change_number?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          impact_summary?: string | null
+          requested_by?: string | null
+          requirement_id?: string
+          resolution_notes?: string | null
+          status?: string
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requirement_change_requests_baseline_id_fkey"
+            columns: ["baseline_id"]
+            isOneToOne: false
+            referencedRelation: "requirement_baselines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requirement_change_requests_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "customer_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requirement_feasibility_reviews: {
+        Row: {
+          assumptions: string | null
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          findings: string | null
+          id: string
+          requirement_id: string
+          reviewed_at: string | null
+          reviewer_user_id: string | null
+          risks: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assumptions?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          findings?: string | null
+          id?: string
+          requirement_id: string
+          reviewed_at?: string | null
+          reviewer_user_id?: string | null
+          risks?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assumptions?: string | null
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          findings?: string | null
+          id?: string
+          requirement_id?: string
+          reviewed_at?: string | null
+          reviewer_user_id?: string | null
+          risks?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requirement_feasibility_reviews_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requirement_feasibility_reviews_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "customer_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_commercial_records: {
+        Row: {
+          authorization_reference: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          customer_authorized_at: string | null
+          id: string
+          notes: string | null
+          quotation_reference: string | null
+          quoted_amount: number | null
+          requirement_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          authorization_reference?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_authorized_at?: string | null
+          id?: string
+          notes?: string | null
+          quotation_reference?: string | null
+          quoted_amount?: number | null
+          requirement_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          authorization_reference?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          customer_authorized_at?: string | null
+          id?: string
+          notes?: string | null
+          quotation_reference?: string | null
+          quoted_amount?: number | null
+          requirement_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_commercial_records_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: true
+            referencedRelation: "customer_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_enquiries: {
         Row: {
           application: string | null
@@ -3142,6 +3558,102 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sales_nda_records: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expiry_date: string | null
+          id: string
+          notes: string | null
+          opportunity_id: string
+          secure_token: string
+          signed_at: string | null
+          signed_by_email: string | null
+          signed_by_name: string | null
+          status: string
+          template_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string | null
+          id?: string
+          notes?: string | null
+          opportunity_id: string
+          secure_token?: string
+          signed_at?: string | null
+          signed_by_email?: string | null
+          signed_by_name?: string | null
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expiry_date?: string | null
+          id?: string
+          notes?: string | null
+          opportunity_id?: string
+          secure_token?: string
+          signed_at?: string | null
+          signed_by_email?: string | null
+          signed_by_name?: string | null
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_nda_records_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "sales_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_nda_records_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "sales_nda_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_nda_templates: {
+        Row: {
+          content_summary: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          content_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          content_summary?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
       }
       sales_opportunities: {
         Row: {
@@ -3242,6 +3754,57 @@ export type Database = {
             columns: ["primary_contact_id"]
             isOneToOne: false
             referencedRelation: "customer_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_project_handovers: {
+        Row: {
+          baseline_id: string
+          created_at: string
+          handover_notes: string | null
+          id: string
+          initiated_at: string | null
+          initiated_by: string | null
+          project_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          baseline_id: string
+          created_at?: string
+          handover_notes?: string | null
+          id?: string
+          initiated_at?: string | null
+          initiated_by?: string | null
+          project_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          baseline_id?: string
+          created_at?: string
+          handover_notes?: string | null
+          id?: string
+          initiated_at?: string | null
+          initiated_by?: string | null
+          project_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_project_handovers_baseline_id_fkey"
+            columns: ["baseline_id"]
+            isOneToOne: true
+            referencedRelation: "requirement_baselines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_project_handovers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]

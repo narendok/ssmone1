@@ -64,6 +64,13 @@
       "when": 1789914016235,
       "tag": "0008_add_phase4_sales_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789914357025,
+      "tag": "0009_complete_phase4_customer_lifecycle",
+      "breakpoints": true
     }
   ]
 }
