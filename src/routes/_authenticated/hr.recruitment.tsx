@@ -122,7 +122,7 @@ function RecruitmentPage() {
           </Card>
         </div>
 
-        <CandidatePipeline applications={snapshot.data?.applications ?? []} />
+        <CandidatePipeline applications={snapshot.data?.applications ?? []} interviews={snapshot.data?.interviews ?? []} offers={snapshot.data?.offers ?? []} interviewers={snapshot.data?.employees ?? []} />
 
         <CreateRequisitionDialog
           open={requisitionOpen}

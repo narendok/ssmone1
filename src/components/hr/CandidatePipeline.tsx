@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ExternalLink, FileText, LoaderCircle } from "lucide-react";
+import { ExternalLink, FileText, LoaderCircle, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getCandidateResumeUrl, updateApplicationPipeline } from "@/lib/hr.functions";
-import type { HrApplication } from "@/lib/hr";
+import type { HrApplication, HrInterviewRound, HrOffer } from "@/lib/hr";
+import { CandidateJourneyDialog } from "@/components/hr/CandidateJourneyDialog";
 
 const STAGES = ["applied", "screening", "assessment", "interview", "offer", "hired", "rejected", "withdrawn"] as const;
 const TERMINAL_STATUSES = new Set(["hired", "rejected", "withdrawn"]);
@@ -22,12 +23,13 @@ function suggestedStatus(stage: string, currentStatus: string) {
   return TERMINAL_STATUSES.has(stage) ? stage : TERMINAL_STATUSES.has(currentStatus) ? "active" : currentStatus;
 }
 
-export function CandidatePipeline({ applications }: { applications: HrApplication[] }) {
+export function CandidatePipeline({ applications, interviews, offers, interviewers }: { applications: HrApplication[]; interviews: HrInterviewRound[]; offers: HrOffer[]; interviewers: Array<{ id: string; display_name: string | null; official_email: string | null }> }) {
   const queryClient = useQueryClient();
   const updatePipeline = useServerFn(updateApplicationPipeline);
   const getResumeUrl = useServerFn(getCandidateResumeUrl);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [openingResumeId, setOpeningResumeId] = useState<string | null>(null);
+  const [journeyApplication, setJourneyApplication] = useState<HrApplication | null>(null);
 
   async function changeStage(application: HrApplication, stage: string) {
     const status = suggestedStatus(stage, application.status);
@@ -71,7 +73,7 @@ export function CandidatePipeline({ applications }: { applications: HrApplicatio
                 <TableHead>Applied</TableHead>
                 <TableHead>Stage</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Resume</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -96,13 +98,15 @@ export function CandidatePipeline({ applications }: { applications: HrApplicatio
                     </TableCell>
                     <TableCell><Badge variant={application.status === "active" ? "secondary" : "outline"}>{displayLabel(application.status)}</Badge></TableCell>
                     <TableCell className="text-right">
-                      {canOpenResume && candidate ? (
-                        <Button variant="outline" size="sm" onClick={() => void openResume(candidate.id)} disabled={openingResumeId === candidate.id}>
-                          {openingResumeId === candidate.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                          <span className="sr-only">Open resume for {candidate.full_name}</span>
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Button>
-                      ) : <span className="text-sm text-muted-foreground">Not provided</span>}
+                      <div className="flex justify-end gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setJourneyApplication(application)}><Workflow className="h-4 w-4" /><span className="sr-only">Manage interviews and offer for {candidate?.full_name ?? "candidate"}</span></Button>
+                        {canOpenResume && candidate ? (
+                          <Button variant="outline" size="sm" onClick={() => void openResume(candidate.id)} disabled={openingResumeId === candidate.id}>
+                            {openingResumeId === candidate.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                            <span className="sr-only">Open resume for {candidate.full_name}</span><ExternalLink className="h-3.5 w-3.5" />
+                          </Button>
+                        ) : null}
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -112,6 +116,7 @@ export function CandidatePipeline({ applications }: { applications: HrApplicatio
           </Table>
         </div>
       </CardContent>
+      <CandidateJourneyDialog application={journeyApplication} interviews={interviews} offer={offers.find((offer) => offer.application_id === journeyApplication?.id)} interviewers={interviewers} open={Boolean(journeyApplication)} onOpenChange={(open) => { if (!open) setJourneyApplication(null); }} />
     </Card>
   );
 }
