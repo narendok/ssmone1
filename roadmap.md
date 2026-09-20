@@ -43,3 +43,7 @@
 - [x] Build the shared automation registry, execution audit, cache, and provenance foundation without changing established records.
 - [x] Add reviewed supplier and AI category suggestions to component entry, and establish safe, human-controlled automation patterns.
 - [ ] Complete project-handover drafting, bounded background automation, and signed-in acceptance checks. Phase 6 remains blocked.
+
+## Phase 6 — Procurement, stores, quality & finance
+
+- [ ] Complete the Phase 6 operational workflows, role-gated screens, automation safeguards, and acceptance validation; do not begin Phase 7.
