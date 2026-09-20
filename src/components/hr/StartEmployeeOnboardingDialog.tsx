@@ -15,8 +15,9 @@ export function StartEmployeeOnboardingDialog({ application, plans, open, onOpen
   const launch = useServerFn(launchEmployeeOnboarding);
   const queryClient = useQueryClient();
   const [pending, setPending] = useState(false);
-  const fullName = application?.candidate?.full_name ?? "New employee";
   if (!application) return null;
+  const activeApplication = application;
+  const fullName = activeApplication.candidate?.full_name ?? "New employee";
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,7 +25,7 @@ export function StartEmployeeOnboardingDialog({ application, plans, open, onOpen
     const form = new FormData(event.currentTarget);
     try {
       await launch({ data: {
-        applicationId: application.id,
+        applicationId: activeApplication.id,
         planId: null,
         employeeCode: String(form.get("employeeCode") ?? ""),
         officialEmail: String(form.get("officialEmail") ?? ""),
@@ -40,5 +41,5 @@ export function StartEmployeeOnboardingDialog({ application, plans, open, onOpen
     } catch (error: any) { toast.error(error?.message ?? "Could not begin employee onboarding."); } finally { setPending(false); }
   }
 
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent><DialogHeader><DialogTitle>Create employee and begin onboarding</DialogTitle><DialogDescription>{fullName} will receive access only after their invitation is accepted.</DialogDescription></DialogHeader><form className="space-y-4" onSubmit={submit}><div className="grid gap-3 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="employee-code">Employee code</Label><Input id="employee-code" name="employeeCode" required placeholder="SSM-001" /></div><div className="space-y-1.5"><Label htmlFor="official-email">Official email</Label><Input id="official-email" name="officialEmail" type="email" required defaultValue={application.candidate?.email ?? ""} /></div></div><div className="space-y-1.5"><Label htmlFor="designation">Designation</Label><Input id="designation" name="designation" placeholder="Design engineer" /></div><div className="space-y-1.5"><Label htmlFor="start-date">Joining date</Label><Input id="start-date" name="startDate" type="date" /></div><div className="flex items-center gap-2"><Checkbox id="welcome-kit" name="welcomeKit" /><Label htmlFor="welcome-kit">Prepare a welcome kit</Label></div><DialogFooter><Button disabled={pending}>{pending ? <LoaderCircle className="size-4 animate-spin" /> : <UserPlus className="size-4" />} Create and invite</Button></DialogFooter></form></DialogContent></Dialog>;
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent><DialogHeader><DialogTitle>Create employee and begin onboarding</DialogTitle><DialogDescription>{fullName} will receive access only after their invitation is accepted.</DialogDescription></DialogHeader><form className="space-y-4" onSubmit={submit}><div className="grid gap-3 sm:grid-cols-2"><div className="space-y-1.5"><Label htmlFor="employee-code">Employee code</Label><Input id="employee-code" name="employeeCode" required placeholder="SSM-001" /></div><div className="space-y-1.5"><Label htmlFor="official-email">Official email</Label><Input id="official-email" name="officialEmail" type="email" required defaultValue={activeApplication.candidate?.email ?? ""} /></div></div><div className="space-y-1.5"><Label htmlFor="designation">Designation</Label><Input id="designation" name="designation" placeholder="Design engineer" /></div><div className="space-y-1.5"><Label htmlFor="start-date">Joining date</Label><Input id="start-date" name="startDate" type="date" /></div><div className="flex items-center gap-2"><Checkbox id="welcome-kit" name="welcomeKit" /><Label htmlFor="welcome-kit">Prepare a welcome kit</Label></div><DialogFooter><Button disabled={pending}>{pending ? <LoaderCircle className="size-4 animate-spin" /> : <UserPlus className="size-4" />} Create and invite</Button></DialogFooter></form></DialogContent></Dialog>;
 }
