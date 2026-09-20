@@ -87,7 +87,7 @@ export const createPhase7PpapPackage = createServerFn({ method: "POST" })
   .inputValidator((input: { workOrderId: string; customerId?: string | null; revision?: string | null; evidenceNotes?: string | null }) => input)
   .handler(async ({ data, context }) => {
     await requireProductionAccess(context, "production.edit");
-    const { data: id, error } = await context.supabase.rpc("create_phase7_ppap_package", { _work_order_id: data.workOrderId, _customer_id: data.customerId ?? null, _revision: data.revision?.trim() || "A", _evidence_notes: data.evidenceNotes?.trim() || null });
+    const { data: id, error } = await context.supabase.rpc("create_phase7_ppap_package", { _work_order_id: data.workOrderId, _customer_id: data.customerId || undefined, _revision: data.revision?.trim() || "A", _evidence_notes: data.evidenceNotes?.trim() || undefined });
     if (error || !id) throw new Error(error?.message || "Could not create the PPAP package.");
     return id as string;
   });
@@ -97,7 +97,7 @@ export const decidePhase7PpapPackage = createServerFn({ method: "POST" })
   .inputValidator((input: { packageId: string; status: "IN_REVIEW" | "SUBMITTED" | "APPROVED" | "REJECTED"; notes?: string | null }) => input)
   .handler(async ({ data, context }) => {
     await requireProductionAccess(context, "production.approve");
-    const { error } = await context.supabase.rpc("decide_phase7_ppap_package", { _package_id: data.packageId, _status: data.status, _notes: data.notes?.trim() || null });
+    const { error } = await context.supabase.rpc("decide_phase7_ppap_package", { _package_id: data.packageId, _status: data.status, _notes: data.notes?.trim() || undefined });
     if (error) throw new Error(error.message || "Could not update the PPAP package.");
   });
 
@@ -106,7 +106,7 @@ export const decidePhase7FinishedGoodsRelease = createServerFn({ method: "POST" 
   .inputValidator((input: { unitId: string; status: "RELEASED" | "BLOCKED"; packagingReference?: string | null; notes?: string | null }) => input)
   .handler(async ({ data, context }) => {
     await requireProductionAccess(context, "production.approve");
-    const { data: id, error } = await context.supabase.rpc("decide_phase7_finished_goods_release", { _production_unit_id: data.unitId, _status: data.status, _packaging_reference: data.packagingReference?.trim() || null, _notes: data.notes?.trim() || null });
+    const { data: id, error } = await context.supabase.rpc("decide_phase7_finished_goods_release", { _production_unit_id: data.unitId, _status: data.status, _packaging_reference: data.packagingReference?.trim() || undefined, _notes: data.notes?.trim() || undefined });
     if (error || !id) throw new Error(error?.message || "Could not release the finished goods.");
     return id as string;
   });
@@ -117,7 +117,7 @@ export const createPhase7Dispatch = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireProductionAccess(context, "production.approve");
     if (!data.unitIds.length) throw new Error("Select at least one released unit.");
-    const { data: id, error } = await context.supabase.rpc("create_phase7_dispatch", { _customer_id: data.customerId ?? null, _recipient_name: data.recipientName?.trim() || null, _carrier_name: data.carrierName?.trim() || null, _tracking_reference: data.trackingReference?.trim() || null, _notes: data.notes?.trim() || null, _unit_ids: data.unitIds });
+    const { data: id, error } = await context.supabase.rpc("create_phase7_dispatch", { _customer_id: data.customerId || undefined, _recipient_name: data.recipientName?.trim() || undefined, _carrier_name: data.carrierName?.trim() || undefined, _tracking_reference: data.trackingReference?.trim() || undefined, _notes: data.notes?.trim() || undefined, _unit_ids: data.unitIds });
     if (error || !id) throw new Error(error?.message || "Could not create the dispatch.");
     return id as string;
   });
