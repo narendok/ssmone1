@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Building2, ClipboardList, FileText, Layers3, Plus, Settings2, ShieldCheck, Users } from "lucide-react";
+import { Building2, ClipboardList, FileText, Layers3, Plus, Settings2, ShieldCheck, Users, Workflow } from "lucide-react";
 import { PermissionGate } from "@/components/PermissionGate";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { saveDepartment, saveOrganizationSettings } from "@/lib/admin.functions";
+import { confirmProvenance, updateAutomationRule } from "@/lib/automation.functions";
 import { toast } from "sonner";
 
 const areas = [
@@ -17,6 +18,7 @@ const areas = [
   { title: "Users & assignments", detail: "Employee identity, access state, roles, and department membership.", icon: ShieldCheck },
   { title: "Roles & permissions", detail: "Reusable role catalogue and permission assignments.", icon: Layers3 },
   { title: "Numbering & ID rules", detail: "Central code formats and sequences for company records.", icon: FileText },
+  { title: "Automation", detail: "Automation controls, review queues, and recent activity.", icon: Workflow },
   { title: "Audit log", detail: "Administrative activity and change history.", icon: ClipboardList },
 ];
 
@@ -29,12 +31,12 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 function AdminHome() {
-  const [tab, setTab] = useState<"overview" | "organization" | "departments" | "numbering">("overview");
+  const [tab, setTab] = useState<"overview" | "organization" | "departments" | "numbering" | "automation">("overview");
   return <PermissionGate permission="admin.view" fallback={<AccessDenied />}>
     <section className="mx-auto max-w-6xl space-y-8">
       <div><p className="text-sm font-medium text-primary">System</p><h1 className="mt-1 text-2xl font-semibold">Administration</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Manage the organization foundation, access model, and configuration for SSM One.</p></div>
-      <div className="flex gap-1 border-b"><Button variant={tab === "overview" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("overview")}>Overview</Button><Button variant={tab === "organization" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("organization")}>Organization</Button><Button variant={tab === "departments" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("departments")}>Departments</Button><Button variant={tab === "numbering" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("numbering")}>Numbering rules</Button></div>
-      {tab === "organization" ? <OrganizationSettings /> : tab === "departments" ? <DepartmentSettings /> : tab === "numbering" ? <NumberingRules /> : <AdminOverview />}
+      <div className="flex flex-wrap gap-1 border-b"><Button variant={tab === "overview" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("overview")}>Overview</Button><Button variant={tab === "organization" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("organization")}>Organization</Button><Button variant={tab === "departments" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("departments")}>Departments</Button><Button variant={tab === "numbering" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("numbering")}>Numbering rules</Button><Button variant={tab === "automation" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("automation")}>Automation</Button></div>
+      {tab === "organization" ? <OrganizationSettings /> : tab === "departments" ? <DepartmentSettings /> : tab === "numbering" ? <NumberingRules /> : tab === "automation" ? <AutomationCenter /> : <AdminOverview />}
     </section>
   </PermissionGate>;
 }
@@ -90,6 +92,50 @@ function NumberingRuleDialog({ rule, onClose, onSaved }: { rule: NumberingRule |
   const update = (key: keyof NumberingRule, value: string | number | boolean | null) => setDraft({ ...draft, [key]: value });
   const preview = [draft.prefix_template || "CODE", draft.include_year ? "2026" : null, draft.include_department ? "DEPT" : null, draft.include_project ? "PROJECT" : null, String(draft.starting_number).padStart(draft.serial_padding, "0")].filter(Boolean).join(draft.separator || "-");
   return <Dialog open={!!rule} onOpenChange={(open) => { if (!open) onClose(); }}><DialogContent><DialogHeader><DialogTitle>{draft.id ? "Edit numbering rule" : "Add numbering rule"}</DialogTitle></DialogHeader><form className="space-y-4" onSubmit={async (event) => { event.preventDefault(); const payload = { ...draft, key: draft.key.trim().toLowerCase().replace(/[^a-z0-9_]+/g, "_"), label: draft.label.trim(), entity_type: draft.entity_type?.trim() || null, prefix_template: draft.prefix_template.trim() }; const { error } = draft.id ? await supabase.from("document_numbering_config").update(payload).eq("id", draft.id) : await supabase.from("document_numbering_config").insert(payload); if (error) return toast.error(error.message); toast.success("Numbering rule saved"); onSaved(); }}><Field label="Rule name" value={draft.label} onChange={(value) => update("label", value)} /><Field label="Entity type" value={draft.entity_type ?? ""} onChange={(value) => update("entity_type", value || null)} /><Field label="Prefix" value={draft.prefix_template} onChange={(value) => update("prefix_template", value)} /><div className="grid grid-cols-2 gap-3"><Field label="Separator" value={draft.separator} onChange={(value) => update("separator", value)} /><div className="space-y-1.5"><Label>Sequence length</Label><Input type="number" min="1" max="10" value={draft.serial_padding} onChange={(event) => update("serial_padding", Number(event.target.value))} /></div></div><p className="rounded-md border bg-muted/40 p-3 text-sm"><span className="text-muted-foreground">Preview: </span><span className="font-mono">{preview}</span></p><div className="flex flex-wrap gap-4 text-sm"><label className="flex items-center gap-2"><input type="checkbox" checked={draft.include_year} onChange={(event) => update("include_year", event.target.checked)} /> Year</label><label className="flex items-center gap-2"><input type="checkbox" checked={draft.include_department} onChange={(event) => update("include_department", event.target.checked)} /> Department</label><label className="flex items-center gap-2"><input type="checkbox" checked={draft.include_project} onChange={(event) => update("include_project", event.target.checked)} /> Project</label><label className="flex items-center gap-2"><input type="checkbox" checked={draft.is_active} onChange={(event) => update("is_active", event.target.checked)} /> Active</label></div><DialogFooter><Button type="button" variant="outline" onClick={onClose}>Cancel</Button><Button disabled={!draft.label.trim() || !draft.prefix_template.trim()}>Save rule</Button></DialogFooter></form></DialogContent></Dialog>;
+}
+
+type AutomationRule = { id: string; name: string; description: string | null; trigger_key: string; execution_mode: string; is_enabled: boolean };
+type ProvenanceReview = { id: string; entity_type: string; field_key: string; provider: string | null; source_kind: string; state: string; confidence: number | null; fetched_at: string };
+type AutomationRun = { id: string; trigger_key: string; status: string; error_message: string | null; created_at: string; completed_at: string | null };
+
+function AutomationCenter() {
+  const [rules, setRules] = useState<AutomationRule[]>([]);
+  const [reviews, setReviews] = useState<ProvenanceReview[]>([]);
+  const [runs, setRuns] = useState<AutomationRun[]>([]);
+  const [busy, setBusy] = useState<string | null>(null);
+  const toggleRule = useServerFn(updateAutomationRule);
+  const reviewProvenance = useServerFn(confirmProvenance);
+  const load = () => {
+    void Promise.all([
+      supabase.from("automation_rules").select("id,name,description,trigger_key,execution_mode,is_enabled").order("priority"),
+      supabase.from("data_provenance").select("id,entity_type,field_key,provider,source_kind,state,confidence,fetched_at").in("state", ["suggested", "needs_review"]).order("fetched_at", { ascending: false }).limit(30),
+      supabase.from("automation_runs").select("id,trigger_key,status,error_message,created_at,completed_at").order("created_at", { ascending: false }).limit(12),
+    ]).then(([ruleResult, reviewResult, runResult]) => {
+      if (ruleResult.error || reviewResult.error || runResult.error) toast.error("Could not load the automation center");
+      setRules((ruleResult.data ?? []) as AutomationRule[]);
+      setReviews((reviewResult.data ?? []) as ProvenanceReview[]);
+      setRuns((runResult.data ?? []) as AutomationRun[]);
+    });
+  };
+  useEffect(load, []);
+  const handleRuleToggle = async (rule: AutomationRule) => {
+    setBusy(rule.id);
+    try { await toggleRule({ data: { id: rule.id, isEnabled: !rule.is_enabled } }); toast.success(rule.is_enabled ? "Automation paused" : "Automation enabled"); load(); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not update automation"); }
+    finally { setBusy(null); }
+  };
+  const handleReview = async (item: ProvenanceReview, state: "confirmed" | "rejected") => {
+    setBusy(item.id);
+    try { await reviewProvenance({ data: { id: item.id, state, overrideValue: null, overrideReason: null } }); toast.success(state === "confirmed" ? "Suggestion confirmed" : "Suggestion rejected"); load(); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "Could not review suggestion"); }
+    finally { setBusy(null); }
+  };
+  return <div className="space-y-8">
+    <div><h2 className="font-semibold">Automation center</h2><p className="mt-1 text-sm text-muted-foreground">Automation stays reviewable: pause a rule, approve a suggested value, and inspect the latest activity.</p></div>
+    <section className="space-y-3"><div><h3 className="text-sm font-semibold">Automation rules</h3><p className="text-sm text-muted-foreground">Only enabled rules may run. High-impact actions remain subject to review.</p></div><div className="overflow-hidden rounded-lg border">{rules.length ? <table className="w-full text-sm"><thead className="bg-muted/60 text-left text-xs text-muted-foreground"><tr><th className="p-3 font-medium">Rule</th><th className="p-3 font-medium">Trigger</th><th className="p-3 font-medium">Mode</th><th className="p-3 font-medium">State</th><th className="p-3" /></tr></thead><tbody>{rules.map((rule) => <tr key={rule.id} className="border-t"><td className="p-3"><p className="font-medium">{rule.name}</p>{rule.description && <p className="mt-0.5 text-xs text-muted-foreground">{rule.description}</p>}</td><td className="p-3 font-mono text-xs text-muted-foreground">{rule.trigger_key}</td><td className="p-3 capitalize">{rule.execution_mode.replaceAll("_", " ")}</td><td className="p-3">{rule.is_enabled ? "Enabled" : "Paused"}</td><td className="p-3 text-right"><Button size="sm" variant={rule.is_enabled ? "outline" : "default"} disabled={busy === rule.id} onClick={() => void handleRuleToggle(rule)}>{rule.is_enabled ? "Pause" : "Enable"}</Button></td></tr>)}</tbody></table> : <p className="p-5 text-sm text-muted-foreground">No automation rules have been configured yet.</p>}</div></section>
+    <section className="space-y-3"><div><h3 className="text-sm font-semibold">Review queue</h3><p className="text-sm text-muted-foreground">External and AI-suggested values require a human decision before they are treated as verified.</p></div><div className="overflow-hidden rounded-lg border">{reviews.length ? <table className="w-full text-sm"><thead className="bg-muted/60 text-left text-xs text-muted-foreground"><tr><th className="p-3 font-medium">Record</th><th className="p-3 font-medium">Source</th><th className="p-3 font-medium">Confidence</th><th className="p-3" /></tr></thead><tbody>{reviews.map((item) => <tr key={item.id} className="border-t"><td className="p-3"><p className="font-medium">{item.entity_type} · {item.field_key}</p><p className="mt-0.5 text-xs text-muted-foreground">{item.state.replaceAll("_", " ")} · {new Date(item.fetched_at).toLocaleDateString()}</p></td><td className="p-3">{item.provider ?? item.source_kind}</td><td className="p-3">{item.confidence == null ? "—" : `${Math.round(item.confidence * 100)}%`}</td><td className="p-3 text-right"><div className="flex justify-end gap-2"><Button size="sm" variant="outline" disabled={busy === item.id} onClick={() => void handleReview(item, "rejected")}>Reject</Button><Button size="sm" disabled={busy === item.id} onClick={() => void handleReview(item, "confirmed")}>Confirm</Button></div></td></tr>)}</tbody></table> : <p className="p-5 text-sm text-muted-foreground">No suggestions are waiting for review.</p>}</div></section>
+    <section className="space-y-3"><div><h3 className="text-sm font-semibold">Recent runs</h3><p className="text-sm text-muted-foreground">A short operational record of background work and any failures.</p></div><div className="overflow-hidden rounded-lg border">{runs.length ? <table className="w-full text-sm"><thead className="bg-muted/60 text-left text-xs text-muted-foreground"><tr><th className="p-3 font-medium">Trigger</th><th className="p-3 font-medium">Outcome</th><th className="p-3 font-medium">Started</th><th className="p-3 font-medium">Detail</th></tr></thead><tbody>{runs.map((run) => <tr key={run.id} className="border-t"><td className="p-3 font-mono text-xs">{run.trigger_key}</td><td className="p-3 capitalize">{run.status}</td><td className="p-3 text-muted-foreground">{new Date(run.created_at).toLocaleString()}</td><td className="p-3 text-xs text-muted-foreground">{run.error_message ?? "—"}</td></tr>)}</tbody></table> : <p className="p-5 text-sm text-muted-foreground">No automation runs have been recorded yet.</p>}</div></section>
+  </div>;
 }
 
 function Field({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <div className="space-y-1.5"><Label>{label}</Label><Input value={value} onChange={(event) => onChange(event.target.value)} /></div>; }

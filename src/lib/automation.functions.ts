@@ -60,6 +60,7 @@ export const confirmProvenance = createServerFn({ method: "POST" })
   .inputValidator((input) => confirmProvenanceSchema.parse(input))
   .handler(async ({ data, context }) => {
     const sb = context.supabase as any;
+    await requireAdmin(sb, context.userId);
     const patch = {
       state: data.state,
       last_verified_at: new Date().toISOString(),
