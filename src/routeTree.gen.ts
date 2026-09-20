@@ -38,6 +38,7 @@ import { Route as AuthenticatedProcurementPendingRouteImport } from './routes/_a
 import { Route as AuthenticatedProcurementOrdersRouteImport } from './routes/_authenticated/procurement.orders'
 import { Route as AuthenticatedProcurementInwardRouteImport } from './routes/_authenticated/procurement.inward'
 import { Route as AuthenticatedHrRecruitmentRouteImport } from './routes/_authenticated/hr.recruitment'
+import { Route as AuthenticatedHrOnboardingRouteImport } from './routes/_authenticated/hr.onboarding'
 import { Route as AuthenticatedHrLeaveRouteImport } from './routes/_authenticated/hr.leave'
 import { Route as AuthenticatedCategorySlugRouteImport } from './routes/_authenticated/category.$slug'
 import { Route as ApiPublicHooksRefreshSupplierDataRouteImport } from './routes/api/public/hooks/refresh-supplier-data'
@@ -197,6 +198,12 @@ const AuthenticatedHrRecruitmentRoute =
     path: '/recruitment',
     getParentRoute: () => AuthenticatedHrRoute,
   } as any)
+const AuthenticatedHrOnboardingRoute =
+  AuthenticatedHrOnboardingRouteImport.update({
+    id: '/onboarding',
+    path: '/onboarding',
+    getParentRoute: () => AuthenticatedHrRoute,
+  } as any)
 const AuthenticatedHrLeaveRoute = AuthenticatedHrLeaveRouteImport.update({
   id: '/leave',
   path: '/leave',
@@ -234,6 +241,7 @@ export interface FileRoutesByFullPath {
   '/share/$token': typeof ShareTokenRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
+  '/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
   '/hr/recruitment': typeof AuthenticatedHrRecruitmentRoute
   '/procurement/inward': typeof AuthenticatedProcurementInwardRoute
   '/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
@@ -267,6 +275,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
+  '/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
   '/hr/recruitment': typeof AuthenticatedHrRecruitmentRoute
   '/procurement/inward': typeof AuthenticatedProcurementInwardRoute
   '/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
@@ -302,6 +311,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/_authenticated/hr/leave': typeof AuthenticatedHrLeaveRoute
+  '/_authenticated/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
   '/_authenticated/hr/recruitment': typeof AuthenticatedHrRecruitmentRoute
   '/_authenticated/procurement/inward': typeof AuthenticatedProcurementInwardRoute
   '/_authenticated/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
@@ -337,6 +347,7 @@ export interface FileRouteTypes {
     | '/share/$token'
     | '/category/$slug'
     | '/hr/leave'
+    | '/hr/onboarding'
     | '/hr/recruitment'
     | '/procurement/inward'
     | '/procurement/orders'
@@ -370,6 +381,7 @@ export interface FileRouteTypes {
     | '/'
     | '/category/$slug'
     | '/hr/leave'
+    | '/hr/onboarding'
     | '/hr/recruitment'
     | '/procurement/inward'
     | '/procurement/orders'
@@ -404,6 +416,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/category/$slug'
     | '/_authenticated/hr/leave'
+    | '/_authenticated/hr/onboarding'
     | '/_authenticated/hr/recruitment'
     | '/_authenticated/procurement/inward'
     | '/_authenticated/procurement/orders'
@@ -635,6 +648,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHrRecruitmentRouteImport
       parentRoute: typeof AuthenticatedHrRoute
     }
+    '/_authenticated/hr/onboarding': {
+      id: '/_authenticated/hr/onboarding'
+      path: '/onboarding'
+      fullPath: '/hr/onboarding'
+      preLoaderRoute: typeof AuthenticatedHrOnboardingRouteImport
+      parentRoute: typeof AuthenticatedHrRoute
+    }
     '/_authenticated/hr/leave': {
       id: '/_authenticated/hr/leave'
       path: '/leave'
@@ -661,11 +681,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedHrRouteChildren {
   AuthenticatedHrLeaveRoute: typeof AuthenticatedHrLeaveRoute
+  AuthenticatedHrOnboardingRoute: typeof AuthenticatedHrOnboardingRoute
   AuthenticatedHrRecruitmentRoute: typeof AuthenticatedHrRecruitmentRoute
 }
 
 const AuthenticatedHrRouteChildren: AuthenticatedHrRouteChildren = {
   AuthenticatedHrLeaveRoute: AuthenticatedHrLeaveRoute,
+  AuthenticatedHrOnboardingRoute: AuthenticatedHrOnboardingRoute,
   AuthenticatedHrRecruitmentRoute: AuthenticatedHrRecruitmentRoute,
 }
 

@@ -38,7 +38,9 @@ const groups: NavGroup[] = [
     { label: "HR overview", to: "/hr", icon: Users, permission: "hr.view" },
     { label: "Recruitment", to: "/hr/recruitment", icon: ClipboardList, permission: "recruitment.manage" },
     { label: "Leave desk", to: "/hr/leave", icon: PlaneTakeoff, permission: "hr.view" },
-    { label: "Learning", to: "/hr", icon: GraduationCap, permission: "training.manage" },
+    { label: "Learning", to: "/hr/training", icon: GraduationCap, permission: "training.manage" },
+    { label: "Onboarding", to: "/hr/onboarding", icon: ClipboardList, permission: "training.manage" },
+    { label: "Policies", to: "/hr/policies", icon: FileSpreadsheet, permission: "hr.view" },
   ] },
   { label: "System", items: [
     { label: "PartsBench history", to: "/history", icon: History, permission: "engineering.view" },
