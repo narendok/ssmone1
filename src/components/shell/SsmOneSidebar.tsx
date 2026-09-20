@@ -35,11 +35,13 @@ const groups: NavGroup[] = [
   { label: "Operations", items: [
     { label: "Purchase requests", to: "/procurement/requests", icon: ClipboardList, permission: "procurement.view" },
     { label: "Purchase orders", to: "/procurement/orders", icon: ShoppingCart, permission: "procurement.view" },
+     { label: "Delivery revisions", to: "/procurement/delivery-revisions", icon: History, permission: "procurement.view" },
     { label: "Pending deliveries", to: "/procurement/pending", icon: Truck, permission: "procurement.view" },
     { label: "Supplier shipments", to: "/procurement/shipments", icon: Truck, permission: "procurement.view" },
     { label: "Inwarding (GRN)", to: "/procurement/inward", icon: PackageCheck, permission: "procurement.view" },
     { label: "Vendors", to: "/procurement/vendors", icon: Building2, permission: "procurement.view" },
     { label: "Supplier quality", to: "/procurement/supplier-quality", icon: ShieldCheck, permission: "quality.view" },
+     { label: "Supplier returns", to: "/procurement/returns", icon: Truck, permission: "quality.view" },
     { label: "Stores inventory", to: "/stores/inventory", icon: Boxes, permission: "stores.view" },
     { label: "Incoming quality", to: "/quality/incoming", icon: ShieldCheck, permission: "quality.view" },
     { label: "Finance", to: "/finance/expenses", icon: WalletCards, permission: "finance.view" },

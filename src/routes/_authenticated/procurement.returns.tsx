@@ -1,0 +1,7 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { OperationalListPage } from "@/components/phase6/OperationalListPage";
+
+export const Route = createFileRoute("/_authenticated/procurement/returns")({
+  head: () => ({ meta: [{ title: "Supplier returns — SSM One" }, { name: "description", content: "Authorize, dispatch, and close traceable supplier returns." }, { property: "og:title", content: "Supplier returns — SSM One" }, { property: "og:description", content: "Controlled supplier-return workflow." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  component: () => <OperationalListPage config={{ title: "Supplier returns", description: "Authorize returns before dispatch and retain courier evidence through closure.", table: "rtv_records", columns: [{ key: "rtv_number", label: "Return" }, { key: "vendor_id", label: "Vendor" }, { key: "reason", label: "Reason" }, { key: "courier", label: "Courier" }, { key: "awb_number", label: "AWB" }, { key: "status", label: "Status" }], inputs: [{ key: "rtv_number", label: "Return number" }, { key: "vendor_id", label: "Vendor ID" }, { key: "reason", label: "Reason", type: "textarea" }, { key: "courier", label: "Courier" }, { key: "awb_number", label: "AWB number" }, { key: "status", label: "Status" }], review: { type: "rtv", decisions: [{ value: "AUTHORIZED", label: "Authorize" }, { value: "DISPATCHED", label: "Dispatch" }, { value: "CLOSED", label: "Close" }] } }} />,
+});
