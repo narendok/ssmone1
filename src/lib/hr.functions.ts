@@ -190,8 +190,7 @@ export const createJobPosting = createServerFn({ method: "POST" })
 export const submitPublicJobApplication = createServerFn({ method: "POST" })
   .inputValidator((data) => publicApplicationSchema.parse(data))
   .handler(async ({ data }) => {
-    const { createServerClient } = await import("@/integrations/supabase/client.server");
-    const sb = createServerClient();
+    const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
     const { data: result, error } = await sb.rpc("submit_public_job_application", {
       _posting_slug: data.postingSlug,
       _full_name: data.fullName,
