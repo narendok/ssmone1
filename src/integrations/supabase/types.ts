@@ -3585,6 +3585,248 @@ export type Database = {
           },
         ]
       }
+      production_kit_lines: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          inventory_lot_id: string
+          kit_id: string
+          quantity_picked: number
+          quantity_returned: number
+          updated_at: string
+          work_order_material_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          inventory_lot_id: string
+          kit_id: string
+          quantity_picked: number
+          quantity_returned?: number
+          updated_at?: string
+          work_order_material_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          inventory_lot_id?: string
+          kit_id?: string
+          quantity_picked?: number
+          quantity_returned?: number
+          updated_at?: string
+          work_order_material_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_kit_lines_inventory_lot_id_fkey"
+            columns: ["inventory_lot_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_kit_lines_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "production_kits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_kit_lines_work_order_material_id_fkey"
+            columns: ["work_order_material_id"]
+            isOneToOne: false
+            referencedRelation: "work_order_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_kits: {
+        Row: {
+          created_at: string
+          id: string
+          issued_at: string | null
+          issued_by: string | null
+          kit_number: string
+          notes: string | null
+          prepared_at: string | null
+          prepared_by: string | null
+          status: string
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          kit_number: string
+          notes?: string | null
+          prepared_at?: string | null
+          prepared_by?: string | null
+          status?: string
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          kit_number?: string
+          notes?: string | null
+          prepared_at?: string | null
+          prepared_by?: string | null
+          status?: string
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_kits_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_route_steps: {
+        Row: {
+          created_at: string
+          id: string
+          instructions: string | null
+          is_active: boolean
+          name: string
+          requires_quality_hold: boolean
+          route_id: string
+          station_type: string
+          step_number: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          name: string
+          requires_quality_hold?: boolean
+          route_id: string
+          station_type?: string
+          step_number: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instructions?: string | null
+          is_active?: boolean
+          name?: string
+          requires_quality_hold?: boolean
+          route_id?: string
+          station_type?: string
+          step_number?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_route_steps_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "production_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_routes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          revision: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          revision?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          revision?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      production_units: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_step_id: string | null
+          firmware_reference: string | null
+          id: string
+          serial_number: string
+          unit_status: string
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_step_id?: string | null
+          firmware_reference?: string | null
+          id?: string
+          serial_number: string
+          unit_status?: string
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_step_id?: string | null
+          firmware_reference?: string | null
+          id?: string
+          serial_number?: string
+          unit_status?: string
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_units_current_step_id_fkey"
+            columns: ["current_step_id"]
+            isOneToOne: false
+            referencedRelation: "production_route_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_units_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -6063,6 +6305,198 @@ export type Database = {
         }
         Relationships: []
       }
+      work_order_materials: {
+        Row: {
+          bom_item_id: string | null
+          component_id: string | null
+          consumed_quantity: number
+          created_at: string
+          description: string | null
+          id: string
+          issued_quantity: number
+          mpn: string | null
+          required_quantity: number
+          reservation_id: string | null
+          reserved_quantity: number
+          status: string
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          bom_item_id?: string | null
+          component_id?: string | null
+          consumed_quantity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          issued_quantity?: number
+          mpn?: string | null
+          required_quantity: number
+          reservation_id?: string | null
+          reserved_quantity?: number
+          status?: string
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          bom_item_id?: string | null
+          component_id?: string | null
+          consumed_quantity?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          issued_quantity?: number
+          mpn?: string | null
+          required_quantity?: number
+          reservation_id?: string | null
+          reserved_quantity?: number
+          status?: string
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_order_materials_bom_item_id_fkey"
+            columns: ["bom_item_id"]
+            isOneToOne: false
+            referencedRelation: "project_bom_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_materials_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_materials_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_reservations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_order_materials_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      work_orders: {
+        Row: {
+          bom_id: string
+          bom_snapshot: Json
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          created_by: string
+          demand_source_reference: string | null
+          demand_source_type: string
+          id: string
+          notes: string | null
+          owner_id: string | null
+          planned_completion_date: string | null
+          planned_start_date: string | null
+          priority: string
+          product_name: string
+          product_variant: string | null
+          project_id: string | null
+          quantity_completed: number
+          quantity_planned: number
+          quantity_scrapped: number
+          released_at: string | null
+          released_by: string | null
+          route_id: string | null
+          route_snapshot: Json
+          status: string
+          updated_at: string
+          work_order_number: string
+        }
+        Insert: {
+          bom_id: string
+          bom_snapshot?: Json
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string
+          demand_source_reference?: string | null
+          demand_source_type?: string
+          id?: string
+          notes?: string | null
+          owner_id?: string | null
+          planned_completion_date?: string | null
+          planned_start_date?: string | null
+          priority?: string
+          product_name: string
+          product_variant?: string | null
+          project_id?: string | null
+          quantity_completed?: number
+          quantity_planned: number
+          quantity_scrapped?: number
+          released_at?: string | null
+          released_by?: string | null
+          route_id?: string | null
+          route_snapshot?: Json
+          status?: string
+          updated_at?: string
+          work_order_number: string
+        }
+        Update: {
+          bom_id?: string
+          bom_snapshot?: Json
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          created_by?: string
+          demand_source_reference?: string | null
+          demand_source_type?: string
+          id?: string
+          notes?: string | null
+          owner_id?: string | null
+          planned_completion_date?: string | null
+          planned_start_date?: string | null
+          priority?: string
+          product_name?: string
+          product_variant?: string | null
+          project_id?: string | null
+          quantity_completed?: number
+          quantity_planned?: number
+          quantity_scrapped?: number
+          released_at?: string | null
+          released_by?: string | null
+          route_id?: string | null
+          route_snapshot?: Json
+          status?: string
+          updated_at?: string
+          work_order_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_orders_bom_id_fkey"
+            columns: ["bom_id"]
+            isOneToOne: false
+            referencedRelation: "project_boms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "work_orders_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "production_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -6107,6 +6541,21 @@ export type Database = {
           _response_due_date: string
           _terms: string
           _vendor_ids?: string[]
+        }
+        Returns: string
+      }
+      create_phase7_work_order: {
+        Args: {
+          _bom_id: string
+          _notes: string
+          _planned_completion_date: string
+          _planned_start_date: string
+          _priority: string
+          _product_name: string
+          _product_variant: string
+          _project_id: string
+          _quantity_planned: number
+          _route_id: string
         }
         Returns: string
       }
@@ -6193,6 +6642,7 @@ export type Database = {
           shortage: number
         }[]
       }
+      phase7_can_production: { Args: { _uid: string }; Returns: boolean }
       provision_drive_for_project: {
         Args: { p_project_id: string }
         Returns: undefined
@@ -6238,6 +6688,10 @@ export type Database = {
             Returns: Json
           }
       toggle_node_star: { Args: { p_node_id: string }; Returns: boolean }
+      transition_phase7_work_order: {
+        Args: { _notes?: string; _status: string; _work_order_id: string }
+        Returns: undefined
+      }
       try_acquire_automation_lease: {
         Args: { _job_key: string; _lease_seconds?: number }
         Returns: boolean
