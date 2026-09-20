@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { CreatePostingDialog, CreateRequisitionDialog } from "@/components/hr/RecruitmentDialogs";
+import { CandidatePipeline } from "@/components/hr/CandidatePipeline";
 import { PermissionGate } from "@/components/PermissionGate";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -120,6 +121,8 @@ function RecruitmentPage() {
             </CardContent>
           </Card>
         </div>
+
+        <CandidatePipeline applications={snapshot.data?.applications ?? []} />
 
         <CreateRequisitionDialog
           open={requisitionOpen}
