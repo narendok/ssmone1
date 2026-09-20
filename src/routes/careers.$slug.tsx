@@ -4,6 +4,7 @@ import { ArrowLeft, BriefcaseBusiness, MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PublicApplicationForm } from "@/components/hr/PublicApplicationForm";
 import { fetchPublishedJobBySlug } from "@/lib/hr";
 
 export const Route = createFileRoute("/careers/$slug")({
@@ -69,12 +70,10 @@ function CareerRolePage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>How this first release handles applications</CardTitle>
+                <CardTitle>Apply for this role</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 text-sm text-muted-foreground">
-                <p>The public job board is live now.</p>
-                <p>Candidate application intake, resume upload, and secure status tracking are being wired into the shared HR workflow next.</p>
-                <Button asChild className="w-full"><Link to="/auth">Internal team sign-in</Link></Button>
+              <CardContent>
+                {job.data && <PublicApplicationForm postingSlug={job.data.slug} roleTitle={job.data.title} />}
               </CardContent>
             </Card>
           </div>

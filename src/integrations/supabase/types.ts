@@ -2785,6 +2785,17 @@ export type Database = {
         Args: { _item_id: string; _reason: string; _undo?: boolean }
         Returns: Json
       }
+      submit_public_job_application: {
+        Args: {
+          _cover_letter: string
+          _current_location: string
+          _email: string
+          _full_name: string
+          _phone: string
+          _posting_slug: string
+        }
+        Returns: Json
+      }
       toggle_node_star: { Args: { p_node_id: string }; Returns: boolean }
     }
     Enums: {
