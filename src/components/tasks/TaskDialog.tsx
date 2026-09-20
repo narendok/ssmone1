@@ -12,7 +12,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchProjects } from "@/lib/projects";
 import {
-  DEPARTMENTS, TASK_PRIORITIES, TASK_STATUSES, createTask, updateTask,
+  TASK_PRIORITIES, TASK_STATUSES, createTask, fetchCanonicalDepartments, updateTask,
   type ProjectTask,
 } from "@/lib/tasks";
 import type { RDMember } from "@/lib/inventory";
@@ -30,12 +30,13 @@ export function TaskDialog({
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    title: "", description: "", department: "hardware", priority: "medium", status: "todo",
+    title: "", description: "", department: "hardware", department_id: NONE, priority: "medium", status: "todo",
     assignee_id: NONE, project_id: projectId ?? NONE, due_date: "", estimated_hours: "",
     logged_hours: "", ppap_element: "",
   });
 
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
+  const { data: departments = [] } = useQuery({ queryKey: ["canonical_departments"], queryFn: fetchCanonicalDepartments });
   const { data: members = [] } = useQuery({
     queryKey: ["rd_members"],
     queryFn: async () => {
@@ -49,7 +50,7 @@ export function TaskDialog({
     setForm({
       title: task?.title ?? "",
       description: task?.description ?? "",
-      department: task?.department ?? "hardware",
+      department: task?.department ?? "hardware", department_id: task?.department_id ?? NONE,
       priority: task?.priority ?? "medium",
       status: task?.status ?? "todo",
       assignee_id: task?.assignee_id ?? NONE,
@@ -68,6 +69,7 @@ export function TaskDialog({
       title: form.title.trim(),
       description: form.description.trim() || null,
       department: form.department,
+      department_id: form.department_id === NONE ? null : form.department_id,
       priority: form.priority,
       status: form.status,
       assignee_id: form.assignee_id === NONE ? null : form.assignee_id,
@@ -112,14 +114,10 @@ export function TaskDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Department</Label>
-              <Select value={form.department} onValueChange={(v) => setForm({ ...form, department: v })}>
+              <Select value={form.department_id} onValueChange={(id) => { const selected = departments.find((item) => item.id === id); const legacy = selected?.name.toLowerCase().replaceAll(" ", "_").replace("executive_/_pm", "executive") ?? form.department; setForm({ ...form, department_id: id, department: legacy }); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {DEPARTMENTS.map((d) => (
-                    <SelectItem key={d.value} value={d.value}>
-                      <span className="flex items-center gap-2"><span className={`h-2 w-2 rounded-full ${d.dot}`} />{d.label}</span>
-                    </SelectItem>
-                  ))}
+                  {departments.map((department) => <SelectItem key={department.id} value={department.id}>{department.code ? `${department.code} — ` : ""}{department.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const sb = supabase as any;
 
-export const DEPARTMENTS = [
+export const LEGACY_DEPARTMENTS = [
   { value: "hardware", label: "Hardware", dot: "bg-sky-500", pill: "bg-sky-500/15 text-sky-600 border-sky-500/30" },
   { value: "firmware", label: "Firmware", dot: "bg-violet-500", pill: "bg-violet-500/15 text-violet-600 border-violet-500/30" },
   { value: "mechanical", label: "Mechanical", dot: "bg-amber-500", pill: "bg-amber-500/15 text-amber-600 border-amber-500/30" },
@@ -12,10 +12,10 @@ export const DEPARTMENTS = [
   { value: "executive", label: "Executive / PM", dot: "bg-rose-500", pill: "bg-rose-500/15 text-rose-600 border-rose-500/30" },
 ] as const;
 
-export type Department = (typeof DEPARTMENTS)[number]["value"];
+export type Department = (typeof LEGACY_DEPARTMENTS)[number]["value"];
 
 export function department(value: string | null | undefined) {
-  return DEPARTMENTS.find((d) => d.value === value) ?? null;
+  return LEGACY_DEPARTMENTS.find((d) => d.value === value) ?? null;
 }
 
 export const TASK_STATUSES = [
@@ -47,6 +47,7 @@ export interface ProjectTask {
   description: string | null;
   project_id: string | null;
   department: Department;
+  department_id: string | null;
   priority: TaskPriority;
   status: TaskStatus;
   assignee_id: string | null;
@@ -60,7 +61,8 @@ export interface ProjectTask {
   created_by: string | null;
   created_at: string;
   updated_at: string;
-  assignee?: { id: string; name: string; email: string; department: Department | null } | null;
+  assignee?: { id: string; name: string; email: string; department: Department | null; department_id: string | null } | null;
+  department_record?: { id: string; name: string; code: string | null } | null;
   project?: { id: string; name: string; code: string; color: string } | null;
 }
 
@@ -85,7 +87,15 @@ export interface TaskActivity {
 }
 
 const SELECT =
-  "*, assignee:rd_members(id,name,email,department), project:projects(id,name,code,color)";
+  "*, assignee:rd_members(id,name,email,department,department_id), department_record:departments(id,name,code), project:projects(id,name,code,color)";
+
+export type CanonicalDepartment = { id: string; name: string; code: string | null; aliases: string[] };
+
+export async function fetchCanonicalDepartments(): Promise<CanonicalDepartment[]> {
+  const { data, error } = await sb.from("departments").select("id,name,code,aliases").eq("is_active", true).order("name");
+  if (error) throw error;
+  return (data ?? []) as CanonicalDepartment[];
+}
 
 export async function fetchTasks(projectId?: string): Promise<ProjectTask[]> {
   let q = sb.from("project_tasks").select(SELECT).order("sort_order").order("created_at", { ascending: false });
@@ -115,6 +125,7 @@ export async function createTask(input: TaskInput) {
 export async function updateTask(id: string, patch: Partial<ProjectTask>) {
   const clean = { ...patch };
   delete (clean as any).assignee;
+  delete (clean as any).department_record;
   delete (clean as any).project;
   const { error } = await sb.from("project_tasks").update(clean).eq("id", id);
   if (error) throw error;
