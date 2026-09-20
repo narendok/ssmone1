@@ -31,4 +31,4 @@
 - [x] Extend the shared project foundation, team access, design inputs, research records, engineering registers, delivery gates, issues and engineering changes.
 - [x] Add the project portfolio and workspace surfaces for delivery governance, BOMs, files, firmware, CAD and project tasks.
 - [x] Preserve existing PartsBench project, BOM, Drive, firmware, CAD and task workflows.
-- [ ] Assign `projects.view` and `projects.manage` through Administration for non-admin project users.
+- [x] Add the Projects access module, Project Manager role, and project view/manage permissions to the shared administration catalog.
