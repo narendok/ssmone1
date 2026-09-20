@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 async function requireProductionAccess(context: { supabase: any; userId: string }, permission: "production.edit" | "production.approve") {
+  const { data: admin } = await context.supabase.rpc("has_role", { _uid: context.userId, _role_name: "admin" });
+  if (admin) return;
   const { data: allowed, error } = await context.supabase.rpc("has_permission", { _user_id: context.userId, _permission_key: permission });
   if (error || !allowed) throw new Error("You do not have permission to perform this production action.");
 }
