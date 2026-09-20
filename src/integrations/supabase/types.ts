@@ -3515,6 +3515,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           department: Database["public"]["Enums"]["department_type"]
+          department_id: string | null
           description: string | null
           drive_node_id: string | null
           due_date: string | null
@@ -3535,6 +3536,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           department?: Database["public"]["Enums"]["department_type"]
+          department_id?: string | null
           description?: string | null
           drive_node_id?: string | null
           due_date?: string | null
@@ -3555,6 +3557,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           department?: Database["public"]["Enums"]["department_type"]
+          department_id?: string | null
           description?: string | null
           drive_node_id?: string | null
           due_date?: string | null
@@ -3576,6 +3579,13 @@ export type Database = {
             columns: ["assignee_id"]
             isOneToOne: false
             referencedRelation: "rd_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
           {
@@ -3919,6 +3929,7 @@ export type Database = {
           active: boolean
           created_at: string
           department: Database["public"]["Enums"]["department_type"] | null
+          department_id: string | null
           email: string
           id: string
           name: string
@@ -3928,6 +3939,7 @@ export type Database = {
           active?: boolean
           created_at?: string
           department?: Database["public"]["Enums"]["department_type"] | null
+          department_id?: string | null
           email: string
           id?: string
           name: string
@@ -3937,12 +3949,21 @@ export type Database = {
           active?: boolean
           created_at?: string
           department?: Database["public"]["Enums"]["department_type"] | null
+          department_id?: string | null
           email?: string
           id?: string
           name?: string
           role?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rd_members_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       requirement_baselines: {
         Row: {
