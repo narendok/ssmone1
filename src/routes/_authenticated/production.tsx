@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Factory, Plus, Route as RouteIcon, PackageCheck, ClipboardCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,14 +16,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/production")({
-  component: ProductionRoute,
+  component: ProductionPage,
   head: () => ({ meta: [{ title: "Production — SSM One" }, { name: "description", content: "Controlled work orders, BOM material readiness, routes, kits, and production traceability." }] }),
 });
 const sb = supabase as any;
 const labels: Record<string, string> = { MATERIAL_REVIEW: "Material review", READY_TO_RELEASE: "Ready to release", IN_PROGRESS: "In progress", ON_HOLD: "On hold" };
 const label = (value: string) => labels[value] || value.replaceAll("_", " ");
-
-function ProductionRoute() { const pathname = useRouterState({ select: (state) => state.location.pathname }); return pathname === "/production" ? <ProductionPage /> : <Outlet />; }
 
 function ProductionPage() {
   const [createOpen, setCreateOpen] = useState(false); const qc = useQueryClient();
