@@ -15,6 +15,7 @@ import { Route as ApplicationStatusRouteImport } from './routes/application-stat
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
+import { Route as PortalTokenRouteImport } from './routes/portal.$token'
 import { Route as FileTokenRouteImport } from './routes/file.$token'
 import { Route as CareersSlugRouteImport } from './routes/careers.$slug'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
@@ -74,6 +75,11 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
 const ShareTokenRoute = ShareTokenRouteImport.update({
   id: '/share/$token',
   path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalTokenRoute = PortalTokenRouteImport.update({
+  id: '/portal/$token',
+  path: '/portal/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FileTokenRoute = FileTokenRouteImport.update({
@@ -264,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/file/$token': typeof FileTokenRoute
+  '/portal/$token': typeof PortalTokenRoute
   '/share/$token': typeof ShareTokenRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
@@ -301,6 +308,7 @@ export interface FileRoutesByTo {
   '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/file/$token': typeof FileTokenRoute
+  '/portal/$token': typeof PortalTokenRoute
   '/share/$token': typeof ShareTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
@@ -341,6 +349,7 @@ export interface FileRoutesById {
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/file/$token': typeof FileTokenRoute
+  '/portal/$token': typeof PortalTokenRoute
   '/share/$token': typeof ShareTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/category/$slug': typeof AuthenticatedCategorySlugRoute
@@ -382,6 +391,7 @@ export interface FileRouteTypes {
     | '/sales'
     | '/careers/$slug'
     | '/file/$token'
+    | '/portal/$token'
     | '/share/$token'
     | '/category/$slug'
     | '/hr/leave'
@@ -419,6 +429,7 @@ export interface FileRouteTypes {
     | '/sales'
     | '/careers/$slug'
     | '/file/$token'
+    | '/portal/$token'
     | '/share/$token'
     | '/'
     | '/category/$slug'
@@ -458,6 +469,7 @@ export interface FileRouteTypes {
     | '/_authenticated/sales'
     | '/careers/$slug'
     | '/file/$token'
+    | '/portal/$token'
     | '/share/$token'
     | '/_authenticated/'
     | '/_authenticated/category/$slug'
@@ -486,6 +498,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CareersRoute: typeof CareersRouteWithChildren
   FileTokenRoute: typeof FileTokenRoute
+  PortalTokenRoute: typeof PortalTokenRoute
   ShareTokenRoute: typeof ShareTokenRoute
   ApiPublicDatasheetProxyRoute: typeof ApiPublicDatasheetProxyRoute
   ApiPublicHooksRefreshSupplierDataRoute: typeof ApiPublicHooksRefreshSupplierDataRoute
@@ -533,6 +546,13 @@ declare module '@tanstack/react-router' {
       path: '/share/$token'
       fullPath: '/share/$token'
       preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/$token': {
+      id: '/portal/$token'
+      path: '/portal/$token'
+      fullPath: '/portal/$token'
+      preLoaderRoute: typeof PortalTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/file/$token': {
@@ -847,6 +867,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CareersRoute: CareersRouteWithChildren,
   FileTokenRoute: FileTokenRoute,
+  PortalTokenRoute: PortalTokenRoute,
   ShareTokenRoute: ShareTokenRoute,
   ApiPublicDatasheetProxyRoute: ApiPublicDatasheetProxyRoute,
   ApiPublicHooksRefreshSupplierDataRoute:
