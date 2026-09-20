@@ -3199,6 +3199,9 @@ export type Database = {
       payment_milestones: {
         Row: {
           amount: number
+          approval_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
           basis: string
           created_at: string
           currency: string
@@ -3209,6 +3212,7 @@ export type Database = {
           percentage: number | null
           po_id: string | null
           project_id: string | null
+          requested_by: string | null
           status: string
           trigger_date: string | null
           updated_at: string
@@ -3216,6 +3220,9 @@ export type Database = {
         }
         Insert: {
           amount: number
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           basis?: string
           created_at?: string
           currency?: string
@@ -3226,6 +3233,7 @@ export type Database = {
           percentage?: number | null
           po_id?: string | null
           project_id?: string | null
+          requested_by?: string | null
           status?: string
           trigger_date?: string | null
           updated_at?: string
@@ -3233,6 +3241,9 @@ export type Database = {
         }
         Update: {
           amount?: number
+          approval_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           basis?: string
           created_at?: string
           currency?: string
@@ -3243,6 +3254,7 @@ export type Database = {
           percentage?: number | null
           po_id?: string | null
           project_id?: string | null
+          requested_by?: string | null
           status?: string
           trigger_date?: string | null
           updated_at?: string
@@ -3469,6 +3481,7 @@ export type Database = {
           created_at: string
           decided_at: string | null
           decided_by: string | null
+          decision_notes: string | null
           evidence_path: string | null
           id: string
           original_delivery_date: string | null
@@ -3482,6 +3495,7 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          decision_notes?: string | null
           evidence_path?: string | null
           id?: string
           original_delivery_date?: string | null
@@ -3495,6 +3509,7 @@ export type Database = {
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          decision_notes?: string | null
           evidence_path?: string | null
           id?: string
           original_delivery_date?: string | null
@@ -4736,6 +4751,9 @@ export type Database = {
           request_number: string
           requester_id: string
           required_date: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           source_entity_id: string | null
           source_type: string
           status: string
@@ -4758,6 +4776,9 @@ export type Database = {
           request_number: string
           requester_id?: string
           required_date?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_entity_id?: string | null
           source_type?: string
           status?: string
@@ -4780,6 +4801,9 @@ export type Database = {
           request_number?: string
           requester_id?: string
           required_date?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_entity_id?: string | null
           source_type?: string
           status?: string
@@ -4821,6 +4845,9 @@ export type Database = {
           department_id: string | null
           description: string
           expense_number: string
+          finance_notes: string | null
+          finance_reviewed_at: string | null
+          finance_reviewed_by: string | null
           id: string
           is_rd: boolean
           project_id: string | null
@@ -4837,6 +4864,9 @@ export type Database = {
           department_id?: string | null
           description: string
           expense_number: string
+          finance_notes?: string | null
+          finance_reviewed_at?: string | null
+          finance_reviewed_by?: string | null
           id?: string
           is_rd?: boolean
           project_id?: string | null
@@ -4853,6 +4883,9 @@ export type Database = {
           department_id?: string | null
           description?: string
           expense_number?: string
+          finance_notes?: string | null
+          finance_reviewed_at?: string | null
+          finance_reviewed_by?: string | null
           id?: string
           is_rd?: boolean
           project_id?: string | null
@@ -4948,6 +4981,9 @@ export type Database = {
           payment_terms: string | null
           quotation_number: string
           quoted_at: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           rfq_id: string | null
           source_file_path: string | null
           status: string
@@ -4967,6 +5003,9 @@ export type Database = {
           payment_terms?: string | null
           quotation_number: string
           quoted_at?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           rfq_id?: string | null
           source_file_path?: string | null
           status?: string
@@ -4986,6 +5025,9 @@ export type Database = {
           payment_terms?: string | null
           quotation_number?: string
           quoted_at?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           rfq_id?: string | null
           source_file_path?: string | null
           status?: string
@@ -5316,7 +5358,11 @@ export type Database = {
       }
       rtv_records: {
         Row: {
+          authorized_at: string | null
+          authorized_by: string | null
           awb_number: string | null
+          closed_at: string | null
+          closed_by: string | null
           courier: string | null
           created_at: string
           dispatched_at: string | null
@@ -5330,7 +5376,11 @@ export type Database = {
           vendor_id: string
         }
         Insert: {
+          authorized_at?: string | null
+          authorized_by?: string | null
           awb_number?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           courier?: string | null
           created_at?: string
           dispatched_at?: string | null
@@ -5344,7 +5394,11 @@ export type Database = {
           vendor_id: string
         }
         Update: {
+          authorized_at?: string | null
+          authorized_by?: string | null
           awb_number?: string | null
+          closed_at?: string | null
+          closed_by?: string | null
           courier?: string | null
           created_at?: string
           dispatched_at?: string | null
@@ -6034,6 +6088,28 @@ export type Database = {
         }
         Returns: Json
       }
+      create_phase6_quotation: {
+        Args: {
+          _items: Json
+          _lead_time_days: number
+          _payment_terms: string
+          _quoted_at: string
+          _rfq_id: string
+          _valid_until: string
+          _vendor_id: string
+        }
+        Returns: string
+      }
+      create_phase6_rfq: {
+        Args: {
+          _project_id: string
+          _purchase_request_id: string
+          _response_due_date: string
+          _terms: string
+          _vendor_ids?: string[]
+        }
+        Returns: string
+      }
       create_purchase_order: {
         Args: {
           _expected_delivery_date: string
@@ -6047,6 +6123,10 @@ export type Database = {
       create_purchase_request_from_bom_shortage: {
         Args: { _bom_id: string; _required_date?: string }
         Returns: string
+      }
+      decide_incoming_inspection: {
+        Args: { _findings?: string; _inspection_id: string; _status: string }
+        Returns: undefined
       }
       ensure_phase5_project_access_catalog: { Args: never; Returns: undefined }
       get_drive_breadcrumbs: {
@@ -6115,6 +6195,15 @@ export type Database = {
       }
       provision_drive_for_project: {
         Args: { p_project_id: string }
+        Returns: undefined
+      }
+      review_phase6_record: {
+        Args: {
+          _decision: string
+          _notes?: string
+          _record_id: string
+          _record_type: string
+        }
         Returns: undefined
       }
       short_close_po_item: {
