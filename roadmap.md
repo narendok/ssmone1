@@ -35,4 +35,4 @@
 
 ## Stabilization Patch 01
 
-- [ ] Complete central numbering, master-data quick creation, selector reuse, auto-fill, duplicate protections, form simplification, and regression review across existing Phases 1–5.
+- [ ] Central numbering, HR/customer/project auto-codes, job profile master, reusable selectors, full quick-create/context preservation, and role-based acceptance/regression remain in progress. The shared numbering engine and first Sales/HR/project form updates are complete.

@@ -51,8 +51,8 @@ function RecruitmentPage() {
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Move from hiring need to a published opening without leaving the shared operations workspace.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={() => setRequisitionOpen(true)}><Plus className="h-4 w-4" /> Requisition</Button>
-            <Button onClick={() => setPostingOpen(true)}><Plus className="h-4 w-4" /> Career opening</Button>
+            <Button onClick={() => setRequisitionOpen(true)}><Plus className="h-4 w-4" /> New job opening</Button>
+            <Button variant="outline" onClick={() => setPostingOpen(true)}><Plus className="h-4 w-4" /> Career opening</Button>
           </div>
         </div>
 
@@ -75,7 +75,7 @@ function RecruitmentPage() {
                 <TableBody>
                   {snapshot.data?.requisitions.map((requisition) => (
                     <TableRow key={requisition.id}>
-                      <TableCell className="font-medium">{requisition.title}</TableCell>
+                      <TableCell className="font-medium"><span className="mr-2 font-mono text-xs text-muted-foreground">{requisition.requisition_code ?? "Draft"}</span>{requisition.title}</TableCell>
                       <TableCell>{requisition.department?.name ?? "—"}</TableCell>
                       <TableCell><Badge variant="outline">{requisition.status}</Badge></TableCell>
                       <TableCell>{requisition.headcount} seat{requisition.headcount > 1 ? "s" : ""}</TableCell>
@@ -107,7 +107,7 @@ function RecruitmentPage() {
                     <TableRow key={posting.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{posting.title}</p>
+                          <p className="font-medium"><span className="mr-2 font-mono text-xs text-muted-foreground">{posting.job_code ?? "Draft"}</span>{posting.title}</p>
                           <p className="text-xs text-muted-foreground">/careers/{posting.slug}</p>
                         </div>
                       </TableCell>

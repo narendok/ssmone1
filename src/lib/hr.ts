@@ -2,8 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 const sb = supabase as any;
 
-export interface HrJobPosting { id: string; slug: string; title: string; summary: string | null; description: string; location: string | null; employment_type: string; work_mode: string; is_published: boolean; published_at: string | null; created_at: string; department?: { id: string; name: string | null; code: string | null } | null; }
-export interface HrJobRequisition { id: string; title: string; employment_type: string; work_mode: string; location: string | null; headcount: number; status: string; target_start_date: string | null; created_at: string; department?: { id: string; name: string | null; code: string | null } | null; }
+export interface HrJobPosting { id: string; job_code: string | null; slug: string; title: string; summary: string | null; description: string; location: string | null; employment_type: string; work_mode: string; is_published: boolean; published_at: string | null; created_at: string; department?: { id: string; name: string | null; code: string | null } | null; }
+export interface HrJobRequisition { id: string; requisition_code: string | null; title: string; employment_type: string; work_mode: string; location: string | null; headcount: number; status: string; target_start_date: string | null; created_at: string; department?: { id: string; name: string | null; code: string | null } | null; }
 export interface HrLeaveRequest { id: string; start_date: string; end_date: string; total_days: number; reason: string | null; status: string; approver_note: string | null; created_at: string; leave_type?: { id: string; name: string; code: string } | null; }
 export interface HrLeaveType { id: string; name: string; code: string; annual_quota: number; requires_approval: boolean; }
 export interface HrTrainingEnrollment { id: string; status: string; due_date: string | null; completed_at: string | null; score: number | null; program?: { id: string; title: string; delivery_mode: string; is_mandatory: boolean } | null; }
@@ -18,14 +18,14 @@ export interface HrOnboardingItem { id: string; title: string; description: stri
 export interface HrEmployeeOnboardingItem { id: string; title: string; description: string | null; owner_kind: string; due_date: string | null; is_required: boolean; status: string; sort_order: number; }
 export interface HrEmployeeOnboarding { id: string; status: string; welcome_kit_status: string; welcome_kit_notes: string | null; employee: { id: string; display_name: string | null; official_email: string | null; employee_code: string | null } | null; plan: { id: string; name: string } | null; items: HrEmployeeOnboardingItem[]; }
 
-const POSTING_SELECT = "id,slug,title,summary,description,location,employment_type,work_mode,is_published,published_at,created_at,department:departments(id,name,code)";
+const POSTING_SELECT = "id,job_code,slug,title,summary,description,location,employment_type,work_mode,is_published,published_at,created_at,department:departments(id,name,code)";
 
 export async function fetchPublishedJobs(): Promise<HrJobPosting[]> { const { data, error } = await sb.from("hr_job_postings").select(POSTING_SELECT).eq("is_published", true).order("published_at", { ascending: false }); if (error) throw error; return (data ?? []) as HrJobPosting[]; }
 export async function fetchPublishedJobBySlug(slug: string): Promise<HrJobPosting | null> { const { data, error } = await sb.from("hr_job_postings").select(POSTING_SELECT).eq("slug", slug).eq("is_published", true).maybeSingle(); if (error) throw error; return (data ?? null) as HrJobPosting | null; }
 
 export async function fetchRecruitmentSnapshot(): Promise<{ requisitions: HrJobRequisition[]; postings: HrJobPosting[]; applications: HrApplication[]; interviews: HrInterviewRound[]; offers: HrOffer[]; employees: Array<{ id: string; display_name: string | null; official_email: string | null }> }> {
   const [reqs, posts, applications, interviews, offers, employees] = await Promise.all([
-    sb.from("hr_job_requisitions").select("id,title,employment_type,work_mode,location,headcount,status,target_start_date,created_at,department:departments(id,name,code)").order("created_at", { ascending: false }),
+    sb.from("hr_job_requisitions").select("id,requisition_code,title,employment_type,work_mode,location,headcount,status,target_start_date,created_at,department:departments(id,name,code)").order("created_at", { ascending: false }),
     sb.from("hr_job_postings").select(POSTING_SELECT).order("created_at", { ascending: false }),
     sb.from("hr_applications").select("id,stage,status,submitted_at,cover_letter,candidate:hr_candidates(id,full_name,email,phone,current_location,resume_filename,resume_storage_path),posting:hr_job_postings(id,title,slug)").order("submitted_at", { ascending: false }),
     sb.from("hr_interview_rounds").select("id,application_id,title,interviewer_user_id,scheduled_for,meeting_notes,status").order("scheduled_for", { ascending: true }),
