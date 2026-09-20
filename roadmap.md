@@ -1,4 +1,14 @@
-# Phase 3 roadmap
+# Unified platform roadmap
+
+## Phase 4 — Sales, customer requirements & handover
+
+- [ ] Build the sales foundation: customer master, contacts, enquiries, opportunities, owner assignment, navigation and dashboard. Customer, contact, enquiry, opportunity database foundations and sales/customer overview screens are complete; enquiry and opportunity creation forms remain.
+- [ ] Add configurable NDAs, secure customer requirement intake, customer actions and clarifications.
+- [ ] Add feasibility, technical specification, stable requirement IDs, revision comparison and traceability.
+- [ ] Add commercial references, customer confirmation, baseline and controlled change workflows.
+- [ ] Add the secure customer portal and approved-baseline project handover.
+
+## Phase 3 — HR
 
 - [ ] Establish any missing shared operational primitives required by the HR module without duplicating Phase 2 systems.
 - [ ] Build secure HR recruitment and public Careers flows. Public candidate intake, secure resume uploads, private application status lookup, and recruiter pipeline review are complete.

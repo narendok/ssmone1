@@ -17,12 +17,14 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as FileTokenRouteImport } from './routes/file.$token'
 import { Route as CareersSlugRouteImport } from './routes/careers.$slug'
+import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
 import { Route as AuthenticatedRdTeamRouteImport } from './routes/_authenticated/rd-team'
 import { Route as AuthenticatedPcbRouteImport } from './routes/_authenticated/pcb'
 import { Route as AuthenticatedLocationsRouteImport } from './routes/_authenticated/locations'
 import { Route as AuthenticatedHrRouteImport } from './routes/_authenticated/hr'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedDriveRouteImport } from './routes/_authenticated/drive'
+import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
 import { Route as AuthenticatedBomRouteImport } from './routes/_authenticated/bom'
 import { Route as AuthenticatedAssignmentsRouteImport } from './routes/_authenticated/assignments'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -84,6 +86,11 @@ const CareersSlugRoute = CareersSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => CareersRoute,
 } as any)
+const AuthenticatedSalesRoute = AuthenticatedSalesRouteImport.update({
+  id: '/sales',
+  path: '/sales',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedRdTeamRoute = AuthenticatedRdTeamRouteImport.update({
   id: '/rd-team',
   path: '/rd-team',
@@ -112,6 +119,11 @@ const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
 const AuthenticatedDriveRoute = AuthenticatedDriveRouteImport.update({
   id: '/drive',
   path: '/drive',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCustomersRoute = AuthenticatedCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBomRoute = AuthenticatedBomRouteImport.update({
@@ -242,12 +254,14 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
+  '/customers': typeof AuthenticatedCustomersRoute
   '/drive': typeof AuthenticatedDriveRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/hr': typeof AuthenticatedHrRouteWithChildren
   '/locations': typeof AuthenticatedLocationsRoute
   '/pcb': typeof AuthenticatedPcbRoute
   '/rd-team': typeof AuthenticatedRdTeamRoute
+  '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/file/$token': typeof FileTokenRoute
   '/share/$token': typeof ShareTokenRoute
@@ -277,12 +291,14 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
+  '/customers': typeof AuthenticatedCustomersRoute
   '/drive': typeof AuthenticatedDriveRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/hr': typeof AuthenticatedHrRouteWithChildren
   '/locations': typeof AuthenticatedLocationsRoute
   '/pcb': typeof AuthenticatedPcbRoute
   '/rd-team': typeof AuthenticatedRdTeamRoute
+  '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/file/$token': typeof FileTokenRoute
   '/share/$token': typeof ShareTokenRoute
@@ -315,12 +331,14 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/assignments': typeof AuthenticatedAssignmentsRoute
   '/_authenticated/bom': typeof AuthenticatedBomRoute
+  '/_authenticated/customers': typeof AuthenticatedCustomersRoute
   '/_authenticated/drive': typeof AuthenticatedDriveRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/hr': typeof AuthenticatedHrRouteWithChildren
   '/_authenticated/locations': typeof AuthenticatedLocationsRoute
   '/_authenticated/pcb': typeof AuthenticatedPcbRoute
   '/_authenticated/rd-team': typeof AuthenticatedRdTeamRoute
+  '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/file/$token': typeof FileTokenRoute
   '/share/$token': typeof ShareTokenRoute
@@ -354,12 +372,14 @@ export interface FileRouteTypes {
     | '/admin'
     | '/assignments'
     | '/bom'
+    | '/customers'
     | '/drive'
     | '/history'
     | '/hr'
     | '/locations'
     | '/pcb'
     | '/rd-team'
+    | '/sales'
     | '/careers/$slug'
     | '/file/$token'
     | '/share/$token'
@@ -389,12 +409,14 @@ export interface FileRouteTypes {
     | '/admin'
     | '/assignments'
     | '/bom'
+    | '/customers'
     | '/drive'
     | '/history'
     | '/hr'
     | '/locations'
     | '/pcb'
     | '/rd-team'
+    | '/sales'
     | '/careers/$slug'
     | '/file/$token'
     | '/share/$token'
@@ -426,12 +448,14 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/assignments'
     | '/_authenticated/bom'
+    | '/_authenticated/customers'
     | '/_authenticated/drive'
     | '/_authenticated/history'
     | '/_authenticated/hr'
     | '/_authenticated/locations'
     | '/_authenticated/pcb'
     | '/_authenticated/rd-team'
+    | '/_authenticated/sales'
     | '/careers/$slug'
     | '/file/$token'
     | '/share/$token'
@@ -525,6 +549,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CareersSlugRouteImport
       parentRoute: typeof CareersRoute
     }
+    '/_authenticated/sales': {
+      id: '/_authenticated/sales'
+      path: '/sales'
+      fullPath: '/sales'
+      preLoaderRoute: typeof AuthenticatedSalesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/rd-team': {
       id: '/_authenticated/rd-team'
       path: '/rd-team'
@@ -565,6 +596,13 @@ declare module '@tanstack/react-router' {
       path: '/drive'
       fullPath: '/drive'
       preLoaderRoute: typeof AuthenticatedDriveRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/customers': {
+      id: '/_authenticated/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof AuthenticatedCustomersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/bom': {
@@ -741,12 +779,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAssignmentsRoute: typeof AuthenticatedAssignmentsRoute
   AuthenticatedBomRoute: typeof AuthenticatedBomRoute
+  AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
   AuthenticatedDriveRoute: typeof AuthenticatedDriveRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedHrRoute: typeof AuthenticatedHrRouteWithChildren
   AuthenticatedLocationsRoute: typeof AuthenticatedLocationsRoute
   AuthenticatedPcbRoute: typeof AuthenticatedPcbRoute
   AuthenticatedRdTeamRoute: typeof AuthenticatedRdTeamRoute
+  AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCategorySlugRoute: typeof AuthenticatedCategorySlugRoute
   AuthenticatedProcurementInwardRoute: typeof AuthenticatedProcurementInwardRoute
@@ -765,12 +805,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAssignmentsRoute: AuthenticatedAssignmentsRoute,
   AuthenticatedBomRoute: AuthenticatedBomRoute,
+  AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
   AuthenticatedDriveRoute: AuthenticatedDriveRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedHrRoute: AuthenticatedHrRouteWithChildren,
   AuthenticatedLocationsRoute: AuthenticatedLocationsRoute,
   AuthenticatedPcbRoute: AuthenticatedPcbRoute,
   AuthenticatedRdTeamRoute: AuthenticatedRdTeamRoute,
+  AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCategorySlugRoute: AuthenticatedCategorySlugRoute,
   AuthenticatedProcurementInwardRoute: AuthenticatedProcurementInwardRoute,
