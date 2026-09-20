@@ -4562,6 +4562,7 @@ export type Database = {
         }
         Returns: Json
       }
+      ensure_phase5_project_access_catalog: { Args: never; Returns: undefined }
       get_drive_breadcrumbs: {
         Args: { p_node_id: string }
         Returns: {
