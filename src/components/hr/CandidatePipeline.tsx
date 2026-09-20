@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { ExternalLink, FileText, LoaderCircle, Workflow } from "lucide-react";
+import { ExternalLink, FileText, LoaderCircle, UserPlus, Workflow } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getCandidateResumeUrl, updateApplicationPipeline } from "@/lib/hr.functions";
 import type { HrApplication, HrInterviewRound, HrOffer } from "@/lib/hr";
 import { CandidateJourneyDialog } from "@/components/hr/CandidateJourneyDialog";
+import { StartEmployeeOnboardingDialog } from "@/components/hr/StartEmployeeOnboardingDialog";
 
 const STAGES = ["applied", "screening", "assessment", "interview", "offer", "hired", "rejected", "withdrawn"] as const;
 const TERMINAL_STATUSES = new Set(["hired", "rejected", "withdrawn"]);
@@ -30,6 +31,7 @@ export function CandidatePipeline({ applications, interviews, offers, interviewe
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [openingResumeId, setOpeningResumeId] = useState<string | null>(null);
   const [journeyApplication, setJourneyApplication] = useState<HrApplication | null>(null);
+  const [onboardingApplication, setOnboardingApplication] = useState<HrApplication | null>(null);
 
   async function changeStage(application: HrApplication, stage: string) {
     const status = suggestedStatus(stage, application.status);
@@ -80,6 +82,8 @@ export function CandidatePipeline({ applications, interviews, offers, interviewe
               {applications.map((application) => {
                 const candidate = application.candidate;
                 const canOpenResume = Boolean(candidate && candidate.resume_storage_path);
+                const offer = offers.find((item) => item.application_id === application.id);
+                const canStartOnboarding = application.stage === "hired" && application.status === "hired" && offer?.status === "accepted";
                 return (
                   <TableRow key={application.id}>
                     <TableCell>
@@ -100,6 +104,7 @@ export function CandidatePipeline({ applications, interviews, offers, interviewe
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button variant="outline" size="sm" onClick={() => setJourneyApplication(application)}><Workflow className="h-4 w-4" /><span className="sr-only">Manage interviews and offer for {candidate?.full_name ?? "candidate"}</span></Button>
+                          {canStartOnboarding ? <Button variant="outline" size="sm" onClick={() => setOnboardingApplication(application)}><UserPlus className="h-4 w-4" /><span className="sr-only">Create employee and start onboarding for {candidate?.full_name ?? "candidate"}</span></Button> : null}
                         {canOpenResume && candidate ? (
                           <Button variant="outline" size="sm" onClick={() => void openResume(candidate.id)} disabled={openingResumeId === candidate.id}>
                             {openingResumeId === candidate.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
@@ -117,6 +122,7 @@ export function CandidatePipeline({ applications, interviews, offers, interviewe
         </div>
       </CardContent>
       <CandidateJourneyDialog application={journeyApplication} interviews={interviews} offer={offers.find((offer) => offer.application_id === journeyApplication?.id)} interviewers={interviewers} open={Boolean(journeyApplication)} onOpenChange={(open) => { if (!open) setJourneyApplication(null); }} />
+      <StartEmployeeOnboardingDialog application={onboardingApplication} plans={[]} open={Boolean(onboardingApplication)} onOpenChange={(open) => { if (!open) setOnboardingApplication(null); }} />
     </Card>
   );
 }
