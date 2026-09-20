@@ -40,6 +40,9 @@ import { Route as AuthenticatedSettingsCategoriesRouteImport } from './routes/_a
 import { Route as AuthenticatedQualityIncomingRouteImport } from './routes/_authenticated/quality.incoming'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects.$projectId'
 import { Route as AuthenticatedProductionShopfloorRouteImport } from './routes/_authenticated/production.shopfloor'
+import { Route as AuthenticatedProductionReleaseRouteImport } from './routes/_authenticated/production.release'
+import { Route as AuthenticatedProductionPpapRouteImport } from './routes/_authenticated/production.ppap'
+import { Route as AuthenticatedProductionDispatchRouteImport } from './routes/_authenticated/production.dispatch'
 import { Route as AuthenticatedProcurementVendorsRouteImport } from './routes/_authenticated/procurement.vendors'
 import { Route as AuthenticatedProcurementSupplierQualityRouteImport } from './routes/_authenticated/procurement.supplier-quality'
 import { Route as AuthenticatedProcurementShipmentsRouteImport } from './routes/_authenticated/procurement.shipments'
@@ -223,6 +226,24 @@ const AuthenticatedProductionShopfloorRoute =
     path: '/shopfloor',
     getParentRoute: () => AuthenticatedProductionRoute,
   } as any)
+const AuthenticatedProductionReleaseRoute =
+  AuthenticatedProductionReleaseRouteImport.update({
+    id: '/release',
+    path: '/release',
+    getParentRoute: () => AuthenticatedProductionRoute,
+  } as any)
+const AuthenticatedProductionPpapRoute =
+  AuthenticatedProductionPpapRouteImport.update({
+    id: '/ppap',
+    path: '/ppap',
+    getParentRoute: () => AuthenticatedProductionRoute,
+  } as any)
+const AuthenticatedProductionDispatchRoute =
+  AuthenticatedProductionDispatchRouteImport.update({
+    id: '/dispatch',
+    path: '/dispatch',
+    getParentRoute: () => AuthenticatedProductionRoute,
+  } as any)
 const AuthenticatedProcurementVendorsRoute =
   AuthenticatedProcurementVendorsRouteImport.update({
     id: '/procurement/vendors',
@@ -374,6 +395,9 @@ export interface FileRoutesByFullPath {
   '/procurement/shipments': typeof AuthenticatedProcurementShipmentsRoute
   '/procurement/supplier-quality': typeof AuthenticatedProcurementSupplierQualityRoute
   '/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
+  '/production/dispatch': typeof AuthenticatedProductionDispatchRoute
+  '/production/ppap': typeof AuthenticatedProductionPpapRoute
+  '/production/release': typeof AuthenticatedProductionReleaseRoute
   '/production/shopfloor': typeof AuthenticatedProductionShopfloorRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/quality/incoming': typeof AuthenticatedQualityIncomingRoute
@@ -425,6 +449,9 @@ export interface FileRoutesByTo {
   '/procurement/shipments': typeof AuthenticatedProcurementShipmentsRoute
   '/procurement/supplier-quality': typeof AuthenticatedProcurementSupplierQualityRoute
   '/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
+  '/production/dispatch': typeof AuthenticatedProductionDispatchRoute
+  '/production/ppap': typeof AuthenticatedProductionPpapRoute
+  '/production/release': typeof AuthenticatedProductionReleaseRoute
   '/production/shopfloor': typeof AuthenticatedProductionShopfloorRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/quality/incoming': typeof AuthenticatedQualityIncomingRoute
@@ -478,6 +505,9 @@ export interface FileRoutesById {
   '/_authenticated/procurement/shipments': typeof AuthenticatedProcurementShipmentsRoute
   '/_authenticated/procurement/supplier-quality': typeof AuthenticatedProcurementSupplierQualityRoute
   '/_authenticated/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
+  '/_authenticated/production/dispatch': typeof AuthenticatedProductionDispatchRoute
+  '/_authenticated/production/ppap': typeof AuthenticatedProductionPpapRoute
+  '/_authenticated/production/release': typeof AuthenticatedProductionReleaseRoute
   '/_authenticated/production/shopfloor': typeof AuthenticatedProductionShopfloorRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/_authenticated/quality/incoming': typeof AuthenticatedQualityIncomingRoute
@@ -531,6 +561,9 @@ export interface FileRouteTypes {
     | '/procurement/shipments'
     | '/procurement/supplier-quality'
     | '/procurement/vendors'
+    | '/production/dispatch'
+    | '/production/ppap'
+    | '/production/release'
     | '/production/shopfloor'
     | '/projects/$projectId'
     | '/quality/incoming'
@@ -582,6 +615,9 @@ export interface FileRouteTypes {
     | '/procurement/shipments'
     | '/procurement/supplier-quality'
     | '/procurement/vendors'
+    | '/production/dispatch'
+    | '/production/ppap'
+    | '/production/release'
     | '/production/shopfloor'
     | '/projects/$projectId'
     | '/quality/incoming'
@@ -634,6 +670,9 @@ export interface FileRouteTypes {
     | '/_authenticated/procurement/shipments'
     | '/_authenticated/procurement/supplier-quality'
     | '/_authenticated/procurement/vendors'
+    | '/_authenticated/production/dispatch'
+    | '/_authenticated/production/ppap'
+    | '/_authenticated/production/release'
     | '/_authenticated/production/shopfloor'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/quality/incoming'
@@ -878,6 +917,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProductionShopfloorRouteImport
       parentRoute: typeof AuthenticatedProductionRoute
     }
+    '/_authenticated/production/release': {
+      id: '/_authenticated/production/release'
+      path: '/release'
+      fullPath: '/production/release'
+      preLoaderRoute: typeof AuthenticatedProductionReleaseRouteImport
+      parentRoute: typeof AuthenticatedProductionRoute
+    }
+    '/_authenticated/production/ppap': {
+      id: '/_authenticated/production/ppap'
+      path: '/ppap'
+      fullPath: '/production/ppap'
+      preLoaderRoute: typeof AuthenticatedProductionPpapRouteImport
+      parentRoute: typeof AuthenticatedProductionRoute
+    }
+    '/_authenticated/production/dispatch': {
+      id: '/_authenticated/production/dispatch'
+      path: '/dispatch'
+      fullPath: '/production/dispatch'
+      preLoaderRoute: typeof AuthenticatedProductionDispatchRouteImport
+      parentRoute: typeof AuthenticatedProductionRoute
+    }
     '/_authenticated/procurement/vendors': {
       id: '/_authenticated/procurement/vendors'
       path: '/procurement/vendors'
@@ -1035,11 +1095,17 @@ const AuthenticatedHrRouteWithChildren = AuthenticatedHrRoute._addFileChildren(
 )
 
 interface AuthenticatedProductionRouteChildren {
+  AuthenticatedProductionDispatchRoute: typeof AuthenticatedProductionDispatchRoute
+  AuthenticatedProductionPpapRoute: typeof AuthenticatedProductionPpapRoute
+  AuthenticatedProductionReleaseRoute: typeof AuthenticatedProductionReleaseRoute
   AuthenticatedProductionShopfloorRoute: typeof AuthenticatedProductionShopfloorRoute
 }
 
 const AuthenticatedProductionRouteChildren: AuthenticatedProductionRouteChildren =
   {
+    AuthenticatedProductionDispatchRoute: AuthenticatedProductionDispatchRoute,
+    AuthenticatedProductionPpapRoute: AuthenticatedProductionPpapRoute,
+    AuthenticatedProductionReleaseRoute: AuthenticatedProductionReleaseRoute,
     AuthenticatedProductionShopfloorRoute:
       AuthenticatedProductionShopfloorRoute,
   }

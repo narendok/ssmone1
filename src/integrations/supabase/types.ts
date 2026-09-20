@@ -3585,6 +3585,155 @@ export type Database = {
           },
         ]
       }
+      production_dispatch_units: {
+        Row: {
+          created_at: string
+          dispatch_id: string
+          id: string
+          production_unit_id: string
+        }
+        Insert: {
+          created_at?: string
+          dispatch_id: string
+          id?: string
+          production_unit_id: string
+        }
+        Update: {
+          created_at?: string
+          dispatch_id?: string
+          id?: string
+          production_unit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_dispatch_units_dispatch_id_fkey"
+            columns: ["dispatch_id"]
+            isOneToOne: false
+            referencedRelation: "production_dispatches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_dispatch_units_production_unit_id_fkey"
+            columns: ["production_unit_id"]
+            isOneToOne: true
+            referencedRelation: "production_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_dispatches: {
+        Row: {
+          carrier_name: string | null
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          dispatch_notes: string | null
+          dispatch_number: string
+          dispatched_at: string | null
+          dispatched_by: string | null
+          id: string
+          recipient_name: string | null
+          status: string
+          tracking_reference: string | null
+          updated_at: string
+        }
+        Insert: {
+          carrier_name?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          dispatch_notes?: string | null
+          dispatch_number: string
+          dispatched_at?: string | null
+          dispatched_by?: string | null
+          id?: string
+          recipient_name?: string | null
+          status?: string
+          tracking_reference?: string | null
+          updated_at?: string
+        }
+        Update: {
+          carrier_name?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          dispatch_notes?: string | null
+          dispatch_number?: string
+          dispatched_at?: string | null
+          dispatched_by?: string | null
+          id?: string
+          recipient_name?: string | null
+          status?: string
+          tracking_reference?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_dispatches_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_finished_goods_releases: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          packaging_reference: string | null
+          production_unit_id: string
+          release_notes: string | null
+          released_at: string | null
+          released_by: string | null
+          status: string
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          packaging_reference?: string | null
+          production_unit_id: string
+          release_notes?: string | null
+          released_at?: string | null
+          released_by?: string | null
+          status?: string
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          packaging_reference?: string | null
+          production_unit_id?: string
+          release_notes?: string | null
+          released_at?: string | null
+          released_by?: string | null
+          status?: string
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_finished_goods_releases_production_unit_id_fkey"
+            columns: ["production_unit_id"]
+            isOneToOne: true
+            referencedRelation: "production_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_finished_goods_releases_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_in_process_inspections: {
         Row: {
           created_at: string
@@ -3832,6 +3981,69 @@ export type Database = {
           },
           {
             foreignKeyName: "production_ncrs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_ppap_packages: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          evidence_notes: string | null
+          id: string
+          package_number: string
+          revision: string
+          status: string
+          submitted_at: string | null
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          evidence_notes?: string | null
+          id?: string
+          package_number: string
+          revision?: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          evidence_notes?: string | null
+          id?: string
+          package_number?: string
+          revision?: string
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_ppap_packages_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_ppap_packages_work_order_id_fkey"
             columns: ["work_order_id"]
             isOneToOne: false
             referencedRelation: "work_orders"
@@ -6817,6 +7029,26 @@ export type Database = {
         }
         Returns: string
       }
+      create_phase7_dispatch: {
+        Args: {
+          _carrier_name?: string
+          _customer_id?: string
+          _notes?: string
+          _recipient_name?: string
+          _tracking_reference?: string
+          _unit_ids?: string[]
+        }
+        Returns: string
+      }
+      create_phase7_ppap_package: {
+        Args: {
+          _customer_id?: string
+          _evidence_notes?: string
+          _revision?: string
+          _work_order_id: string
+        }
+        Returns: string
+      }
       create_phase7_work_order: {
         Args: {
           _bom_id: string
@@ -6848,6 +7080,19 @@ export type Database = {
       }
       decide_incoming_inspection: {
         Args: { _findings?: string; _inspection_id: string; _status: string }
+        Returns: undefined
+      }
+      decide_phase7_finished_goods_release: {
+        Args: {
+          _notes?: string
+          _packaging_reference?: string
+          _production_unit_id: string
+          _status: string
+        }
+        Returns: string
+      }
+      decide_phase7_ppap_package: {
+        Args: { _notes?: string; _package_id: string; _status: string }
         Returns: undefined
       }
       disposition_phase7_ncr: {

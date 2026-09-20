@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BriefcaseBusiness, Building2, CircuitBoard, ClipboardList, FileSpreadsheet, FolderKanban, FolderOpen,
   GraduationCap, History, LayoutGrid, ListChecks, MapPin, PackageCheck, PlaneTakeoff, Settings2, ShoppingCart,
-  Truck, Users, Wrench, WalletCards, ShieldCheck, Boxes, FileText, Factory, type LucideIcon,
+   Truck, Users, Wrench, WalletCards, ShieldCheck, Boxes, FileText, Factory, ClipboardCheck, Send, type LucideIcon,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -46,6 +46,9 @@ const groups: NavGroup[] = [
     { label: "Stores inventory", to: "/stores/inventory", icon: Boxes, permission: "stores.view" },
      { label: "Production control", to: "/production", icon: Factory, permission: "production.view" },
      { label: "Shop floor", to: "/production/shopfloor", icon: Factory, permission: "production.view" },
+     { label: "Finished goods", to: "/production/release", icon: ClipboardCheck, permission: "production.view" },
+     { label: "PPAP packages", to: "/production/ppap", icon: FileText, permission: "production.view" },
+     { label: "Production dispatch", to: "/production/dispatch", icon: Send, permission: "production.view" },
     { label: "Incoming quality", to: "/quality/incoming", icon: ShieldCheck, permission: "quality.view" },
     { label: "Finance", to: "/finance/expenses", icon: WalletCards, permission: "finance.view" },
     { label: "Payment milestones", to: "/finance/payment-plans", icon: WalletCards, permission: "finance.view" },
