@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchRecruitmentSnapshot } from "@/lib/hr";
+import { fetchOnboardingOverview, fetchRecruitmentSnapshot } from "@/lib/hr";
 
 export const Route = createFileRoute("/_authenticated/hr/recruitment")({
   head: () => ({
@@ -31,6 +31,7 @@ function RecruitmentPage() {
   const [requisitionOpen, setRequisitionOpen] = useState(false);
   const [postingOpen, setPostingOpen] = useState(false);
   const snapshot = useQuery({ queryKey: ["hr_recruitment_snapshot"], queryFn: fetchRecruitmentSnapshot });
+  const onboardingPlans = useQuery({ queryKey: ["hr_onboarding"], queryFn: fetchOnboardingOverview });
   const departments = useQuery({
     queryKey: ["departments", "hr"],
     queryFn: async () => {
@@ -122,7 +123,7 @@ function RecruitmentPage() {
           </Card>
         </div>
 
-        <CandidatePipeline applications={snapshot.data?.applications ?? []} interviews={snapshot.data?.interviews ?? []} offers={snapshot.data?.offers ?? []} interviewers={snapshot.data?.employees ?? []} />
+        <CandidatePipeline applications={snapshot.data?.applications ?? []} interviews={snapshot.data?.interviews ?? []} offers={snapshot.data?.offers ?? []} interviewers={snapshot.data?.employees ?? []} onboardingPlans={onboardingPlans.data ?? []} />
 
         <CreateRequisitionDialog
           open={requisitionOpen}

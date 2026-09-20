@@ -2,8 +2,8 @@
 
 - [ ] Establish any missing shared operational primitives required by the HR module without duplicating Phase 2 systems.
 - [ ] Build secure HR recruitment and public Careers flows. Public candidate intake, secure resume uploads, private application status lookup, and recruiter pipeline review are complete.
-- [ ] Add assessments, interviews, offers, controlled candidate-to-employee conversion and invitations. Interviews and offer controls are complete; assessment and controlled conversion/invitation remain.
-- [ ] Build onboarding, digital ID, welcome-kit, employee self-service, leave, policies and training foundations. Plan/policy/training administration is complete; employee onboarding execution, digital ID, welcome-kit, self-service, and manager leave approvals remain.
+- [ ] Add assessments, interviews, offers, controlled candidate-to-employee conversion and invitations. Interviews and offer controls are complete; conversion now creates an invited employee, starts onboarding, and sends an invite. Assessment remains.
+- [ ] Build onboarding, digital ID, welcome-kit, employee self-service, leave, policies and training foundations. Plan/policy/training administration and onboarding execution are complete; digital ID, welcome-kit fulfilment controls, self-service, and manager leave approvals remain.
 - [ ] Add connection-aware Google Workspace integration settings and guarded actions.
 - [ ] Validate public, HR, reviewer, manager and employee authorization flows.
 
