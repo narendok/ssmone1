@@ -54,6 +54,10 @@ const publicApplicationSchema = z.object({
   }).nullable(),
 });
 
+const publicApplicationStatusSchema = z.object({
+  statusToken: z.string().uuid(),
+});
+
 async function getEmployeeId(sb: any, userId: string) {
   const { data, error } = await sb.from("employees").select("id").eq("user_id", userId).maybeSingle();
   if (error) throw new Error(error.message);
@@ -217,4 +221,21 @@ export const submitPublicJobApplication = createServerFn({ method: "POST" })
     const parsed = result as { status_token?: string };
     if (!parsed.status_token) throw new Error("Your application was saved, but its reference could not be created.");
     return { statusToken: parsed.status_token };
+  });
+
+export const getPublicApplicationStatus = createServerFn({ method: "GET" })
+  .inputValidator((data) => publicApplicationStatusSchema.parse(data))
+  .handler(async ({ data }) => {
+    const { supabaseAdmin: sb } = await import("@/integrations/supabase/client.server");
+    const { data: result, error } = await sb.rpc("get_public_application_status", { _status_token: data.statusToken });
+    if (error) throw new Error("Could not check the application status.");
+    const application = Array.isArray(result) ? result[0] : null;
+    return application
+      ? {
+          roleTitle: application.role_title,
+          stage: application.stage,
+          status: application.status,
+          submittedAt: application.submitted_at,
+        }
+      : null;
   });

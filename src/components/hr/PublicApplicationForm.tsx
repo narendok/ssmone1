@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Copy, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { submitPublicJobApplication } from "@/lib/hr.functions";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -13,6 +13,7 @@ export function PublicApplicationForm({ postingSlug, roleTitle }: { postingSlug:
   const submit = useServerFn(submitPublicJobApplication);
   const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [statusToken, setStatusToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function uploadResume(file: File) {
@@ -45,7 +46,7 @@ export function PublicApplicationForm({ postingSlug, roleTitle }: { postingSlug:
     try {
       const selectedResume = form.get("resume");
       const resume = selectedResume instanceof File && selectedResume.size > 0 ? await uploadResume(selectedResume) : null;
-      await submit({
+      const response = await submit({
         data: {
           postingSlug,
           fullName: String(form.get("fullName") ?? ""),
@@ -56,6 +57,7 @@ export function PublicApplicationForm({ postingSlug, roleTitle }: { postingSlug:
           resume,
         },
       });
+      setStatusToken(response.statusToken);
       setSubmitted(true);
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Could not submit your application.");
@@ -69,7 +71,10 @@ export function PublicApplicationForm({ postingSlug, roleTitle }: { postingSlug:
       <Alert>
         <CheckCircle2 className="h-4 w-4" />
         <AlertTitle>Application received</AlertTitle>
-        <AlertDescription>Thank you for applying for {roleTitle}. Our hiring team will review your details and contact you if there is a match.</AlertDescription>
+        <AlertDescription className="space-y-3">
+          <p>Thank you for applying for {roleTitle}. Our hiring team will review your details and contact you if there is a match.</p>
+          {statusToken && <div className="space-y-2"><p className="font-medium text-foreground">Application reference</p><div className="flex items-center gap-2"><code className="min-w-0 flex-1 break-all rounded border bg-muted px-2 py-1.5 text-xs text-foreground">{statusToken}</code><Button type="button" size="icon" variant="outline" aria-label="Copy application reference" onClick={() => void navigator.clipboard.writeText(statusToken)}><Copy className="h-4 w-4" /></Button></div><p>Save this reference to check your application status later.</p></div>}
+        </AlertDescription>
       </Alert>
     );
   }
