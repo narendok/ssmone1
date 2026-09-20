@@ -284,6 +284,155 @@ export type Database = {
           },
         ]
       }
+      automation_job_leases: {
+        Row: {
+          job_key: string
+          last_completed_at: string | null
+          last_error: string | null
+          last_started_at: string | null
+          lease_expires_at: string | null
+          pause_reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          job_key: string
+          last_completed_at?: string | null
+          last_error?: string | null
+          last_started_at?: string | null
+          lease_expires_at?: string | null
+          pause_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          job_key?: string
+          last_completed_at?: string | null
+          last_error?: string | null
+          last_started_at?: string | null
+          lease_expires_at?: string | null
+          pause_reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      automation_rules: {
+        Row: {
+          actions: Json
+          conditions: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string | null
+          effective_until: string | null
+          execution_mode: string
+          id: string
+          is_enabled: boolean
+          name: string
+          owner_user_id: string | null
+          priority: number
+          rule_key: string
+          trigger_key: string
+          updated_at: string
+        }
+        Insert: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_until?: string | null
+          execution_mode?: string
+          id?: string
+          is_enabled?: boolean
+          name: string
+          owner_user_id?: string | null
+          priority?: number
+          rule_key: string
+          trigger_key: string
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string | null
+          effective_until?: string | null
+          execution_mode?: string
+          id?: string
+          is_enabled?: boolean
+          name?: string
+          owner_user_id?: string | null
+          priority?: number
+          rule_key?: string
+          trigger_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      automation_runs: {
+        Row: {
+          affected_entity_id: string | null
+          affected_entity_type: string | null
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          idempotency_key: string
+          initiated_by: string | null
+          input_data: Json
+          result_data: Json
+          rule_id: string | null
+          started_at: string | null
+          status: string
+          trigger_key: string
+        }
+        Insert: {
+          affected_entity_id?: string | null
+          affected_entity_type?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key: string
+          initiated_by?: string | null
+          input_data?: Json
+          result_data?: Json
+          rule_id?: string | null
+          started_at?: string | null
+          status?: string
+          trigger_key: string
+        }
+        Update: {
+          affected_entity_id?: string | null
+          affected_entity_type?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string
+          initiated_by?: string | null
+          input_data?: Json
+          result_data?: Json
+          rule_id?: string | null
+          started_at?: string | null
+          status?: string
+          trigger_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_runs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           created_at: string
@@ -813,6 +962,75 @@ export type Database = {
         }
         Relationships: []
       }
+      data_provenance: {
+        Row: {
+          confidence: number | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          fetched_at: string
+          field_key: string
+          id: string
+          last_verified_at: string | null
+          override_by: string | null
+          override_reason: string | null
+          override_value: Json | null
+          provider: string | null
+          source_identifier: string | null
+          source_kind: string
+          source_url: string | null
+          state: string
+          updated_at: string
+          value_snapshot: Json | null
+        }
+        Insert: {
+          confidence?: number | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          fetched_at?: string
+          field_key: string
+          id?: string
+          last_verified_at?: string | null
+          override_by?: string | null
+          override_reason?: string | null
+          override_value?: Json | null
+          provider?: string | null
+          source_identifier?: string | null
+          source_kind: string
+          source_url?: string | null
+          state?: string
+          updated_at?: string
+          value_snapshot?: Json | null
+        }
+        Update: {
+          confidence?: number | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          fetched_at?: string
+          field_key?: string
+          id?: string
+          last_verified_at?: string | null
+          override_by?: string | null
+          override_reason?: string | null
+          override_value?: Json | null
+          provider?: string | null
+          source_identifier?: string | null
+          source_kind?: string
+          source_url?: string | null
+          state?: string
+          updated_at?: string
+          value_snapshot?: Json | null
+        }
+        Relationships: []
+      }
       datasheet_cache: {
         Row: {
           datasheet_url: string | null
@@ -1330,6 +1548,105 @@ export type Database = {
           id?: string
           permalink?: string
           qr_payload?: string
+        }
+        Relationships: []
+      }
+      external_data_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          fetched_at: string
+          id: string
+          last_verified_at: string | null
+          payload: Json
+          provider: string
+          source_identifier: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          fetched_at?: string
+          id?: string
+          last_verified_at?: string | null
+          payload: Json
+          provider: string
+          source_identifier?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          fetched_at?: string
+          id?: string
+          last_verified_at?: string | null
+          payload?: Json
+          provider?: string
+          source_identifier?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      external_integrations: {
+        Row: {
+          authentication_kind: string
+          created_at: string
+          created_by: string | null
+          health_status: string
+          id: string
+          is_enabled: boolean
+          last_error: string | null
+          last_synced_at: string | null
+          metadata: Json
+          provenance_note: string | null
+          provider: string
+          purpose: string
+          rate_limit_note: string | null
+          scope_description: string | null
+          updated_at: string
+        }
+        Insert: {
+          authentication_kind?: string
+          created_at?: string
+          created_by?: string | null
+          health_status?: string
+          id?: string
+          is_enabled?: boolean
+          last_error?: string | null
+          last_synced_at?: string | null
+          metadata?: Json
+          provenance_note?: string | null
+          provider: string
+          purpose: string
+          rate_limit_note?: string | null
+          scope_description?: string | null
+          updated_at?: string
+        }
+        Update: {
+          authentication_kind?: string
+          created_at?: string
+          created_by?: string | null
+          health_status?: string
+          id?: string
+          is_enabled?: boolean
+          last_error?: string | null
+          last_synced_at?: string | null
+          metadata?: Json
+          provenance_note?: string | null
+          provider?: string
+          purpose?: string
+          rate_limit_note?: string | null
+          scope_description?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -4674,6 +4991,10 @@ export type Database = {
       can_manage_recruitment: { Args: { _uid: string }; Returns: boolean }
       can_manage_training: { Args: { _uid: string }; Returns: boolean }
       can_purchase: { Args: { _uid: string }; Returns: boolean }
+      complete_automation_lease: {
+        Args: { _error?: string; _job_key: string; _pause?: boolean }
+        Returns: undefined
+      }
       create_grn: {
         Args: {
           _items: Json
@@ -4778,6 +5099,10 @@ export type Database = {
             Returns: Json
           }
       toggle_node_star: { Args: { p_node_id: string }; Returns: boolean }
+      try_acquire_automation_lease: {
+        Args: { _job_key: string; _lease_seconds?: number }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:

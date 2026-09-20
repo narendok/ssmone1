@@ -37,3 +37,9 @@
 
 - [x] Central numbering, HR/customer/project auto-codes, canonical department task transition, department aliases, duplicate protections, scoped customer portal contacts, job-profile selection, and onboarding safeguards are complete.
 - [ ] Live role-based acceptance requires signed-in user sessions; public authentication and Careers checks passed without browser errors. Phase 6 remains blocked until those role checks are completed.
+
+## Stabilization Patch 02
+
+- [ ] Build the shared automation registry, execution audit, cache, and provenance foundation without changing established records.
+- [ ] Add reviewed supplier and AI category suggestions to component entry, and establish safe, human-controlled automation patterns.
+- [ ] Complete project-handover drafting, bounded background automation, and signed-in acceptance checks. Phase 6 remains blocked.

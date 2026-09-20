@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supplierLookup, datasheetAiSearch, classifyCategory, type SupplierPart, type DatasheetCandidate } from "@/lib/supplier.functions";
+import { recordProvenance } from "@/lib/automation.functions";
 import type { Category, Component, Location } from "@/lib/inventory";
 import { fetchProjects, fetchComponentProjectIds, syncComponentProjects } from "@/lib/projects";
 import { fetchComponentSubstitutes, syncComponentSubstitutes } from "@/lib/substitutes";
@@ -61,6 +62,9 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
   const [aiSearchOpen, setAiSearchOpen] = useState(false);
   const lookup = useServerFn(supplierLookup);
   const classify = useServerFn(classifyCategory);
+  const recordSource = useServerFn(recordProvenance);
+  const [supplierSuggested, setSupplierSuggested] = useState(false);
+  const [categorySuggested, setCategorySuggested] = useState(false);
 
   async function handleLookup() {
     if (!form.part_number.trim()) {
@@ -92,6 +96,7 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
         cost: f.cost || specMatch(/price|cost/i),
       }));
       setFetchedPart(p);
+      setSupplierSuggested(true);
       toast.success(`Found ${p.mpn} — ${p.manufacturer ?? ""}`);
 
       // Auto-select the closest matching category.
@@ -106,7 +111,8 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
           },
         });
         if (match.categoryId) {
-          setForm((f) => ({ ...f, category_id: match.categoryId! }));
+          setForm((f) => ({ ...f, category_id: match.categoryId }));
+          setCategorySuggested(true);
           toast.success(`Category set to ${match.label}`);
         }
       } catch {
@@ -132,6 +138,8 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
 
   useEffect(() => {
     setFetchedPart(null);
+    setSupplierSuggested(false);
+    setCategorySuggested(false);
     if (component) {
       setForm({
         category_id: component.category_id,
@@ -231,6 +239,13 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Could not save substitutes");
       }
+      if (fetchedPart) {
+        const sourceState = supplierSuggested ? "suggested" : "confirmed";
+        await Promise.all([
+          recordSource({ data: { entityType: "component", entityId: componentId, fieldKey: "supplier_lookup", sourceKind: "external", provider: "Mouser", sourceIdentifier: fetchedPart.mpn, sourceUrl: fetchedPart.octopart_url, valueSnapshot: fetchedPart, confidence: 1, state: sourceState } }),
+          ...(categorySuggested ? [recordSource({ data: { entityType: "component", entityId: componentId, fieldKey: "category_id", sourceKind: "ai", provider: "Lovable AI", sourceIdentifier: fetchedPart.mpn, sourceUrl: null, valueSnapshot: { categoryId: form.category_id }, confidence: 0.6, state: "needs_review" } })] : []),
+        ]);
+      }
     }
     toast.success(isEdit ? "Component updated" : "Component added");
     setSaving(false);
@@ -273,6 +288,7 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
                   })()}
                 </SelectContent>
               </Select>
+              {categorySuggested && <p className="mt-1 text-xs text-muted-foreground">AI suggestion — review before relying on it.</p>}
             </Field>
             <Field label="Component name *"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
             <Field label="Part number * (MPN)">
@@ -319,6 +335,7 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
               <Field label="Notes"><Textarea rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
             </div>
           </div>
+          {supplierSuggested && <p className="text-xs text-muted-foreground">Supplier details were suggested from Mouser. Review and save to keep them as part of this component record.</p>}
 
           <div className="border-t pt-4">
             <div className="flex items-center justify-between mb-2">
