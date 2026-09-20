@@ -495,6 +495,128 @@ export type Database = {
           },
         ]
       }
+      customer_contacts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          department: string | null
+          email: string | null
+          full_name: string
+          id: string
+          is_active: boolean
+          is_primary: boolean
+          job_title: string | null
+          mobile: string | null
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          department?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          job_title?: string | null
+          mobile?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          department?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_active?: boolean
+          is_primary?: boolean
+          job_title?: string | null
+          mobile?: string | null
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          account_owner_user_id: string | null
+          billing_address: string | null
+          created_at: string
+          created_by: string | null
+          customer_code: string
+          customer_type: string
+          display_name: string | null
+          id: string
+          industry: string | null
+          legal_name: string
+          notes: string | null
+          primary_email: string | null
+          primary_phone: string | null
+          shipping_address: string | null
+          status: string
+          tax_identifier: string | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          account_owner_user_id?: string | null
+          billing_address?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_code: string
+          customer_type?: string
+          display_name?: string | null
+          id?: string
+          industry?: string | null
+          legal_name: string
+          notes?: string | null
+          primary_email?: string | null
+          primary_phone?: string | null
+          shipping_address?: string | null
+          status?: string
+          tax_identifier?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          account_owner_user_id?: string | null
+          billing_address?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_code?: string
+          customer_type?: string
+          display_name?: string | null
+          id?: string
+          industry?: string | null
+          legal_name?: string
+          notes?: string | null
+          primary_email?: string | null
+          primary_phone?: string | null
+          shipping_address?: string | null
+          status?: string
+          tax_identifier?: string | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       datasheet_cache: {
         Row: {
           datasheet_url: string | null
@@ -2936,6 +3058,193 @@ export type Database = {
           role?: string | null
         }
         Relationships: []
+      }
+      sales_enquiries: {
+        Row: {
+          application: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          enquiry_date: string
+          enquiry_number: string
+          estimated_volume: string | null
+          expected_timeline: string | null
+          id: string
+          next_action: string | null
+          next_action_date: string | null
+          notes: string | null
+          priority: string
+          product_type: string | null
+          requirement_summary: string
+          sales_owner_user_id: string | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          application?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          enquiry_date?: string
+          enquiry_number: string
+          estimated_volume?: string | null
+          expected_timeline?: string | null
+          id?: string
+          next_action?: string | null
+          next_action_date?: string | null
+          notes?: string | null
+          priority?: string
+          product_type?: string | null
+          requirement_summary: string
+          sales_owner_user_id?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          application?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          enquiry_date?: string
+          enquiry_number?: string
+          estimated_volume?: string | null
+          expected_timeline?: string | null
+          id?: string
+          next_action?: string | null
+          next_action_date?: string | null
+          notes?: string | null
+          priority?: string
+          product_type?: string | null
+          requirement_summary?: string
+          sales_owner_user_id?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_enquiries_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_enquiries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_opportunities: {
+        Row: {
+          application: string | null
+          backup_sales_owner_user_id: string | null
+          business_development_owner_user_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          enquiry_id: string | null
+          estimated_volume: string | null
+          id: string
+          name: string
+          nda_required: boolean
+          next_action: string | null
+          next_action_date: string | null
+          next_action_owner_user_id: string | null
+          notes: string | null
+          opportunity_number: string
+          primary_contact_id: string | null
+          primary_sales_owner_user_id: string | null
+          priority: string
+          product_type: string | null
+          stage: string
+          status: string
+          target_timeline: string | null
+          updated_at: string
+        }
+        Insert: {
+          application?: string | null
+          backup_sales_owner_user_id?: string | null
+          business_development_owner_user_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          enquiry_id?: string | null
+          estimated_volume?: string | null
+          id?: string
+          name: string
+          nda_required?: boolean
+          next_action?: string | null
+          next_action_date?: string | null
+          next_action_owner_user_id?: string | null
+          notes?: string | null
+          opportunity_number: string
+          primary_contact_id?: string | null
+          primary_sales_owner_user_id?: string | null
+          priority?: string
+          product_type?: string | null
+          stage?: string
+          status?: string
+          target_timeline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application?: string | null
+          backup_sales_owner_user_id?: string | null
+          business_development_owner_user_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          enquiry_id?: string | null
+          estimated_volume?: string | null
+          id?: string
+          name?: string
+          nda_required?: boolean
+          next_action?: string | null
+          next_action_date?: string | null
+          next_action_owner_user_id?: string | null
+          notes?: string | null
+          opportunity_number?: string
+          primary_contact_id?: string | null
+          primary_sales_owner_user_id?: string | null
+          priority?: string
+          product_type?: string | null
+          stage?: string
+          status?: string
+          target_timeline?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_opportunities_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_opportunities_enquiry_id_fkey"
+            columns: ["enquiry_id"]
+            isOneToOne: false
+            referencedRelation: "sales_enquiries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_opportunities_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shared_boms: {
         Row: {
