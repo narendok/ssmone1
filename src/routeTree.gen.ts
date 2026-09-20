@@ -24,6 +24,7 @@ import { Route as AuthenticatedLocationsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedHrRouteImport } from './routes/_authenticated/hr'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedDriveRouteImport } from './routes/_authenticated/drive'
+import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
 import { Route as AuthenticatedBomRouteImport } from './routes/_authenticated/bom'
 import { Route as AuthenticatedAssignmentsRouteImport } from './routes/_authenticated/assignments'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -118,6 +119,11 @@ const AuthenticatedHistoryRoute = AuthenticatedHistoryRouteImport.update({
 const AuthenticatedDriveRoute = AuthenticatedDriveRouteImport.update({
   id: '/drive',
   path: '/drive',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCustomersRoute = AuthenticatedCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedBomRoute = AuthenticatedBomRouteImport.update({
@@ -248,6 +254,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
+  '/customers': typeof AuthenticatedCustomersRoute
   '/drive': typeof AuthenticatedDriveRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/hr': typeof AuthenticatedHrRouteWithChildren
@@ -284,6 +291,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
+  '/customers': typeof AuthenticatedCustomersRoute
   '/drive': typeof AuthenticatedDriveRoute
   '/history': typeof AuthenticatedHistoryRoute
   '/hr': typeof AuthenticatedHrRouteWithChildren
@@ -323,6 +331,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/assignments': typeof AuthenticatedAssignmentsRoute
   '/_authenticated/bom': typeof AuthenticatedBomRoute
+  '/_authenticated/customers': typeof AuthenticatedCustomersRoute
   '/_authenticated/drive': typeof AuthenticatedDriveRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
   '/_authenticated/hr': typeof AuthenticatedHrRouteWithChildren
@@ -363,6 +372,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/assignments'
     | '/bom'
+    | '/customers'
     | '/drive'
     | '/history'
     | '/hr'
@@ -399,6 +409,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/assignments'
     | '/bom'
+    | '/customers'
     | '/drive'
     | '/history'
     | '/hr'
@@ -437,6 +448,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/assignments'
     | '/_authenticated/bom'
+    | '/_authenticated/customers'
     | '/_authenticated/drive'
     | '/_authenticated/history'
     | '/_authenticated/hr'
@@ -584,6 +596,13 @@ declare module '@tanstack/react-router' {
       path: '/drive'
       fullPath: '/drive'
       preLoaderRoute: typeof AuthenticatedDriveRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/customers': {
+      id: '/_authenticated/customers'
+      path: '/customers'
+      fullPath: '/customers'
+      preLoaderRoute: typeof AuthenticatedCustomersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/bom': {
@@ -760,6 +779,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAssignmentsRoute: typeof AuthenticatedAssignmentsRoute
   AuthenticatedBomRoute: typeof AuthenticatedBomRoute
+  AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
   AuthenticatedDriveRoute: typeof AuthenticatedDriveRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
   AuthenticatedHrRoute: typeof AuthenticatedHrRouteWithChildren
@@ -785,6 +805,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAssignmentsRoute: AuthenticatedAssignmentsRoute,
   AuthenticatedBomRoute: AuthenticatedBomRoute,
+  AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
   AuthenticatedDriveRoute: AuthenticatedDriveRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,
   AuthenticatedHrRoute: AuthenticatedHrRouteWithChildren,
