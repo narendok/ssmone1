@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as CareersRouteImport } from './routes/careers'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ApplicationStatusRouteImport } from './routes/application-status'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
@@ -49,6 +50,11 @@ const CareersRoute = CareersRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApplicationStatusRoute = ApplicationStatusRouteImport.update({
+  id: '/application-status',
+  path: '/application-status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -211,6 +217,7 @@ const ApiPublicHooksRefreshSupplierDataRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
+  '/application-status': typeof ApplicationStatusRoute
   '/auth': typeof AuthRoute
   '/careers': typeof CareersRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
 }
 export interface FileRoutesByTo {
+  '/application-status': typeof ApplicationStatusRoute
   '/auth': typeof AuthRoute
   '/careers': typeof CareersRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
@@ -276,6 +284,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/application-status': typeof ApplicationStatusRoute
   '/auth': typeof AuthRoute
   '/careers': typeof CareersRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -311,6 +320,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/application-status'
     | '/auth'
     | '/careers'
     | '/admin'
@@ -342,6 +352,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/refresh-supplier-data'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/application-status'
     | '/auth'
     | '/careers'
     | '/admin'
@@ -375,6 +386,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_authenticated'
+    | '/application-status'
     | '/auth'
     | '/careers'
     | '/_authenticated/admin'
@@ -409,6 +421,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  ApplicationStatusRoute: typeof ApplicationStatusRoute
   AuthRoute: typeof AuthRoute
   CareersRoute: typeof CareersRouteWithChildren
   FileTokenRoute: typeof FileTokenRoute
@@ -431,6 +444,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/application-status': {
+      id: '/application-status'
+      path: '/application-status'
+      fullPath: '/application-status'
+      preLoaderRoute: typeof ApplicationStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -717,6 +737,7 @@ const CareersRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  ApplicationStatusRoute: ApplicationStatusRoute,
   AuthRoute: AuthRoute,
   CareersRoute: CareersRouteWithChildren,
   FileTokenRoute: FileTokenRoute,

@@ -52,7 +52,7 @@ function CareersPage() {
       </section>
 
       <section className="mx-auto max-w-6xl px-6 py-10">
-        <div className="mb-6 flex items-center gap-2 text-sm text-muted-foreground"><BriefcaseBusiness className="h-4 w-4" /> Current openings</div>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3"><div className="flex items-center gap-2 text-sm text-muted-foreground"><BriefcaseBusiness className="h-4 w-4" /> Current openings</div><Button asChild variant="outline" size="sm"><Link to="/application-status">Check application status</Link></Button></div>
         <div className="grid gap-4">
           {(jobs.data ?? []).map((job) => (
             <Card key={job.id}>
