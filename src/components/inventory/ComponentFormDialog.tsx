@@ -111,7 +111,7 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
           },
         });
         if (match.categoryId) {
-          setForm((f) => ({ ...f, category_id: match.categoryId }));
+          setForm((f) => ({ ...f, category_id: match.categoryId ?? f.category_id }));
           setCategorySuggested(true);
           toast.success(`Category set to ${match.label}`);
         }
