@@ -25,3 +25,10 @@
 
 - [ ] Complete remaining Phase 1 administration forms: users, roles/permission assignment, module status, document numbering, and audit log.
 - [ ] Complete shared Phase 2 operational surfaces: My Work, approvals, documents, enriched Drive, resolver, global search and activity timelines.
+
+## Phase 5 — Project delivery & engineering controls
+
+- [x] Extend the shared project foundation, team access, design inputs, research records, engineering registers, delivery gates, issues and engineering changes.
+- [x] Add the project portfolio and workspace surfaces for delivery governance, BOMs, files, firmware, CAD and project tasks.
+- [x] Preserve existing PartsBench project, BOM, Drive, firmware, CAD and task workflows.
+- [ ] Assign `projects.view` and `projects.manage` through Administration for non-admin project users.
