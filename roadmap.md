@@ -35,4 +35,5 @@
 
 ## Stabilization Patch 01
 
-- [ ] Central numbering, HR/customer/project auto-codes, job profile master, reusable selectors, full quick-create/context preservation, and role-based acceptance/regression remain in progress. The shared numbering engine and first Sales/HR/project form updates are complete.
+- [x] Central numbering, HR/customer/project auto-codes, canonical department task transition, department aliases, duplicate protections, scoped customer portal contacts, job-profile selection, and onboarding safeguards are complete.
+- [ ] Live role-based acceptance requires signed-in user sessions; public authentication and Careers checks passed without browser errors. Phase 6 remains blocked until those role checks are completed.

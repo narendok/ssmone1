@@ -68,7 +68,6 @@ const onboardingItemSchema = z.object({
 const launchOnboardingSchema = z.object({
   applicationId: z.string().uuid(),
   planId: z.string().uuid().nullable(),
-  employeeCode: z.string().trim().min(2).max(64),
   officialEmail: z.string().trim().email().max(254),
   designation: z.string().trim().max(160).nullable(),
   departmentId: z.string().uuid().nullable(),
@@ -317,6 +316,9 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
     if (application.stage !== "hired" || application.status !== "hired") {
       throw new Error("Only a hired candidate can begin employee onboarding.");
     }
+    const { data: existingOnboarding, error: existingOnboardingError } = await sb.from("hr_employee_onboardings").select("id").eq("application_id", data.applicationId).maybeSingle();
+    if (existingOnboardingError) throw new Error(existingOnboardingError.message);
+    if (existingOnboarding) throw new Error("Onboarding has already been started for this candidate.");
 
     const candidate = application.candidate as { full_name?: string | null; email?: string | null; phone?: string | null } | null;
     const fullName = candidate?.full_name?.trim();
@@ -330,7 +332,6 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
 
     const { data: employee, error: employeeError } = await supabaseAdmin.from("employees").insert({
       user_id: matchedUser?.id ?? null,
-      employee_code: data.employeeCode,
       first_name: firstName || null,
       last_name: lastNameParts.join(" ") || null,
       display_name: fullName,
@@ -342,7 +343,8 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
       reporting_manager_user_id: data.reportingManagerUserId,
       employment_status: matchedUser ? "ACTIVE" : "INVITED",
       date_of_joining: data.startDate,
-    }).select("id").single();
+    }).select("id,employee_code").single();
+    if (employeeError?.code === "23505") throw new Error("An employee already exists with this official email.");
     if (employeeError || !employee) throw new Error(employeeError?.message ?? "Could not create the employee profile.");
 
     if (data.departmentId) {
@@ -408,7 +410,7 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
     }
 
     await logActivity(sb, context.userId, "employee_onboarding", onboarding.id, "launched", `Started onboarding for ${fullName}`, { employeeId: employee.id, applicationId: data.applicationId });
-    return { employeeId: employee.id, onboardingId: onboarding.id };
+    return { employeeId: employee.id, onboardingId: onboarding.id, employeeCode: employee.employee_code };
   });
 
 export const updateEmployeeOnboardingItem = createServerFn({ method: "POST" })

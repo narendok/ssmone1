@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchOnboardingOverview, fetchRecruitmentSnapshot } from "@/lib/hr";
+import { fetchJobProfiles, fetchOnboardingOverview, fetchRecruitmentSnapshot } from "@/lib/hr";
 
 export const Route = createFileRoute("/_authenticated/hr/recruitment")({
   head: () => ({
@@ -32,6 +32,7 @@ function RecruitmentPage() {
   const [postingOpen, setPostingOpen] = useState(false);
   const snapshot = useQuery({ queryKey: ["hr_recruitment_snapshot"], queryFn: fetchRecruitmentSnapshot });
   const onboardingPlans = useQuery({ queryKey: ["hr_onboarding"], queryFn: fetchOnboardingOverview });
+  const jobProfiles = useQuery({ queryKey: ["hr_job_profiles"], queryFn: fetchJobProfiles });
   const departments = useQuery({
     queryKey: ["departments", "hr"],
     queryFn: async () => {
@@ -129,6 +130,7 @@ function RecruitmentPage() {
           open={requisitionOpen}
           onOpenChange={setRequisitionOpen}
           departments={departments.data ?? []}
+          jobProfiles={jobProfiles.data ?? []}
           onSubmitted={() => {
             void queryClient.invalidateQueries({ queryKey: ["hr_recruitment_snapshot"] });
             void queryClient.invalidateQueries({ queryKey: ["hr_dashboard"] });
