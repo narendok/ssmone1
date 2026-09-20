@@ -33,8 +33,10 @@ import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as ApiPublicDatasheetProxyRouteImport } from './routes/api/public/datasheet-proxy'
 import { Route as AuthenticatedTasksDepartmentsRouteImport } from './routes/_authenticated/tasks.departments'
+import { Route as AuthenticatedStoresInventoryRouteImport } from './routes/_authenticated/stores.inventory'
 import { Route as AuthenticatedSettingsProjectsRouteImport } from './routes/_authenticated/settings.projects'
 import { Route as AuthenticatedSettingsCategoriesRouteImport } from './routes/_authenticated/settings.categories'
+import { Route as AuthenticatedQualityIncomingRouteImport } from './routes/_authenticated/quality.incoming'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects.$projectId'
 import { Route as AuthenticatedProcurementVendorsRouteImport } from './routes/_authenticated/procurement.vendors'
 import { Route as AuthenticatedProcurementRequestsRouteImport } from './routes/_authenticated/procurement.requests'
@@ -46,6 +48,7 @@ import { Route as AuthenticatedHrRecruitmentRouteImport } from './routes/_authen
 import { Route as AuthenticatedHrPoliciesRouteImport } from './routes/_authenticated/hr.policies'
 import { Route as AuthenticatedHrOnboardingRouteImport } from './routes/_authenticated/hr.onboarding'
 import { Route as AuthenticatedHrLeaveRouteImport } from './routes/_authenticated/hr.leave'
+import { Route as AuthenticatedFinanceExpensesRouteImport } from './routes/_authenticated/finance.expenses'
 import { Route as AuthenticatedCategorySlugRouteImport } from './routes/_authenticated/category.$slug'
 import { Route as ApiPublicHooksRefreshSupplierDataRouteImport } from './routes/api/public/hooks/refresh-supplier-data'
 
@@ -171,6 +174,12 @@ const AuthenticatedTasksDepartmentsRoute =
     path: '/tasks/departments',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedStoresInventoryRoute =
+  AuthenticatedStoresInventoryRouteImport.update({
+    id: '/stores/inventory',
+    path: '/stores/inventory',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsProjectsRoute =
   AuthenticatedSettingsProjectsRouteImport.update({
     id: '/settings/projects',
@@ -181,6 +190,12 @@ const AuthenticatedSettingsCategoriesRoute =
   AuthenticatedSettingsCategoriesRouteImport.update({
     id: '/settings/categories',
     path: '/settings/categories',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedQualityIncomingRoute =
+  AuthenticatedQualityIncomingRouteImport.update({
+    id: '/quality/incoming',
+    path: '/quality/incoming',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedProjectsProjectIdRoute =
@@ -246,6 +261,12 @@ const AuthenticatedHrLeaveRoute = AuthenticatedHrLeaveRouteImport.update({
   path: '/leave',
   getParentRoute: () => AuthenticatedHrRoute,
 } as any)
+const AuthenticatedFinanceExpensesRoute =
+  AuthenticatedFinanceExpensesRouteImport.update({
+    id: '/finance/expenses',
+    path: '/finance/expenses',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCategorySlugRoute =
   AuthenticatedCategorySlugRouteImport.update({
     id: '/category/$slug',
@@ -280,6 +301,7 @@ export interface FileRoutesByFullPath {
   '/portal/$token': typeof PortalTokenRoute
   '/share/$token': typeof ShareTokenRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
+  '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
   '/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
   '/hr/policies': typeof AuthenticatedHrPoliciesRoute
@@ -291,8 +313,10 @@ export interface FileRoutesByFullPath {
   '/procurement/requests': typeof AuthenticatedProcurementRequestsRoute
   '/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/quality/incoming': typeof AuthenticatedQualityIncomingRoute
   '/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
   '/settings/projects': typeof AuthenticatedSettingsProjectsRoute
+  '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
@@ -320,6 +344,7 @@ export interface FileRoutesByTo {
   '/share/$token': typeof ShareTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
+  '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
   '/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
   '/hr/policies': typeof AuthenticatedHrPoliciesRoute
@@ -331,8 +356,10 @@ export interface FileRoutesByTo {
   '/procurement/requests': typeof AuthenticatedProcurementRequestsRoute
   '/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/quality/incoming': typeof AuthenticatedQualityIncomingRoute
   '/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
   '/settings/projects': typeof AuthenticatedSettingsProjectsRoute
+  '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
@@ -362,6 +389,7 @@ export interface FileRoutesById {
   '/share/$token': typeof ShareTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/category/$slug': typeof AuthenticatedCategorySlugRoute
+  '/_authenticated/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/_authenticated/hr/leave': typeof AuthenticatedHrLeaveRoute
   '/_authenticated/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
   '/_authenticated/hr/policies': typeof AuthenticatedHrPoliciesRoute
@@ -373,8 +401,10 @@ export interface FileRoutesById {
   '/_authenticated/procurement/requests': typeof AuthenticatedProcurementRequestsRoute
   '/_authenticated/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/_authenticated/quality/incoming': typeof AuthenticatedQualityIncomingRoute
   '/_authenticated/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
   '/_authenticated/settings/projects': typeof AuthenticatedSettingsProjectsRoute
+  '/_authenticated/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/_authenticated/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
@@ -404,6 +434,7 @@ export interface FileRouteTypes {
     | '/portal/$token'
     | '/share/$token'
     | '/category/$slug'
+    | '/finance/expenses'
     | '/hr/leave'
     | '/hr/onboarding'
     | '/hr/policies'
@@ -415,8 +446,10 @@ export interface FileRouteTypes {
     | '/procurement/requests'
     | '/procurement/vendors'
     | '/projects/$projectId'
+    | '/quality/incoming'
     | '/settings/categories'
     | '/settings/projects'
+    | '/stores/inventory'
     | '/tasks/departments'
     | '/api/public/datasheet-proxy'
     | '/projects/'
@@ -444,6 +477,7 @@ export interface FileRouteTypes {
     | '/share/$token'
     | '/'
     | '/category/$slug'
+    | '/finance/expenses'
     | '/hr/leave'
     | '/hr/onboarding'
     | '/hr/policies'
@@ -455,8 +489,10 @@ export interface FileRouteTypes {
     | '/procurement/requests'
     | '/procurement/vendors'
     | '/projects/$projectId'
+    | '/quality/incoming'
     | '/settings/categories'
     | '/settings/projects'
+    | '/stores/inventory'
     | '/tasks/departments'
     | '/api/public/datasheet-proxy'
     | '/projects'
@@ -485,6 +521,7 @@ export interface FileRouteTypes {
     | '/share/$token'
     | '/_authenticated/'
     | '/_authenticated/category/$slug'
+    | '/_authenticated/finance/expenses'
     | '/_authenticated/hr/leave'
     | '/_authenticated/hr/onboarding'
     | '/_authenticated/hr/policies'
@@ -496,8 +533,10 @@ export interface FileRouteTypes {
     | '/_authenticated/procurement/requests'
     | '/_authenticated/procurement/vendors'
     | '/_authenticated/projects/$projectId'
+    | '/_authenticated/quality/incoming'
     | '/_authenticated/settings/categories'
     | '/_authenticated/settings/projects'
+    | '/_authenticated/stores/inventory'
     | '/_authenticated/tasks/departments'
     | '/api/public/datasheet-proxy'
     | '/_authenticated/projects/'
@@ -687,6 +726,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedTasksDepartmentsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/stores/inventory': {
+      id: '/_authenticated/stores/inventory'
+      path: '/stores/inventory'
+      fullPath: '/stores/inventory'
+      preLoaderRoute: typeof AuthenticatedStoresInventoryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings/projects': {
       id: '/_authenticated/settings/projects'
       path: '/settings/projects'
@@ -699,6 +745,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/categories'
       fullPath: '/settings/categories'
       preLoaderRoute: typeof AuthenticatedSettingsCategoriesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/quality/incoming': {
+      id: '/_authenticated/quality/incoming'
+      path: '/quality/incoming'
+      fullPath: '/quality/incoming'
+      preLoaderRoute: typeof AuthenticatedQualityIncomingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/projects/$projectId': {
@@ -778,6 +831,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHrLeaveRouteImport
       parentRoute: typeof AuthenticatedHrRoute
     }
+    '/_authenticated/finance/expenses': {
+      id: '/_authenticated/finance/expenses'
+      path: '/finance/expenses'
+      fullPath: '/finance/expenses'
+      preLoaderRoute: typeof AuthenticatedFinanceExpensesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/category/$slug': {
       id: '/_authenticated/category/$slug'
       path: '/category/$slug'
@@ -829,14 +889,17 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCategorySlugRoute: typeof AuthenticatedCategorySlugRoute
+  AuthenticatedFinanceExpensesRoute: typeof AuthenticatedFinanceExpensesRoute
   AuthenticatedProcurementInwardRoute: typeof AuthenticatedProcurementInwardRoute
   AuthenticatedProcurementOrdersRoute: typeof AuthenticatedProcurementOrdersRoute
   AuthenticatedProcurementPendingRoute: typeof AuthenticatedProcurementPendingRoute
   AuthenticatedProcurementRequestsRoute: typeof AuthenticatedProcurementRequestsRoute
   AuthenticatedProcurementVendorsRoute: typeof AuthenticatedProcurementVendorsRoute
   AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRoute
+  AuthenticatedQualityIncomingRoute: typeof AuthenticatedQualityIncomingRoute
   AuthenticatedSettingsCategoriesRoute: typeof AuthenticatedSettingsCategoriesRoute
   AuthenticatedSettingsProjectsRoute: typeof AuthenticatedSettingsProjectsRoute
+  AuthenticatedStoresInventoryRoute: typeof AuthenticatedStoresInventoryRoute
   AuthenticatedTasksDepartmentsRoute: typeof AuthenticatedTasksDepartmentsRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
   AuthenticatedTasksIndexRoute: typeof AuthenticatedTasksIndexRoute
@@ -856,14 +919,17 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCategorySlugRoute: AuthenticatedCategorySlugRoute,
+  AuthenticatedFinanceExpensesRoute: AuthenticatedFinanceExpensesRoute,
   AuthenticatedProcurementInwardRoute: AuthenticatedProcurementInwardRoute,
   AuthenticatedProcurementOrdersRoute: AuthenticatedProcurementOrdersRoute,
   AuthenticatedProcurementPendingRoute: AuthenticatedProcurementPendingRoute,
   AuthenticatedProcurementRequestsRoute: AuthenticatedProcurementRequestsRoute,
   AuthenticatedProcurementVendorsRoute: AuthenticatedProcurementVendorsRoute,
   AuthenticatedProjectsProjectIdRoute: AuthenticatedProjectsProjectIdRoute,
+  AuthenticatedQualityIncomingRoute: AuthenticatedQualityIncomingRoute,
   AuthenticatedSettingsCategoriesRoute: AuthenticatedSettingsCategoriesRoute,
   AuthenticatedSettingsProjectsRoute: AuthenticatedSettingsProjectsRoute,
+  AuthenticatedStoresInventoryRoute: AuthenticatedStoresInventoryRoute,
   AuthenticatedTasksDepartmentsRoute: AuthenticatedTasksDepartmentsRoute,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
   AuthenticatedTasksIndexRoute: AuthenticatedTasksIndexRoute,
