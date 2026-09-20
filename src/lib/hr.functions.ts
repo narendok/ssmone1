@@ -323,7 +323,13 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
     if (!fullName) throw new Error("The candidate profile is missing a name.");
     const [firstName, ...lastNameParts] = fullName.split(/\s+/);
 
-    const { data: employee, error: employeeError } = await sb.from("employees").insert({
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: existingAuth, error: listUsersError } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (listUsersError) throw new Error(listUsersError.message);
+    const matchedUser = existingAuth.users.find((user) => user.email?.toLowerCase() === data.officialEmail.toLowerCase()) ?? null;
+
+    const { data: employee, error: employeeError } = await supabaseAdmin.from("employees").insert({
+      user_id: matchedUser?.id ?? null,
       employee_code: data.employeeCode,
       first_name: firstName || null,
       last_name: lastNameParts.join(" ") || null,
@@ -334,13 +340,13 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
       designation: data.designation,
       primary_department_id: data.departmentId,
       reporting_manager_user_id: data.reportingManagerUserId,
-      employment_status: "INVITED",
+      employment_status: matchedUser ? "ACTIVE" : "INVITED",
       date_of_joining: data.startDate,
     }).select("id").single();
     if (employeeError || !employee) throw new Error(employeeError?.message ?? "Could not create the employee profile.");
 
     if (data.departmentId) {
-      const { error: departmentError } = await sb.from("employee_departments").insert({
+      const { error: departmentError } = await supabaseAdmin.from("employee_departments").insert({
         employee_id: employee.id,
         department_id: data.departmentId,
         is_primary: true,
@@ -348,7 +354,7 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
       if (departmentError) throw new Error(departmentError.message);
     }
 
-    const { data: onboarding, error: onboardingError } = await sb.from("hr_employee_onboardings").insert({
+    const { data: onboarding, error: onboardingError } = await supabaseAdmin.from("hr_employee_onboardings").insert({
       application_id: data.applicationId,
       employee_id: employee.id,
       plan_id: data.planId,
@@ -384,8 +390,21 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
             sort_order: item.sort_order,
           };
         });
-        const { error: itemError } = await sb.from("hr_employee_onboarding_items").insert(items);
+        const { error: itemError } = await supabaseAdmin.from("hr_employee_onboarding_items").insert(items);
         if (itemError) throw new Error(itemError.message);
+      }
+    }
+
+    if (!matchedUser) {
+      const redirectTo = `${process.env['PUBLIC_APP_URL'] ?? ""}/auth`;
+      const invite = await supabaseAdmin.auth.admin.inviteUserByEmail(data.officialEmail, {
+        data: { display_name: fullName, employee_id: employee.id },
+        ...(redirectTo.startsWith("http") ? { redirectTo } : {}),
+      });
+      if (invite.error) throw new Error(invite.error.message);
+      if (invite.data.user?.id) {
+        const { error: linkError } = await supabaseAdmin.from("employees").update({ user_id: invite.data.user.id }).eq("id", employee.id);
+        if (linkError) throw new Error(linkError.message);
       }
     }
 
