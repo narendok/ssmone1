@@ -3585,6 +3585,73 @@ export type Database = {
           },
         ]
       }
+      production_in_process_inspections: {
+        Row: {
+          created_at: string
+          findings: string | null
+          id: string
+          inspected_at: string
+          inspected_by: string
+          production_unit_id: string
+          released_at: string | null
+          released_by: string | null
+          result: string
+          route_step_id: string | null
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          created_at?: string
+          findings?: string | null
+          id?: string
+          inspected_at?: string
+          inspected_by?: string
+          production_unit_id: string
+          released_at?: string | null
+          released_by?: string | null
+          result: string
+          route_step_id?: string | null
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          created_at?: string
+          findings?: string | null
+          id?: string
+          inspected_at?: string
+          inspected_by?: string
+          production_unit_id?: string
+          released_at?: string | null
+          released_by?: string | null
+          result?: string
+          route_step_id?: string | null
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_in_process_inspections_production_unit_id_fkey"
+            columns: ["production_unit_id"]
+            isOneToOne: false
+            referencedRelation: "production_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_in_process_inspections_route_step_id_fkey"
+            columns: ["route_step_id"]
+            isOneToOne: false
+            referencedRelation: "production_route_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_in_process_inspections_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_kit_lines: {
         Row: {
           created_at: string
@@ -3693,6 +3760,85 @@ export type Database = {
           },
         ]
       }
+      production_ncrs: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          description: string
+          disposition_notes: string | null
+          dispositioned_at: string | null
+          dispositioned_by: string | null
+          id: string
+          ncr_number: string
+          production_unit_id: string | null
+          raised_at: string
+          raised_by: string
+          route_step_id: string | null
+          status: string
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          description: string
+          disposition_notes?: string | null
+          dispositioned_at?: string | null
+          dispositioned_by?: string | null
+          id?: string
+          ncr_number: string
+          production_unit_id?: string | null
+          raised_at?: string
+          raised_by?: string
+          route_step_id?: string | null
+          status?: string
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          description?: string
+          disposition_notes?: string | null
+          dispositioned_at?: string | null
+          dispositioned_by?: string | null
+          id?: string
+          ncr_number?: string
+          production_unit_id?: string | null
+          raised_at?: string
+          raised_by?: string
+          route_step_id?: string | null
+          status?: string
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_ncrs_production_unit_id_fkey"
+            columns: ["production_unit_id"]
+            isOneToOne: false
+            referencedRelation: "production_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_ncrs_route_step_id_fkey"
+            columns: ["route_step_id"]
+            isOneToOne: false
+            referencedRelation: "production_route_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_ncrs_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       production_route_steps: {
         Row: {
           created_at: string
@@ -3775,6 +3921,133 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      production_step_executions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          performed_by: string
+          production_unit_id: string
+          route_step_id: string | null
+          started_at: string
+          status: string
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          performed_by?: string
+          production_unit_id: string
+          route_step_id?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          performed_by?: string
+          production_unit_id?: string
+          route_step_id?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_step_executions_production_unit_id_fkey"
+            columns: ["production_unit_id"]
+            isOneToOne: false
+            referencedRelation: "production_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_step_executions_route_step_id_fkey"
+            columns: ["route_step_id"]
+            isOneToOne: false
+            referencedRelation: "production_route_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_step_executions_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      production_unit_tests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          measured_data: Json
+          notes: string | null
+          production_unit_id: string
+          result: string
+          test_type: string
+          tested_at: string
+          tested_by: string
+          updated_at: string
+          work_order_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          measured_data?: Json
+          notes?: string | null
+          production_unit_id: string
+          result: string
+          test_type: string
+          tested_at?: string
+          tested_by?: string
+          updated_at?: string
+          work_order_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          measured_data?: Json
+          notes?: string | null
+          production_unit_id?: string
+          result?: string
+          test_type?: string
+          tested_at?: string
+          tested_by?: string
+          updated_at?: string
+          work_order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "production_unit_tests_production_unit_id_fkey"
+            columns: ["production_unit_id"]
+            isOneToOne: false
+            referencedRelation: "production_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "production_unit_tests_work_order_id_fkey"
+            columns: ["work_order_id"]
+            isOneToOne: false
+            referencedRelation: "work_orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       production_units: {
         Row: {
@@ -6577,6 +6850,10 @@ export type Database = {
         Args: { _findings?: string; _inspection_id: string; _status: string }
         Returns: undefined
       }
+      disposition_phase7_ncr: {
+        Args: { _ncr_id: string; _notes?: string; _status: string }
+        Returns: undefined
+      }
       ensure_phase5_project_access_catalog: { Args: never; Returns: undefined }
       get_drive_breadcrumbs: {
         Args: { p_node_id: string }
@@ -6646,6 +6923,36 @@ export type Database = {
       provision_drive_for_project: {
         Args: { p_project_id: string }
         Returns: undefined
+      }
+      record_phase7_unit_execution: {
+        Args: {
+          _notes?: string
+          _production_unit_id: string
+          _route_step_id: string
+          _status: string
+          _work_order_id: string
+        }
+        Returns: string
+      }
+      record_phase7_unit_inspection: {
+        Args: {
+          _findings?: string
+          _production_unit_id: string
+          _result: string
+          _route_step_id: string
+          _work_order_id: string
+        }
+        Returns: string
+      }
+      record_phase7_unit_test: {
+        Args: {
+          _notes?: string
+          _production_unit_id: string
+          _result: string
+          _test_type: string
+          _work_order_id: string
+        }
+        Returns: string
       }
       review_phase6_record: {
         Args: {
