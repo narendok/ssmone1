@@ -2896,6 +2896,233 @@ export type Database = {
           },
         ]
       }
+      project_design_inputs: {
+        Row: {
+          acceptance_criteria: string | null
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          input_code: string
+          owner_employee_id: string | null
+          priority: string
+          project_id: string
+          source_requirement_id: string | null
+          source_revision_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          verification_method: string | null
+        }
+        Insert: {
+          acceptance_criteria?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          input_code: string
+          owner_employee_id?: string | null
+          priority?: string
+          project_id: string
+          source_requirement_id?: string | null
+          source_revision_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          verification_method?: string | null
+        }
+        Update: {
+          acceptance_criteria?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          input_code?: string
+          owner_employee_id?: string | null
+          priority?: string
+          project_id?: string
+          source_requirement_id?: string | null
+          source_revision_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          verification_method?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_design_inputs_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_design_inputs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_design_inputs_source_requirement_id_fkey"
+            columns: ["source_requirement_id"]
+            isOneToOne: false
+            referencedRelation: "customer_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_design_inputs_source_revision_id_fkey"
+            columns: ["source_revision_id"]
+            isOneToOne: false
+            referencedRelation: "customer_requirement_revisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_engineering_registers: {
+        Row: {
+          created_at: string
+          drive_node_id: string | null
+          id: string
+          metadata: Json
+          owner_employee_id: string | null
+          project_id: string
+          reference_code: string
+          register_type: string
+          revision: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          drive_node_id?: string | null
+          id?: string
+          metadata?: Json
+          owner_employee_id?: string | null
+          project_id: string
+          reference_code: string
+          register_type: string
+          revision?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          drive_node_id?: string | null
+          id?: string
+          metadata?: Json
+          owner_employee_id?: string | null
+          project_id?: string
+          reference_code?: string
+          register_type?: string
+          revision?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_engineering_registers_drive_node_id_fkey"
+            columns: ["drive_node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_engineering_registers_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_engineering_registers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_research_records: {
+        Row: {
+          component_id: string | null
+          conclusion: string | null
+          created_at: string
+          decision_status: string
+          drive_node_id: string | null
+          id: string
+          owner_employee_id: string | null
+          project_id: string
+          recommendation: string | null
+          research_type: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          component_id?: string | null
+          conclusion?: string | null
+          created_at?: string
+          decision_status?: string
+          drive_node_id?: string | null
+          id?: string
+          owner_employee_id?: string | null
+          project_id: string
+          recommendation?: string | null
+          research_type?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          component_id?: string | null
+          conclusion?: string | null
+          created_at?: string
+          decision_status?: string
+          drive_node_id?: string | null
+          id?: string
+          owner_employee_id?: string | null
+          project_id?: string
+          recommendation?: string | null
+          research_type?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_research_records_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_research_records_drive_node_id_fkey"
+            columns: ["drive_node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_research_records_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_research_records_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_task_activity: {
         Row: {
           actor_id: string | null
@@ -3064,41 +3291,193 @@ export type Database = {
           },
         ]
       }
-      projects: {
+      project_team_members: {
         Row: {
-          code: string
-          color: string
+          access_level: string
+          added_by: string | null
           created_at: string
-          design_link: string | null
+          discipline: string | null
+          employee_id: string
           id: string
-          name: string
-          revision: string | null
-          status: string
+          is_lead: boolean
+          project_id: string
+          project_role: string
           updated_at: string
         }
         Insert: {
-          code: string
-          color?: string
+          access_level?: string
+          added_by?: string | null
           created_at?: string
-          design_link?: string | null
+          discipline?: string | null
+          employee_id: string
           id?: string
-          name: string
-          revision?: string | null
-          status?: string
+          is_lead?: boolean
+          project_id: string
+          project_role: string
           updated_at?: string
         }
         Update: {
-          code?: string
-          color?: string
+          access_level?: string
+          added_by?: string | null
           created_at?: string
-          design_link?: string | null
+          discipline?: string | null
+          employee_id?: string
           id?: string
-          name?: string
-          revision?: string | null
-          status?: string
+          is_lead?: boolean
+          project_id?: string
+          project_role?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_team_members_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_team_members_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_team_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          annual_volume: number | null
+          archived_at: string | null
+          code: string
+          color: string
+          completion_notes: string | null
+          created_at: string
+          customer_id: string | null
+          design_link: string | null
+          engineering_lead_employee_id: string | null
+          health_status: string
+          id: string
+          name: string
+          opportunity_id: string | null
+          planned_start_date: string | null
+          priority: string
+          project_drive_node_id: string | null
+          project_manager_employee_id: string | null
+          project_stage: string
+          project_type: string
+          prototype_quantity: number | null
+          requirement_baseline_id: string | null
+          revision: string | null
+          status: string
+          target_sop_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          annual_volume?: number | null
+          archived_at?: string | null
+          code: string
+          color?: string
+          completion_notes?: string | null
+          created_at?: string
+          customer_id?: string | null
+          design_link?: string | null
+          engineering_lead_employee_id?: string | null
+          health_status?: string
+          id?: string
+          name: string
+          opportunity_id?: string | null
+          planned_start_date?: string | null
+          priority?: string
+          project_drive_node_id?: string | null
+          project_manager_employee_id?: string | null
+          project_stage?: string
+          project_type?: string
+          prototype_quantity?: number | null
+          requirement_baseline_id?: string | null
+          revision?: string | null
+          status?: string
+          target_sop_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          annual_volume?: number | null
+          archived_at?: string | null
+          code?: string
+          color?: string
+          completion_notes?: string | null
+          created_at?: string
+          customer_id?: string | null
+          design_link?: string | null
+          engineering_lead_employee_id?: string | null
+          health_status?: string
+          id?: string
+          name?: string
+          opportunity_id?: string | null
+          planned_start_date?: string | null
+          priority?: string
+          project_drive_node_id?: string | null
+          project_manager_employee_id?: string | null
+          project_stage?: string
+          project_type?: string
+          prototype_quantity?: number | null
+          requirement_baseline_id?: string | null
+          revision?: string | null
+          status?: string
+          target_sop_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_engineering_lead_employee_id_fkey"
+            columns: ["engineering_lead_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "sales_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_project_drive_node_id_fkey"
+            columns: ["project_drive_node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_project_manager_employee_id_fkey"
+            columns: ["project_manager_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_requirement_baseline_id_fkey"
+            columns: ["requirement_baseline_id"]
+            isOneToOne: false
+            referencedRelation: "requirement_baselines"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       purchase_order_items: {
         Row: {
