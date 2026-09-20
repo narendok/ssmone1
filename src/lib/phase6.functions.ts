@@ -56,7 +56,7 @@ export const updateIncomingInspection = createServerFn({ method: "POST" })
     const { error } = await context.supabase.rpc("decide_incoming_inspection", {
       _inspection_id: data.id,
       _status: data.status,
-      _findings: data.findings ?? null,
+      _findings: data.findings ?? undefined,
     });
     if (error) throw new Error("Could not record the incoming-inspection decision.");
   });
@@ -73,7 +73,7 @@ export const reviewPhase6Record = createServerFn({ method: "POST" })
       _record_type: data.recordType,
       _record_id: data.recordId,
       _decision: data.decision,
-      _notes: data.notes ?? null,
+      _notes: data.notes ?? undefined,
     });
     if (error) throw new Error("Could not record this decision.");
   });
@@ -84,10 +84,10 @@ export const createRfq = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requirePermission(context, "procurement.edit");
     const { data: id, error } = await context.supabase.rpc("create_phase6_rfq", {
-      _purchase_request_id: data.purchaseRequestId ?? null,
-      _project_id: data.projectId ?? null,
-      _response_due_date: data.responseDueDate ?? null,
-      _terms: data.terms ?? null,
+      _purchase_request_id: data.purchaseRequestId ?? undefined,
+      _project_id: data.projectId ?? undefined,
+      _response_due_date: data.responseDueDate ?? undefined,
+      _terms: data.terms ?? undefined,
       _vendor_ids: data.vendorIds,
     });
     if (error || !id) throw new Error("Could not create the RFQ.");
@@ -101,12 +101,12 @@ export const createQuotation = createServerFn({ method: "POST" })
     await requirePermission(context, "procurement.edit");
     if (!data.vendorId || !data.items.length || data.items.some((item) => item.quantity <= 0 || item.unit_price < 0)) throw new Error("Add a vendor and at least one valid quotation line.");
     const { data: id, error } = await context.supabase.rpc("create_phase6_quotation", {
-      _rfq_id: data.rfqId ?? null,
+      _rfq_id: data.rfqId ?? undefined,
       _vendor_id: data.vendorId,
-      _quoted_at: data.quotedAt ?? null,
-      _valid_until: data.validUntil ?? null,
-      _lead_time_days: data.leadTimeDays ?? null,
-      _payment_terms: data.paymentTerms ?? null,
+      _quoted_at: data.quotedAt ?? undefined,
+      _valid_until: data.validUntil ?? undefined,
+      _lead_time_days: data.leadTimeDays ?? undefined,
+      _payment_terms: data.paymentTerms ?? undefined,
       _items: data.items,
     });
     if (error || !id) throw new Error("Could not record the supplier quotation.");
