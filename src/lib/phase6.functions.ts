@@ -57,3 +57,15 @@ export const updateIncomingInspection = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.from("incoming_inspections").update({ status: data.status, findings: data.findings ?? null, disposition_by: context.userId, disposition_at: new Date().toISOString() }).eq("id", data.id);
     if (error) throw new Error("Could not record the incoming-inspection decision.");
   });
+
+export const savePhase6Record = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { table: "po_shipments" | "po_delivery_revisions" | "supplier_ncrs" | "rtv_records" | "payment_milestones"; payload: Record<string, unknown> }) => input)
+  .handler(async ({ data, context }) => {
+    const permission = data.table === "payment_milestones" ? "finance.edit" : data.table === "supplier_ncrs" || data.table === "rtv_records" ? "quality.edit" : "procurement.edit";
+    await requirePermission(context, permission);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: saved, error } = await (supabaseAdmin.from(data.table) as any).insert(data.payload).select("id").single();
+    if (error || !saved) throw new Error("Could not save the record.");
+    return saved as { id: string };
+  });
