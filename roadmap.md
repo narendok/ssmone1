@@ -46,4 +46,4 @@
 
 ## Phase 6 — Procurement, stores, quality & finance
 
-- [ ] Complete the Phase 6 operational workflows, role-gated screens, automation safeguards, and acceptance validation; do not begin Phase 7.
+- [ ] Complete the Phase 6 operational workflows, role-gated screens, automation safeguards, and acceptance validation; do not begin Phase 7. Core purchase request, stores, incoming quality, shipment, supplier NCR, R&D expense, and payment milestone screens are now in place; RFQ/quotation, delivery revision, atomic GRN-IQC automation, RTV flow, payment approvals, and final role acceptance remain.

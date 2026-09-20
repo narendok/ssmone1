@@ -39,6 +39,8 @@ import { Route as AuthenticatedSettingsCategoriesRouteImport } from './routes/_a
 import { Route as AuthenticatedQualityIncomingRouteImport } from './routes/_authenticated/quality.incoming'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects.$projectId'
 import { Route as AuthenticatedProcurementVendorsRouteImport } from './routes/_authenticated/procurement.vendors'
+import { Route as AuthenticatedProcurementSupplierQualityRouteImport } from './routes/_authenticated/procurement.supplier-quality'
+import { Route as AuthenticatedProcurementShipmentsRouteImport } from './routes/_authenticated/procurement.shipments'
 import { Route as AuthenticatedProcurementRequestsRouteImport } from './routes/_authenticated/procurement.requests'
 import { Route as AuthenticatedProcurementPendingRouteImport } from './routes/_authenticated/procurement.pending'
 import { Route as AuthenticatedProcurementOrdersRouteImport } from './routes/_authenticated/procurement.orders'
@@ -48,6 +50,7 @@ import { Route as AuthenticatedHrRecruitmentRouteImport } from './routes/_authen
 import { Route as AuthenticatedHrPoliciesRouteImport } from './routes/_authenticated/hr.policies'
 import { Route as AuthenticatedHrOnboardingRouteImport } from './routes/_authenticated/hr.onboarding'
 import { Route as AuthenticatedHrLeaveRouteImport } from './routes/_authenticated/hr.leave'
+import { Route as AuthenticatedFinancePaymentPlansRouteImport } from './routes/_authenticated/finance.payment-plans'
 import { Route as AuthenticatedFinanceExpensesRouteImport } from './routes/_authenticated/finance.expenses'
 import { Route as AuthenticatedCategorySlugRouteImport } from './routes/_authenticated/category.$slug'
 import { Route as ApiPublicHooksRefreshSupplierDataRouteImport } from './routes/api/public/hooks/refresh-supplier-data'
@@ -210,6 +213,18 @@ const AuthenticatedProcurementVendorsRoute =
     path: '/procurement/vendors',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedProcurementSupplierQualityRoute =
+  AuthenticatedProcurementSupplierQualityRouteImport.update({
+    id: '/procurement/supplier-quality',
+    path: '/procurement/supplier-quality',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProcurementShipmentsRoute =
+  AuthenticatedProcurementShipmentsRouteImport.update({
+    id: '/procurement/shipments',
+    path: '/procurement/shipments',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProcurementRequestsRoute =
   AuthenticatedProcurementRequestsRouteImport.update({
     id: '/procurement/requests',
@@ -261,6 +276,12 @@ const AuthenticatedHrLeaveRoute = AuthenticatedHrLeaveRouteImport.update({
   path: '/leave',
   getParentRoute: () => AuthenticatedHrRoute,
 } as any)
+const AuthenticatedFinancePaymentPlansRoute =
+  AuthenticatedFinancePaymentPlansRouteImport.update({
+    id: '/finance/payment-plans',
+    path: '/finance/payment-plans',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedFinanceExpensesRoute =
   AuthenticatedFinanceExpensesRouteImport.update({
     id: '/finance/expenses',
@@ -302,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/share/$token': typeof ShareTokenRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
+  '/finance/payment-plans': typeof AuthenticatedFinancePaymentPlansRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
   '/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
   '/hr/policies': typeof AuthenticatedHrPoliciesRoute
@@ -311,6 +333,8 @@ export interface FileRoutesByFullPath {
   '/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
   '/procurement/pending': typeof AuthenticatedProcurementPendingRoute
   '/procurement/requests': typeof AuthenticatedProcurementRequestsRoute
+  '/procurement/shipments': typeof AuthenticatedProcurementShipmentsRoute
+  '/procurement/supplier-quality': typeof AuthenticatedProcurementSupplierQualityRoute
   '/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/quality/incoming': typeof AuthenticatedQualityIncomingRoute
@@ -345,6 +369,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
+  '/finance/payment-plans': typeof AuthenticatedFinancePaymentPlansRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
   '/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
   '/hr/policies': typeof AuthenticatedHrPoliciesRoute
@@ -354,6 +379,8 @@ export interface FileRoutesByTo {
   '/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
   '/procurement/pending': typeof AuthenticatedProcurementPendingRoute
   '/procurement/requests': typeof AuthenticatedProcurementRequestsRoute
+  '/procurement/shipments': typeof AuthenticatedProcurementShipmentsRoute
+  '/procurement/supplier-quality': typeof AuthenticatedProcurementSupplierQualityRoute
   '/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/quality/incoming': typeof AuthenticatedQualityIncomingRoute
@@ -390,6 +417,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/_authenticated/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
+  '/_authenticated/finance/payment-plans': typeof AuthenticatedFinancePaymentPlansRoute
   '/_authenticated/hr/leave': typeof AuthenticatedHrLeaveRoute
   '/_authenticated/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
   '/_authenticated/hr/policies': typeof AuthenticatedHrPoliciesRoute
@@ -399,6 +427,8 @@ export interface FileRoutesById {
   '/_authenticated/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
   '/_authenticated/procurement/pending': typeof AuthenticatedProcurementPendingRoute
   '/_authenticated/procurement/requests': typeof AuthenticatedProcurementRequestsRoute
+  '/_authenticated/procurement/shipments': typeof AuthenticatedProcurementShipmentsRoute
+  '/_authenticated/procurement/supplier-quality': typeof AuthenticatedProcurementSupplierQualityRoute
   '/_authenticated/procurement/vendors': typeof AuthenticatedProcurementVendorsRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
   '/_authenticated/quality/incoming': typeof AuthenticatedQualityIncomingRoute
@@ -435,6 +465,7 @@ export interface FileRouteTypes {
     | '/share/$token'
     | '/category/$slug'
     | '/finance/expenses'
+    | '/finance/payment-plans'
     | '/hr/leave'
     | '/hr/onboarding'
     | '/hr/policies'
@@ -444,6 +475,8 @@ export interface FileRouteTypes {
     | '/procurement/orders'
     | '/procurement/pending'
     | '/procurement/requests'
+    | '/procurement/shipments'
+    | '/procurement/supplier-quality'
     | '/procurement/vendors'
     | '/projects/$projectId'
     | '/quality/incoming'
@@ -478,6 +511,7 @@ export interface FileRouteTypes {
     | '/'
     | '/category/$slug'
     | '/finance/expenses'
+    | '/finance/payment-plans'
     | '/hr/leave'
     | '/hr/onboarding'
     | '/hr/policies'
@@ -487,6 +521,8 @@ export interface FileRouteTypes {
     | '/procurement/orders'
     | '/procurement/pending'
     | '/procurement/requests'
+    | '/procurement/shipments'
+    | '/procurement/supplier-quality'
     | '/procurement/vendors'
     | '/projects/$projectId'
     | '/quality/incoming'
@@ -522,6 +558,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/category/$slug'
     | '/_authenticated/finance/expenses'
+    | '/_authenticated/finance/payment-plans'
     | '/_authenticated/hr/leave'
     | '/_authenticated/hr/onboarding'
     | '/_authenticated/hr/policies'
@@ -531,6 +568,8 @@ export interface FileRouteTypes {
     | '/_authenticated/procurement/orders'
     | '/_authenticated/procurement/pending'
     | '/_authenticated/procurement/requests'
+    | '/_authenticated/procurement/shipments'
+    | '/_authenticated/procurement/supplier-quality'
     | '/_authenticated/procurement/vendors'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/quality/incoming'
@@ -768,6 +807,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProcurementVendorsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/procurement/supplier-quality': {
+      id: '/_authenticated/procurement/supplier-quality'
+      path: '/procurement/supplier-quality'
+      fullPath: '/procurement/supplier-quality'
+      preLoaderRoute: typeof AuthenticatedProcurementSupplierQualityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/procurement/shipments': {
+      id: '/_authenticated/procurement/shipments'
+      path: '/procurement/shipments'
+      fullPath: '/procurement/shipments'
+      preLoaderRoute: typeof AuthenticatedProcurementShipmentsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/procurement/requests': {
       id: '/_authenticated/procurement/requests'
       path: '/procurement/requests'
@@ -831,6 +884,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHrLeaveRouteImport
       parentRoute: typeof AuthenticatedHrRoute
     }
+    '/_authenticated/finance/payment-plans': {
+      id: '/_authenticated/finance/payment-plans'
+      path: '/finance/payment-plans'
+      fullPath: '/finance/payment-plans'
+      preLoaderRoute: typeof AuthenticatedFinancePaymentPlansRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/finance/expenses': {
       id: '/_authenticated/finance/expenses'
       path: '/finance/expenses'
@@ -890,10 +950,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCategorySlugRoute: typeof AuthenticatedCategorySlugRoute
   AuthenticatedFinanceExpensesRoute: typeof AuthenticatedFinanceExpensesRoute
+  AuthenticatedFinancePaymentPlansRoute: typeof AuthenticatedFinancePaymentPlansRoute
   AuthenticatedProcurementInwardRoute: typeof AuthenticatedProcurementInwardRoute
   AuthenticatedProcurementOrdersRoute: typeof AuthenticatedProcurementOrdersRoute
   AuthenticatedProcurementPendingRoute: typeof AuthenticatedProcurementPendingRoute
   AuthenticatedProcurementRequestsRoute: typeof AuthenticatedProcurementRequestsRoute
+  AuthenticatedProcurementShipmentsRoute: typeof AuthenticatedProcurementShipmentsRoute
+  AuthenticatedProcurementSupplierQualityRoute: typeof AuthenticatedProcurementSupplierQualityRoute
   AuthenticatedProcurementVendorsRoute: typeof AuthenticatedProcurementVendorsRoute
   AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRoute
   AuthenticatedQualityIncomingRoute: typeof AuthenticatedQualityIncomingRoute
@@ -920,10 +983,15 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCategorySlugRoute: AuthenticatedCategorySlugRoute,
   AuthenticatedFinanceExpensesRoute: AuthenticatedFinanceExpensesRoute,
+  AuthenticatedFinancePaymentPlansRoute: AuthenticatedFinancePaymentPlansRoute,
   AuthenticatedProcurementInwardRoute: AuthenticatedProcurementInwardRoute,
   AuthenticatedProcurementOrdersRoute: AuthenticatedProcurementOrdersRoute,
   AuthenticatedProcurementPendingRoute: AuthenticatedProcurementPendingRoute,
   AuthenticatedProcurementRequestsRoute: AuthenticatedProcurementRequestsRoute,
+  AuthenticatedProcurementShipmentsRoute:
+    AuthenticatedProcurementShipmentsRoute,
+  AuthenticatedProcurementSupplierQualityRoute:
+    AuthenticatedProcurementSupplierQualityRoute,
   AuthenticatedProcurementVendorsRoute: AuthenticatedProcurementVendorsRoute,
   AuthenticatedProjectsProjectIdRoute: AuthenticatedProjectsProjectIdRoute,
   AuthenticatedQualityIncomingRoute: AuthenticatedQualityIncomingRoute,
