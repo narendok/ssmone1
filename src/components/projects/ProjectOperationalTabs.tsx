@@ -73,6 +73,7 @@ function OperationalDialog({ projectId, config, open, onOpenChange, onSaved }: {
   const save = async () => {
     if (!title.trim() || (config.codeKey !== "title" && !code.trim())) return toast.error("Complete the required fields");
     const payload: Record<string, unknown> = { project_id: projectId, [config.typeKey]: type, [config.descriptionKey]: title.trim() };
+    if (config.table === "project_design_inputs" || config.table === "project_research_records") payload.title = title.trim();
     if (config.codeKey !== "title") payload[config.codeKey] = code.trim().toUpperCase();
     if (config.descriptionKey !== "description" && config.descriptionKey !== "summary" && config.descriptionKey !== "title") payload[config.descriptionKey] = title.trim();
     if (config.descriptionKey === "description") payload.description = detail.trim() || null;
