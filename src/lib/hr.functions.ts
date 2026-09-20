@@ -65,6 +65,23 @@ const onboardingItemSchema = z.object({
   isRequired: z.boolean(),
 });
 
+const launchOnboardingSchema = z.object({
+  applicationId: z.string().uuid(),
+  planId: z.string().uuid().nullable(),
+  employeeCode: z.string().trim().min(2).max(64),
+  officialEmail: z.string().trim().email().max(254),
+  designation: z.string().trim().max(160).nullable(),
+  departmentId: z.string().uuid().nullable(),
+  reportingManagerUserId: z.string().uuid().nullable(),
+  startDate: z.string().min(10).nullable(),
+  welcomeKitRequired: z.boolean(),
+});
+
+const onboardingItemStatusSchema = z.object({
+  itemId: z.string().uuid(),
+  status: z.enum(["pending", "in_progress", "completed", "skipped"]),
+});
+
 async function requirePermission(sb: any, userId: string, permission: string) {
   const { data, error } = await sb.rpc("has_permission", { _user_id: userId, _permission_key: permission });
   if (error || !data) throw new Error("You do not have permission to perform this action.");
@@ -282,4 +299,123 @@ export const createOnboardingItem = createServerFn({ method: "POST" })
     if (error || !item) throw new Error(error?.message ?? "Could not add the onboarding item.");
     await logActivity(sb, context.userId, "onboarding_item", item.id, "created", `Added onboarding step: ${data.title}`);
     return { id: item.id };
+  });
+
+export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => launchOnboardingSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    await requireOnboarding(sb, context.userId);
+
+    const { data: application, error: applicationError } = await sb
+      .from("hr_applications")
+      .select("id,stage,status,candidate:hr_candidates(full_name,email,phone)")
+      .eq("id", data.applicationId)
+      .maybeSingle();
+    if (applicationError || !application) throw new Error("Candidate application was not found.");
+    if (application.stage !== "hired" || application.status !== "hired") {
+      throw new Error("Only a hired candidate can begin employee onboarding.");
+    }
+
+    const candidate = application.candidate as { full_name?: string | null; email?: string | null; phone?: string | null } | null;
+    const fullName = candidate?.full_name?.trim();
+    if (!fullName) throw new Error("The candidate profile is missing a name.");
+    const [firstName, ...lastNameParts] = fullName.split(/\s+/);
+
+    const { data: employee, error: employeeError } = await sb.from("employees").insert({
+      employee_code: data.employeeCode,
+      first_name: firstName || null,
+      last_name: lastNameParts.join(" ") || null,
+      display_name: fullName,
+      official_email: data.officialEmail,
+      personal_email: candidate?.email ?? null,
+      phone: candidate?.phone ?? null,
+      designation: data.designation,
+      primary_department_id: data.departmentId,
+      reporting_manager_user_id: data.reportingManagerUserId,
+      employment_status: "INVITED",
+      date_of_joining: data.startDate,
+    }).select("id").single();
+    if (employeeError || !employee) throw new Error(employeeError?.message ?? "Could not create the employee profile.");
+
+    if (data.departmentId) {
+      const { error: departmentError } = await sb.from("employee_departments").insert({
+        employee_id: employee.id,
+        department_id: data.departmentId,
+        is_primary: true,
+      });
+      if (departmentError) throw new Error(departmentError.message);
+    }
+
+    const { data: onboarding, error: onboardingError } = await sb.from("hr_employee_onboardings").insert({
+      application_id: data.applicationId,
+      employee_id: employee.id,
+      plan_id: data.planId,
+      status: "in_progress",
+      started_at: new Date().toISOString(),
+      welcome_kit_status: data.welcomeKitRequired ? "pending" : "not_required",
+      created_by: context.userId,
+    }).select("id").single();
+    if (onboardingError || !onboarding) throw new Error(onboardingError?.message ?? "Could not start onboarding.");
+
+    if (data.planId) {
+      const { data: templateItems, error: templateError } = await sb
+        .from("hr_onboarding_items")
+        .select("id,title,description,owner_kind,due_offset_days,is_required,sort_order")
+        .eq("plan_id", data.planId)
+        .order("sort_order");
+      if (templateError) throw new Error(templateError.message);
+      if (templateItems?.length) {
+        const start = data.startDate ? new Date(`${data.startDate}T12:00:00`) : new Date();
+        const items = templateItems.map((item: any) => {
+          const dueDate = new Date(start);
+          dueDate.setDate(dueDate.getDate() + item.due_offset_days);
+          const ownerUserId = item.owner_kind === "manager" ? data.reportingManagerUserId : item.owner_kind === "hr" ? context.userId : null;
+          return {
+            onboarding_id: onboarding.id,
+            source_item_id: item.id,
+            title: item.title,
+            description: item.description,
+            owner_kind: item.owner_kind,
+            owner_user_id: ownerUserId,
+            due_date: dueDate.toISOString().slice(0, 10),
+            is_required: item.is_required,
+            sort_order: item.sort_order,
+          };
+        });
+        const { error: itemError } = await sb.from("hr_employee_onboarding_items").insert(items);
+        if (itemError) throw new Error(itemError.message);
+      }
+    }
+
+    await logActivity(sb, context.userId, "employee_onboarding", onboarding.id, "launched", `Started onboarding for ${fullName}`, { employeeId: employee.id, applicationId: data.applicationId });
+    return { employeeId: employee.id, onboardingId: onboarding.id };
+  });
+
+export const updateEmployeeOnboardingItem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => onboardingItemStatusSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    const { data: item, error: itemError } = await sb
+      .from("hr_employee_onboarding_items")
+      .select("id,onboarding_id,owner_user_id,onboarding:hr_employee_onboardings(employee_id)")
+      .eq("id", data.itemId)
+      .maybeSingle();
+    if (itemError || !item) throw new Error("Onboarding item was not found.");
+    const employeeId = (item.onboarding as { employee_id?: string } | null)?.employee_id;
+    const { data: managesOnboarding } = await sb.rpc("can_manage_onboarding", { _uid: context.userId });
+    const isOwner = item.owner_user_id === context.userId;
+    const { data: ownEmployee } = await sb.from("employees").select("id").eq("user_id", context.userId).maybeSingle();
+    if (!managesOnboarding && !isOwner && ownEmployee?.id !== employeeId) throw new Error("You do not have permission to update this onboarding step.");
+    const completed = data.status === "completed";
+    const { error } = await sb.from("hr_employee_onboarding_items").update({
+      status: data.status,
+      completed_at: completed ? new Date().toISOString() : null,
+      completed_by_user_id: completed ? context.userId : null,
+    }).eq("id", data.itemId);
+    if (error) throw new Error(error.message);
+    await logActivity(sb, context.userId, "employee_onboarding_item", data.itemId, "status_updated", `Updated onboarding step to ${data.status}`);
+    return { id: data.itemId };
   });
