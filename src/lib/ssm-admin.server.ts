@@ -56,6 +56,13 @@ const MODULES = [
 
 const PERMISSION_MODULES = ["home", "my_work", "projects", "engineering", "procurement", "quality", "people", "documents", "admin"];
 const PERMISSION_ACTIONS = ["view", "create", "edit", "delete", "approve", "share", "export", "admin"];
+const HR_PERMISSIONS = [
+  ["hr.view", "hr", "View HR workspace", "Allows access to the HR workspace and employee self-service."],
+  ["recruitment.manage", "hr", "Manage recruitment", "Allows creation and management of requisitions, openings, and candidates."],
+  ["leave.manage", "hr", "Manage leave", "Allows leave administration."],
+  ["leave.approve", "hr", "Approve leave", "Allows review and approval of leave requests."],
+  ["training.manage", "hr", "Manage training", "Allows administration of learning programs and enrollments."],
+] as const;
 
 export async function bootstrapSsmOne() {
   const { data: existingOrg } = await supabaseAdmin.from("organizations").select("id").limit(1).maybeSingle();
@@ -70,14 +77,17 @@ export async function bootstrapSsmOne() {
   );
   if (departmentsError) throw departmentsError;
 
-  const permissions = PERMISSION_MODULES.flatMap((moduleKey) =>
-    PERMISSION_ACTIONS.map((action) => ({
-      key: `${moduleKey}.${action}`,
-      module_key: moduleKey,
-      label: `${moduleKey.replace(/_/g, " ")} ${action}`,
-      description: `Allows ${action} access in ${moduleKey.replace(/_/g, " ")}.`,
-    })),
-  );
+  const permissions = [
+    ...PERMISSION_MODULES.flatMap((moduleKey) =>
+      PERMISSION_ACTIONS.map((action) => ({
+        key: `${moduleKey}.${action}`,
+        module_key: moduleKey,
+        label: `${moduleKey.replace(/_/g, " ")} ${action}`,
+        description: `Allows ${action} access in ${moduleKey.replace(/_/g, " ")}.`,
+      })),
+    ),
+    ...HR_PERMISSIONS.map(([key, module_key, label, description]) => ({ key, module_key, label, description })),
+  ];
   const { error: permissionsError } = await supabaseAdmin.from("permissions").upsert(permissions, { onConflict: "key" });
   if (permissionsError) throw permissionsError;
 
