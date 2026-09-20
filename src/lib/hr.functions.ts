@@ -42,6 +42,16 @@ const publicApplicationSchema = z.object({
   phone: z.string().trim().max(40).nullable(),
   currentLocation: z.string().trim().max(160).nullable(),
   coverLetter: z.string().trim().max(4000).nullable(),
+  resume: z.object({
+    filename: z.string().trim().min(1).max(180),
+    mimeType: z.enum([
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ]),
+    storagePath: z.string().regex(/^public-applications\/[0-9a-f-]+\/[a-z0-9-]+\.(pdf|doc|docx)$/),
+    fileSize: z.number().int().positive().max(10 * 1024 * 1024),
+  }).nullable(),
 });
 
 async function getEmployeeId(sb: any, userId: string) {
@@ -198,6 +208,10 @@ export const submitPublicJobApplication = createServerFn({ method: "POST" })
       _phone: data.phone ?? "",
       _current_location: data.currentLocation ?? "",
       _cover_letter: data.coverLetter ?? "",
+      _resume_filename: data.resume?.filename ?? null,
+      _resume_mime_type: data.resume?.mimeType ?? null,
+      _resume_storage_path: data.resume?.storagePath ?? null,
+      _resume_file_size: data.resume?.fileSize ?? null,
     });
     if (error || !result) throw new Error(error?.message ?? "Could not submit your application.");
     const parsed = result as { status_token?: string };
