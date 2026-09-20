@@ -37,7 +37,9 @@ import { Route as AuthenticatedProcurementVendorsRouteImport } from './routes/_a
 import { Route as AuthenticatedProcurementPendingRouteImport } from './routes/_authenticated/procurement.pending'
 import { Route as AuthenticatedProcurementOrdersRouteImport } from './routes/_authenticated/procurement.orders'
 import { Route as AuthenticatedProcurementInwardRouteImport } from './routes/_authenticated/procurement.inward'
+import { Route as AuthenticatedHrTrainingRouteImport } from './routes/_authenticated/hr.training'
 import { Route as AuthenticatedHrRecruitmentRouteImport } from './routes/_authenticated/hr.recruitment'
+import { Route as AuthenticatedHrPoliciesRouteImport } from './routes/_authenticated/hr.policies'
 import { Route as AuthenticatedHrOnboardingRouteImport } from './routes/_authenticated/hr.onboarding'
 import { Route as AuthenticatedHrLeaveRouteImport } from './routes/_authenticated/hr.leave'
 import { Route as AuthenticatedCategorySlugRouteImport } from './routes/_authenticated/category.$slug'
@@ -192,12 +194,22 @@ const AuthenticatedProcurementInwardRoute =
     path: '/procurement/inward',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedHrTrainingRoute = AuthenticatedHrTrainingRouteImport.update({
+  id: '/training',
+  path: '/training',
+  getParentRoute: () => AuthenticatedHrRoute,
+} as any)
 const AuthenticatedHrRecruitmentRoute =
   AuthenticatedHrRecruitmentRouteImport.update({
     id: '/recruitment',
     path: '/recruitment',
     getParentRoute: () => AuthenticatedHrRoute,
   } as any)
+const AuthenticatedHrPoliciesRoute = AuthenticatedHrPoliciesRouteImport.update({
+  id: '/policies',
+  path: '/policies',
+  getParentRoute: () => AuthenticatedHrRoute,
+} as any)
 const AuthenticatedHrOnboardingRoute =
   AuthenticatedHrOnboardingRouteImport.update({
     id: '/onboarding',
@@ -242,7 +254,9 @@ export interface FileRoutesByFullPath {
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
   '/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
+  '/hr/policies': typeof AuthenticatedHrPoliciesRoute
   '/hr/recruitment': typeof AuthenticatedHrRecruitmentRoute
+  '/hr/training': typeof AuthenticatedHrTrainingRoute
   '/procurement/inward': typeof AuthenticatedProcurementInwardRoute
   '/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
   '/procurement/pending': typeof AuthenticatedProcurementPendingRoute
@@ -276,7 +290,9 @@ export interface FileRoutesByTo {
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
   '/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
+  '/hr/policies': typeof AuthenticatedHrPoliciesRoute
   '/hr/recruitment': typeof AuthenticatedHrRecruitmentRoute
+  '/hr/training': typeof AuthenticatedHrTrainingRoute
   '/procurement/inward': typeof AuthenticatedProcurementInwardRoute
   '/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
   '/procurement/pending': typeof AuthenticatedProcurementPendingRoute
@@ -312,7 +328,9 @@ export interface FileRoutesById {
   '/_authenticated/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/_authenticated/hr/leave': typeof AuthenticatedHrLeaveRoute
   '/_authenticated/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
+  '/_authenticated/hr/policies': typeof AuthenticatedHrPoliciesRoute
   '/_authenticated/hr/recruitment': typeof AuthenticatedHrRecruitmentRoute
+  '/_authenticated/hr/training': typeof AuthenticatedHrTrainingRoute
   '/_authenticated/procurement/inward': typeof AuthenticatedProcurementInwardRoute
   '/_authenticated/procurement/orders': typeof AuthenticatedProcurementOrdersRoute
   '/_authenticated/procurement/pending': typeof AuthenticatedProcurementPendingRoute
@@ -348,7 +366,9 @@ export interface FileRouteTypes {
     | '/category/$slug'
     | '/hr/leave'
     | '/hr/onboarding'
+    | '/hr/policies'
     | '/hr/recruitment'
+    | '/hr/training'
     | '/procurement/inward'
     | '/procurement/orders'
     | '/procurement/pending'
@@ -382,7 +402,9 @@ export interface FileRouteTypes {
     | '/category/$slug'
     | '/hr/leave'
     | '/hr/onboarding'
+    | '/hr/policies'
     | '/hr/recruitment'
+    | '/hr/training'
     | '/procurement/inward'
     | '/procurement/orders'
     | '/procurement/pending'
@@ -417,7 +439,9 @@ export interface FileRouteTypes {
     | '/_authenticated/category/$slug'
     | '/_authenticated/hr/leave'
     | '/_authenticated/hr/onboarding'
+    | '/_authenticated/hr/policies'
     | '/_authenticated/hr/recruitment'
+    | '/_authenticated/hr/training'
     | '/_authenticated/procurement/inward'
     | '/_authenticated/procurement/orders'
     | '/_authenticated/procurement/pending'
@@ -641,11 +665,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProcurementInwardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/hr/training': {
+      id: '/_authenticated/hr/training'
+      path: '/training'
+      fullPath: '/hr/training'
+      preLoaderRoute: typeof AuthenticatedHrTrainingRouteImport
+      parentRoute: typeof AuthenticatedHrRoute
+    }
     '/_authenticated/hr/recruitment': {
       id: '/_authenticated/hr/recruitment'
       path: '/recruitment'
       fullPath: '/hr/recruitment'
       preLoaderRoute: typeof AuthenticatedHrRecruitmentRouteImport
+      parentRoute: typeof AuthenticatedHrRoute
+    }
+    '/_authenticated/hr/policies': {
+      id: '/_authenticated/hr/policies'
+      path: '/policies'
+      fullPath: '/hr/policies'
+      preLoaderRoute: typeof AuthenticatedHrPoliciesRouteImport
       parentRoute: typeof AuthenticatedHrRoute
     }
     '/_authenticated/hr/onboarding': {
@@ -682,13 +720,17 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedHrRouteChildren {
   AuthenticatedHrLeaveRoute: typeof AuthenticatedHrLeaveRoute
   AuthenticatedHrOnboardingRoute: typeof AuthenticatedHrOnboardingRoute
+  AuthenticatedHrPoliciesRoute: typeof AuthenticatedHrPoliciesRoute
   AuthenticatedHrRecruitmentRoute: typeof AuthenticatedHrRecruitmentRoute
+  AuthenticatedHrTrainingRoute: typeof AuthenticatedHrTrainingRoute
 }
 
 const AuthenticatedHrRouteChildren: AuthenticatedHrRouteChildren = {
   AuthenticatedHrLeaveRoute: AuthenticatedHrLeaveRoute,
   AuthenticatedHrOnboardingRoute: AuthenticatedHrOnboardingRoute,
+  AuthenticatedHrPoliciesRoute: AuthenticatedHrPoliciesRoute,
   AuthenticatedHrRecruitmentRoute: AuthenticatedHrRecruitmentRoute,
+  AuthenticatedHrTrainingRoute: AuthenticatedHrTrainingRoute,
 }
 
 const AuthenticatedHrRouteWithChildren = AuthenticatedHrRoute._addFileChildren(
