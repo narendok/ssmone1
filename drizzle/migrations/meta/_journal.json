@@ -36,6 +36,13 @@
       "when": 1789909906922,
       "tag": "0004_add_public_application_status_lookup",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789912966178,
+      "tag": "0005_add_hr_employee_journey_extensions",
+      "breakpoints": true
     }
   ]
 }

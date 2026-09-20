@@ -1157,6 +1157,56 @@ export type Database = {
           },
         ]
       }
+      hr_assessments: {
+        Row: {
+          application_id: string
+          assigned_by: string | null
+          created_at: string
+          due_at: string | null
+          id: string
+          instructions: string | null
+          reviewer_notes: string | null
+          score: number | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          assigned_by?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          instructions?: string | null
+          reviewer_notes?: string | null
+          score?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          assigned_by?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          instructions?: string | null
+          reviewer_notes?: string | null
+          score?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_assessments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "hr_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hr_candidates: {
         Row: {
           confirmed_profile: Json
@@ -1629,6 +1679,183 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: true
             referencedRelation: "hr_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_onboarding_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          due_offset_days: number
+          id: string
+          is_required: boolean
+          owner_kind: string
+          plan_id: string
+          sort_order: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          due_offset_days?: number
+          id?: string
+          is_required?: boolean
+          owner_kind?: string
+          plan_id: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          due_offset_days?: number
+          id?: string
+          is_required?: boolean
+          owner_kind?: string
+          plan_id?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_onboarding_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "hr_onboarding_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_onboarding_plans: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          department_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_onboarding_plans_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_policies: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          document_node_id: string | null
+          id: string
+          is_active: boolean
+          policy_code: string
+          published_at: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          document_node_id?: string | null
+          id?: string
+          is_active?: boolean
+          policy_code: string
+          published_at?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          document_node_id?: string | null
+          id?: string
+          is_active?: boolean
+          policy_code?: string
+          published_at?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_policies_document_node_id_fkey"
+            columns: ["document_node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_policy_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          created_at: string
+          employee_id: string
+          id: string
+          policy_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          policy_id: string
+        }
+        Update: {
+          acknowledged_at?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          policy_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_policy_acknowledgements_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hr_policy_acknowledgements_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "hr_policies"
             referencedColumns: ["id"]
           },
         ]
@@ -2725,6 +2952,7 @@ export type Database = {
     Functions: {
       can_inward: { Args: { _uid: string }; Returns: boolean }
       can_manage_leave: { Args: { _uid: string }; Returns: boolean }
+      can_manage_onboarding: { Args: { _uid: string }; Returns: boolean }
       can_manage_recruitment: { Args: { _uid: string }; Returns: boolean }
       can_manage_training: { Args: { _uid: string }; Returns: boolean }
       can_purchase: { Args: { _uid: string }; Returns: boolean }
