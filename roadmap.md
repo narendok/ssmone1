@@ -40,6 +40,6 @@
 
 ## Stabilization Patch 02
 
-- [ ] Build the shared automation registry, execution audit, cache, and provenance foundation without changing established records.
-- [ ] Add reviewed supplier and AI category suggestions to component entry, and establish safe, human-controlled automation patterns.
+- [x] Build the shared automation registry, execution audit, cache, and provenance foundation without changing established records.
+- [x] Add reviewed supplier and AI category suggestions to component entry, and establish safe, human-controlled automation patterns.
 - [ ] Complete project-handover drafting, bounded background automation, and signed-in acceptance checks. Phase 6 remains blocked.
