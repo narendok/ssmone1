@@ -16,7 +16,7 @@ export const createPurchaseRequest = createServerFn({ method: "POST" })
     if (!data.items.length || data.items.some((item) => !Number.isFinite(item.required_quantity) || item.required_quantity <= 0)) throw new Error("Add at least one line with a quantity greater than zero.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [{ data: number, error: numberError }, { data: purchaseDepartment }] = await Promise.all([
-      supabaseAdmin.rpc("next_business_number", { _kind: "purchase_request" }),
+      supabaseAdmin.rpc("next_business_number", { _entity_type: "purchase_request", _department_code: "PUR/PD", _project_code: null }),
       supabaseAdmin.from("departments").select("id").in("code", ["PUR", "PD", "PUR/PD"]).eq("is_active", true).limit(1).maybeSingle(),
     ]);
     if (numberError || !number) throw new Error("Could not generate the purchase request number.");
@@ -41,7 +41,7 @@ export const createExpense = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     if (!data.category.trim() || !data.description.trim() || !Number.isFinite(data.amount) || data.amount <= 0) throw new Error("Enter a category, description, and valid amount.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: number, error: numberError } = await supabaseAdmin.rpc("next_business_number", { _kind: "expense" });
+    const { data: number, error: numberError } = await supabaseAdmin.rpc("next_business_number", { _entity_type: "expense", _department_code: "FIN", _project_code: null });
     if (numberError || !number) throw new Error("Could not generate the expense number.");
     const { data: expense, error } = await supabaseAdmin.from("quick_expenses").insert({ expense_number: number, requester_id: context.userId, project_id: data.project_id ?? null, department_id: data.department_id ?? null, category: data.category.trim(), description: data.description.trim(), amount: data.amount, is_rd: data.is_rd }).select("id,expense_number").single();
     if (error || !expense) throw new Error("Could not submit the expense.");
