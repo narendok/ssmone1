@@ -1,0 +1,1 @@
+ALTER TABLE public.hr_interview_feedback ADD CONSTRAINT hr_interview_feedback_round_interviewer_unique UNIQUE (round_id, interviewer_user_id);

@@ -43,6 +43,13 @@
       "when": 1789912966178,
       "tag": "0005_add_hr_employee_journey_extensions",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789913059448,
+      "tag": "0006_add_interview_feedback_uniqueness",
+      "breakpoints": true
     }
   ]
 }
