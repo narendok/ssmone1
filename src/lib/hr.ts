@@ -2,166 +2,41 @@ import { supabase } from "@/integrations/supabase/client";
 
 const sb = supabase as any;
 
-export interface HrJobPosting {
-  id: string;
-  slug: string;
-  title: string;
-  summary: string | null;
-  description: string;
-  location: string | null;
-  employment_type: string;
-  work_mode: string;
-  is_published: boolean;
-  published_at: string | null;
-  created_at: string;
-  department?: { id: string; name: string | null; code: string | null } | null;
-}
-
-export interface HrJobRequisition {
-  id: string;
-  title: string;
-  employment_type: string;
-  work_mode: string;
-  location: string | null;
-  headcount: number;
-  status: string;
-  target_start_date: string | null;
-  created_at: string;
-  department?: { id: string; name: string | null; code: string | null } | null;
-}
-
-export interface HrLeaveRequest {
-  id: string;
-  start_date: string;
-  end_date: string;
-  total_days: number;
-  reason: string | null;
-  status: string;
-  approver_note: string | null;
-  created_at: string;
-  leave_type?: { id: string; name: string; code: string } | null;
-}
-
-export interface HrLeaveType {
-  id: string;
-  name: string;
-  code: string;
-  annual_quota: number;
-  requires_approval: boolean;
-}
-
-export interface HrTrainingEnrollment {
-  id: string;
-  status: string;
-  due_date: string | null;
-  completed_at: string | null;
-  score: number | null;
-  program?: { id: string; title: string; delivery_mode: string; is_mandatory: boolean } | null;
-}
-
-export interface HrCandidate {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string | null;
-  current_location: string | null;
-  resume_filename: string | null;
-  resume_storage_path: string | null;
-}
-
-export interface HrApplication {
-  id: string;
-  stage: string;
-  status: string;
-  submitted_at: string;
-  cover_letter: string | null;
-  candidate: HrCandidate | null;
-  posting: Pick<HrJobPosting, "id" | "title" | "slug"> | null;
-}
+export interface HrJobPosting { id: string; slug: string; title: string; summary: string | null; description: string; location: string | null; employment_type: string; work_mode: string; is_published: boolean; published_at: string | null; created_at: string; department?: { id: string; name: string | null; code: string | null } | null; }
+export interface HrJobRequisition { id: string; title: string; employment_type: string; work_mode: string; location: string | null; headcount: number; status: string; target_start_date: string | null; created_at: string; department?: { id: string; name: string | null; code: string | null } | null; }
+export interface HrLeaveRequest { id: string; start_date: string; end_date: string; total_days: number; reason: string | null; status: string; approver_note: string | null; created_at: string; leave_type?: { id: string; name: string; code: string } | null; }
+export interface HrLeaveType { id: string; name: string; code: string; annual_quota: number; requires_approval: boolean; }
+export interface HrTrainingEnrollment { id: string; status: string; due_date: string | null; completed_at: string | null; score: number | null; program?: { id: string; title: string; delivery_mode: string; is_mandatory: boolean } | null; }
+export interface HrCandidate { id: string; full_name: string; email: string; phone: string | null; current_location: string | null; resume_filename: string | null; resume_storage_path: string | null; }
+export interface HrApplication { id: string; stage: string; status: string; submitted_at: string; cover_letter: string | null; candidate: HrCandidate | null; posting: Pick<HrJobPosting, "id" | "title" | "slug"> | null; }
+export interface HrInterviewRound { id: string; application_id: string; title: string; interviewer_user_id: string; scheduled_for: string | null; meeting_notes: string | null; status: string; }
+export interface HrOffer { id: string; application_id: string; status: string; compensation: { annual_compensation?: number; currency?: string }; notes: string | null; sent_at: string | null; }
+export interface HrTrainingProgram { id: string; title: string; description: string | null; delivery_mode: string; is_mandatory: boolean; is_active: boolean; department?: { id: string; name: string } | null; }
+export interface HrPolicy { id: string; policy_code: string; title: string; summary: string | null; version: string; is_active: boolean; published_at: string | null; }
+export interface HrOnboardingPlan { id: string; name: string; description: string | null; is_active: boolean; department?: { id: string; name: string } | null; items?: HrOnboardingItem[]; }
+export interface HrOnboardingItem { id: string; title: string; description: string | null; owner_kind: string; due_offset_days: number; is_required: boolean; sort_order: number; }
 
 const POSTING_SELECT = "id,slug,title,summary,description,location,employment_type,work_mode,is_published,published_at,created_at,department:departments(id,name,code)";
 
-export async function fetchPublishedJobs(): Promise<HrJobPosting[]> {
-  const { data, error } = await sb
-    .from("hr_job_postings")
-    .select(POSTING_SELECT)
-    .eq("is_published", true)
-    .order("published_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as HrJobPosting[];
-}
+export async function fetchPublishedJobs(): Promise<HrJobPosting[]> { const { data, error } = await sb.from("hr_job_postings").select(POSTING_SELECT).eq("is_published", true).order("published_at", { ascending: false }); if (error) throw error; return (data ?? []) as HrJobPosting[]; }
+export async function fetchPublishedJobBySlug(slug: string): Promise<HrJobPosting | null> { const { data, error } = await sb.from("hr_job_postings").select(POSTING_SELECT).eq("slug", slug).eq("is_published", true).maybeSingle(); if (error) throw error; return (data ?? null) as HrJobPosting | null; }
 
-export async function fetchPublishedJobBySlug(slug: string): Promise<HrJobPosting | null> {
-  const { data, error } = await sb
-    .from("hr_job_postings")
-    .select(POSTING_SELECT)
-    .eq("slug", slug)
-    .eq("is_published", true)
-    .maybeSingle();
-  if (error) throw error;
-  return (data ?? null) as HrJobPosting | null;
-}
-
-export async function fetchRecruitmentSnapshot(): Promise<{ requisitions: HrJobRequisition[]; postings: HrJobPosting[]; applications: HrApplication[] }> {
-  const [reqs, posts, applications] = await Promise.all([
-    sb
-      .from("hr_job_requisitions")
-      .select("id,title,employment_type,work_mode,location,headcount,status,target_start_date,created_at,department:departments(id,name,code)")
-      .order("created_at", { ascending: false }),
-    sb
-      .from("hr_job_postings")
-      .select(POSTING_SELECT)
-      .order("created_at", { ascending: false }),
-    sb
-      .from("hr_applications")
-      .select("id,stage,status,submitted_at,cover_letter,candidate:hr_candidates(id,full_name,email,phone,current_location,resume_filename,resume_storage_path),posting:hr_job_postings(id,title,slug)")
-      .order("submitted_at", { ascending: false }),
+export async function fetchRecruitmentSnapshot(): Promise<{ requisitions: HrJobRequisition[]; postings: HrJobPosting[]; applications: HrApplication[]; interviews: HrInterviewRound[]; offers: HrOffer[]; employees: Array<{ id: string; display_name: string | null; official_email: string | null }> }> {
+  const [reqs, posts, applications, interviews, offers, employees] = await Promise.all([
+    sb.from("hr_job_requisitions").select("id,title,employment_type,work_mode,location,headcount,status,target_start_date,created_at,department:departments(id,name,code)").order("created_at", { ascending: false }),
+    sb.from("hr_job_postings").select(POSTING_SELECT).order("created_at", { ascending: false }),
+    sb.from("hr_applications").select("id,stage,status,submitted_at,cover_letter,candidate:hr_candidates(id,full_name,email,phone,current_location,resume_filename,resume_storage_path),posting:hr_job_postings(id,title,slug)").order("submitted_at", { ascending: false }),
+    sb.from("hr_interview_rounds").select("id,application_id,title,interviewer_user_id,scheduled_for,meeting_notes,status").order("scheduled_for", { ascending: true }),
+    sb.from("hr_offers").select("id,application_id,status,compensation,notes,sent_at").order("created_at", { ascending: false }),
+    sb.from("employees").select("id,display_name,official_email").eq("employment_status", "ACTIVE").order("display_name"),
   ]);
-  if (reqs.error) throw reqs.error;
-  if (posts.error) throw posts.error;
-  if (applications.error) throw applications.error;
-  return {
-    requisitions: (reqs.data ?? []) as HrJobRequisition[],
-    postings: (posts.data ?? []) as HrJobPosting[],
-    applications: (applications.data ?? []) as HrApplication[],
-  };
+  for (const result of [reqs, posts, applications, interviews, offers, employees]) if (result.error) throw result.error;
+  return { requisitions: (reqs.data ?? []) as HrJobRequisition[], postings: (posts.data ?? []) as HrJobPosting[], applications: (applications.data ?? []) as HrApplication[], interviews: (interviews.data ?? []) as HrInterviewRound[], offers: (offers.data ?? []) as HrOffer[], employees: (employees.data ?? []) as Array<{ id: string; display_name: string | null; official_email: string | null }> };
 }
 
-export async function fetchHrDashboard() {
-  const [{ count: activeJobs }, { count: openRequisitions }, { count: pendingLeave }, { count: trainingAssigned }] = await Promise.all([
-    sb.from("hr_job_postings").select("id", { count: "exact", head: true }).eq("is_published", true),
-    sb.from("hr_job_requisitions").select("id", { count: "exact", head: true }).in("status", ["approved", "open", "pending_approval"]),
-    sb.from("hr_leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
-    sb.from("hr_training_enrollments").select("id", { count: "exact", head: true }).in("status", ["assigned", "in_progress"]),
-  ]);
-  return {
-    activeJobs: activeJobs ?? 0,
-    openRequisitions: openRequisitions ?? 0,
-    pendingLeave: pendingLeave ?? 0,
-    trainingAssigned: trainingAssigned ?? 0,
-  };
-}
-
-export async function fetchLeaveOverview() {
-  const [{ data: employee }, { data: leaveTypes }, { data: leaveRequests }, { data: balances }] = await Promise.all([
-    sb.from("employees").select("id, display_name, official_email, designation").maybeSingle(),
-    sb.from("hr_leave_types").select("id,name,code,annual_quota,requires_approval").eq("is_active", true).order("name"),
-    sb.from("hr_leave_requests").select("id,start_date,end_date,total_days,reason,status,approver_note,created_at,leave_type:hr_leave_types(id,name,code)").order("created_at", { ascending: false }),
-    sb.from("hr_leave_balances").select("id,year,balance,consumed,leave_type:hr_leave_types(id,name,code)").order("year", { ascending: false }),
-  ]);
-  return {
-    employee: employee ?? null,
-    leaveTypes: (leaveTypes ?? []) as HrLeaveType[],
-    leaveRequests: (leaveRequests ?? []) as (HrLeaveRequest & { leave_type: { id: string; name: string; code: string } | null })[],
-    balances: (balances ?? []) as Array<{ id: string; year: number; balance: number; consumed: number; leave_type: { id: string; name: string; code: string } | null }>,
-  };
-}
-
-export async function fetchTrainingOverview(): Promise<HrTrainingEnrollment[]> {
-  const { data, error } = await sb
-    .from("hr_training_enrollments")
-    .select("id,status,due_date,completed_at,score,program:hr_training_programs(id,title,delivery_mode,is_mandatory)")
-    .order("due_date", { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as HrTrainingEnrollment[];
-}
+export async function fetchHrDashboard() { const [{ count: activeJobs }, { count: openRequisitions }, { count: pendingLeave }, { count: trainingAssigned }] = await Promise.all([sb.from("hr_job_postings").select("id", { count: "exact", head: true }).eq("is_published", true), sb.from("hr_job_requisitions").select("id", { count: "exact", head: true }).in("status", ["approved", "open", "pending_approval"]), sb.from("hr_leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"), sb.from("hr_training_enrollments").select("id", { count: "exact", head: true }).in("status", ["assigned", "in_progress"])]); return { activeJobs: activeJobs ?? 0, openRequisitions: openRequisitions ?? 0, pendingLeave: pendingLeave ?? 0, trainingAssigned: trainingAssigned ?? 0 }; }
+export async function fetchLeaveOverview() { const [{ data: employee }, { data: leaveTypes }, { data: leaveRequests }, { data: balances }] = await Promise.all([sb.from("employees").select("id, display_name, official_email, designation").maybeSingle(), sb.from("hr_leave_types").select("id,name,code,annual_quota,requires_approval").eq("is_active", true).order("name"), sb.from("hr_leave_requests").select("id,start_date,end_date,total_days,reason,status,approver_note,created_at,leave_type:hr_leave_types(id,name,code)").order("created_at", { ascending: false }), sb.from("hr_leave_balances").select("id,year,balance,consumed,leave_type:hr_leave_types(id,name,code)").order("year", { ascending: false })]); return { employee: employee ?? null, leaveTypes: (leaveTypes ?? []) as HrLeaveType[], leaveRequests: (leaveRequests ?? []) as (HrLeaveRequest & { leave_type: { id: string; name: string; code: string } | null })[], balances: (balances ?? []) as Array<{ id: string; year: number; balance: number; consumed: number; leave_type: { id: string; name: string; code: string } | null }> }; }
+export async function fetchTrainingOverview(): Promise<HrTrainingEnrollment[]> { const { data, error } = await sb.from("hr_training_enrollments").select("id,status,due_date,completed_at,score,program:hr_training_programs(id,title,delivery_mode,is_mandatory)").order("due_date", { ascending: true }); if (error) throw error; return (data ?? []) as HrTrainingEnrollment[]; }
+export async function fetchTrainingAdministration() { const [programs, employees, enrollments] = await Promise.all([sb.from("hr_training_programs").select("id,title,description,delivery_mode,is_mandatory,is_active,department:departments(id,name)").order("created_at", { ascending: false }), sb.from("employees").select("id,display_name,official_email,designation").eq("employment_status", "ACTIVE").order("display_name"), sb.from("hr_training_enrollments").select("id,status,due_date,completed_at,employee:employees(display_name,official_email),program:hr_training_programs(title)").order("created_at", { ascending: false })]); for (const result of [programs, employees, enrollments]) if (result.error) throw result.error; return { programs: (programs.data ?? []) as HrTrainingProgram[], employees: employees.data ?? [], enrollments: enrollments.data ?? [] }; }
+export async function fetchPolicyOverview() { const [policies, acknowledgements, employee] = await Promise.all([sb.from("hr_policies").select("id,policy_code,title,summary,version,is_active,published_at").order("published_at", { ascending: false }), sb.from("hr_policy_acknowledgements").select("policy_id,acknowledged_at"), sb.from("employees").select("id").maybeSingle()]); for (const result of [policies, acknowledgements, employee]) if (result.error) throw result.error; return { policies: (policies.data ?? []) as HrPolicy[], acknowledgedPolicyIds: new Set((acknowledgements.data ?? []).map((ack: { policy_id: string }) => ack.policy_id)), employeeId: employee.data?.id ?? null }; }
+export async function fetchOnboardingOverview() { const { data, error } = await sb.from("hr_onboarding_plans").select("id,name,description,is_active,department:departments(id,name),items:hr_onboarding_items(id,title,description,owner_kind,due_offset_days,is_required,sort_order)").eq("is_active", true).order("created_at", { ascending: false }); if (error) throw error; return (data ?? []).map((plan: any) => ({ ...plan, items: [...(plan.items ?? [])].sort((a, b) => a.sort_order - b.sort_order) })) as HrOnboardingPlan[]; }
