@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/production/shopfloor")({
 const sb = supabase as any;
 const pretty = (value: string) => value.replaceAll("_", " ");
 
-function ShopFloorRoute() { return <><ShopFloorPage /><Outlet /></>; }
+function ShopFloorRoute() { return <Outlet />; }
 
 function ShopFloorPage() {
   const qc = useQueryClient();
