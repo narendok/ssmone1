@@ -84,10 +84,10 @@ export const createRfq = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requirePermission(context, "procurement.edit");
     const { data: id, error } = await context.supabase.rpc("create_phase6_rfq", {
-      _purchase_request_id: data.purchaseRequestId ?? "",
-      _project_id: data.projectId ?? "",
-      _response_due_date: data.responseDueDate ?? "",
-      _terms: data.terms ?? "",
+      _purchase_request_id: data.purchaseRequestId ?? null,
+      _project_id: data.projectId ?? null,
+      _response_due_date: data.responseDueDate ?? null,
+      _terms: data.terms ?? null,
       _vendor_ids: data.vendorIds,
     });
     if (error || !id) throw new Error("Could not create the RFQ.");
@@ -101,12 +101,12 @@ export const createQuotation = createServerFn({ method: "POST" })
     await requirePermission(context, "procurement.edit");
     if (!data.vendorId || !data.items.length || data.items.some((item) => item.quantity <= 0 || item.unit_price < 0)) throw new Error("Add a vendor and at least one valid quotation line.");
     const { data: id, error } = await context.supabase.rpc("create_phase6_quotation", {
-      _rfq_id: data.rfqId ?? "",
+      _rfq_id: data.rfqId ?? null,
       _vendor_id: data.vendorId,
-      _quoted_at: data.quotedAt ?? "",
-      _valid_until: data.validUntil ?? "",
-      _lead_time_days: data.leadTimeDays ?? 0,
-      _payment_terms: data.paymentTerms ?? "",
+      _quoted_at: data.quotedAt ?? null,
+      _valid_until: data.validUntil ?? null,
+      _lead_time_days: data.leadTimeDays ?? null,
+      _payment_terms: data.paymentTerms ?? null,
       _items: data.items,
     });
     if (error || !id) throw new Error("Could not record the supplier quotation.");
