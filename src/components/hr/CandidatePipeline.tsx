@@ -77,7 +77,7 @@ export function CandidatePipeline({ applications }: { applications: HrApplicatio
             <TableBody>
               {applications.map((application) => {
                 const candidate = application.candidate;
-                const canOpenResume = Boolean(candidate?.resume_storage_path);
+                const canOpenResume = Boolean(candidate && candidate.resume_storage_path);
                 return (
                   <TableRow key={application.id}>
                     <TableCell>
@@ -96,7 +96,7 @@ export function CandidatePipeline({ applications }: { applications: HrApplicatio
                     </TableCell>
                     <TableCell><Badge variant={application.status === "active" ? "secondary" : "outline"}>{displayLabel(application.status)}</Badge></TableCell>
                     <TableCell className="text-right">
-                      {canOpenResume ? (
+                      {canOpenResume && candidate ? (
                         <Button variant="outline" size="sm" onClick={() => void openResume(candidate.id)} disabled={openingResumeId === candidate.id}>
                           {openingResumeId === candidate.id ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
                           <span className="sr-only">Open resume for {candidate.full_name}</span>
