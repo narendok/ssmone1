@@ -11,6 +11,8 @@ import { FirmwareVault } from "@/components/drive/FirmwareVault";
 import { CadVault } from "@/components/drive/CadVault";
 import { ProjectBomsTab } from "@/components/projects/ProjectBomsTab";
 import { TaskBoard } from "@/components/tasks/TaskBoard";
+import { ProjectTeamTab } from "@/components/projects/ProjectTeamTab";
+import { ProjectOperationalTab } from "@/components/projects/ProjectOperationalTabs";
 import type { Project } from "@/lib/projects";
 
 const sb = supabase as any;
@@ -78,9 +80,13 @@ function ProjectDetailPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="files">
-        <TabsList>
+      <Tabs defaultValue="overview">
+        <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
+          <TabsTrigger value="inputs">Inputs</TabsTrigger>
+          <TabsTrigger value="delivery">Delivery</TabsTrigger>
+          <TabsTrigger value="engineering">Engineering</TabsTrigger>
           <TabsTrigger value="bom">BOM</TabsTrigger>
           <TabsTrigger value="files">Files</TabsTrigger>
           <TabsTrigger value="firmware">Firmware</TabsTrigger>
@@ -89,10 +95,15 @@ function ProjectDetailPage() {
         </TabsList>
 
         <TabsContent value="overview" className="pt-4">
-          <Card className="p-4 space-y-2 text-sm">
+          <div className="grid gap-3 lg:grid-cols-3">
+          <Card className="p-4 space-y-2 text-sm lg:col-span-2">
             <Row label="Code" value={project.code} />
-            <Row label="Status" value={project.status} />
+            <Row label="Project type" value={project.project_type.replaceAll("_", " ")} />
+            <Row label="Project stage" value={project.project_stage.replaceAll("_", " ")} />
+            <Row label="Health" value={project.health_status} />
+            <Row label="Priority" value={project.priority} />
             <Row label="Revision" value={project.revision ?? "—"} />
+            <Row label="Target SOP" value={project.target_sop_date ?? "—"} />
             <Row label="Tagged components" value={String(componentCount)} />
             <div className="flex gap-2">
               <span className="w-40 text-muted-foreground">Design link</span>
@@ -110,7 +121,14 @@ function ProjectDetailPage() {
               )}
             </div>
           </Card>
+          <Card className="p-4 space-y-3"><div><p className="text-sm font-medium">Delivery snapshot</p><p className="text-sm text-muted-foreground">Use the Delivery and Engineering tabs to control gates, issues, changes and release records.</p></div><div className="flex flex-wrap gap-2"><Badge variant="outline">{project.status}</Badge><Badge variant="secondary">{project.health_status}</Badge></div></Card>
+          </div>
         </TabsContent>
+
+        <TabsContent value="team" className="pt-4"><ProjectTeamTab projectId={projectId} /></TabsContent>
+        <TabsContent value="inputs" className="pt-4 space-y-8"><ProjectOperationalTab projectId={projectId} kind="design" /><ProjectOperationalTab projectId={projectId} kind="research" /></TabsContent>
+        <TabsContent value="delivery" className="pt-4 space-y-8"><ProjectOperationalTab projectId={projectId} kind="gates" /><ProjectOperationalTab projectId={projectId} kind="issues" /><ProjectOperationalTab projectId={projectId} kind="changes" /></TabsContent>
+        <TabsContent value="engineering" className="pt-4"><ProjectOperationalTab projectId={projectId} kind="registers" /></TabsContent>
 
         <TabsContent value="bom" className="pt-4">
           <ProjectBomsTab projectId={projectId} />

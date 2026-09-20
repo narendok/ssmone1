@@ -8,6 +8,22 @@ export interface Project {
   status: "active" | "archived";
   revision: string | null;
   design_link: string | null;
+  project_type: string;
+  customer_id: string | null;
+  opportunity_id: string | null;
+  requirement_baseline_id: string | null;
+  project_manager_employee_id: string | null;
+  engineering_lead_employee_id: string | null;
+  project_stage: string;
+  health_status: string;
+  priority: string;
+  planned_start_date: string | null;
+  target_sop_date: string | null;
+  prototype_quantity: number | null;
+  annual_volume: number | null;
+  project_drive_node_id: string | null;
+  completion_notes: string | null;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 }

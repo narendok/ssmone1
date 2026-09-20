@@ -115,6 +115,12 @@ function ProjectDialog({ open, onClose, editing, onSaved }: {
   const [status, setStatus] = useState<"active" | "archived">("active");
   const [revision, setRevision] = useState("");
   const [designLink, setDesignLink] = useState("");
+  const [projectType, setProjectType] = useState("CUSTOM_PROJECT");
+  const [projectStage, setProjectStage] = useState("INITIATION");
+  const [healthStatus, setHealthStatus] = useState("GREEN");
+  const [priority, setPriority] = useState("MEDIUM");
+  const [plannedStartDate, setPlannedStartDate] = useState("");
+  const [targetSopDate, setTargetSopDate] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -126,8 +132,14 @@ function ProjectDialog({ open, onClose, editing, onSaved }: {
       setStatus(editing.status);
       setRevision(editing.revision ?? "");
       setDesignLink(editing.design_link ?? "");
+      setProjectType(editing.project_type);
+      setProjectStage(editing.project_stage);
+      setHealthStatus(editing.health_status);
+      setPriority(editing.priority);
+      setPlannedStartDate(editing.planned_start_date ?? "");
+      setTargetSopDate(editing.target_sop_date ?? "");
     } else {
-      setName(""); setCode(""); setColor("#3b82f6"); setStatus("active"); setRevision(""); setDesignLink("");
+      setName(""); setCode(""); setColor("#3b82f6"); setStatus("active"); setRevision(""); setDesignLink(""); setProjectType("CUSTOM_PROJECT"); setProjectStage("INITIATION"); setHealthStatus("GREEN"); setPriority("MEDIUM"); setPlannedStartDate(""); setTargetSopDate("");
     }
   }, [open, editing]);
 
@@ -141,6 +153,12 @@ function ProjectDialog({ open, onClose, editing, onSaved }: {
       status,
       revision: revision.trim() || null,
       design_link: designLink.trim() || null,
+      project_type: projectType,
+      project_stage: projectStage,
+      health_status: healthStatus,
+      priority,
+      planned_start_date: plannedStartDate || null,
+      target_sop_date: targetSopDate || null,
     };
     const { error } = editing
       ? await sb.from("projects").update(payload).eq("id", editing.id)
@@ -182,6 +200,13 @@ function ProjectDialog({ open, onClose, editing, onSaved }: {
             </div>
           </div>
           <div><Label>Design link URL</Label><Input value={designLink} onChange={(e) => setDesignLink(e.target.value)} placeholder="https://…" /></div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><Label>Project type</Label><Select value={projectType} onValueChange={setProjectType}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["CUSTOM_PROJECT", "CUSTOMER_PRODUCT_DEVELOPMENT", "INTERNAL_RND", "CUSTOMER_CHANGE_PROJECT", "COST_REDUCTION", "COMPONENT_CHANGE", "FIRMWARE_ONLY", "SOFTWARE_ONLY", "MECHANICAL_ONLY", "VALIDATION_ONLY"].map((value) => <SelectItem key={value} value={value}>{value.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Project stage</Label><Select value={projectStage} onValueChange={setProjectStage}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["INITIATION", "PLANNING", "DEVELOPMENT", "VALIDATION", "RELEASE", "CLOSED"].map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Health</Label><Select value={healthStatus} onValueChange={setHealthStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["GREEN", "AMBER", "RED"].map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Priority</Label><Select value={priority} onValueChange={setPriority}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["LOW", "MEDIUM", "HIGH", "CRITICAL"].map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></div>
+          </div>
+          <div className="grid grid-cols-2 gap-3"><div><Label>Planned start</Label><Input type="date" value={plannedStartDate} onChange={(e) => setPlannedStartDate(e.target.value)} /></div><div><Label>Target SOP</Label><Input type="date" value={targetSopDate} onChange={(e) => setTargetSopDate(e.target.value)} /></div></div>
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
