@@ -58,6 +58,21 @@ const publicApplicationStatusSchema = z.object({
   statusToken: z.string().uuid(),
 });
 
+const applicationPipelineSchema = z.object({
+  applicationId: z.string().uuid(),
+  stage: z.enum(["applied", "screening", "assessment", "interview", "offer", "hired", "rejected", "withdrawn"]),
+  status: z.enum(["active", "on_hold", "hired", "rejected", "withdrawn"]),
+}).superRefine((value, context) => {
+  if (["hired", "rejected", "withdrawn"].includes(value.stage) && value.status !== value.stage) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "Terminal stages must use the matching status." });
+  }
+  if (!["hired", "rejected", "withdrawn"].includes(value.stage) && ["hired", "rejected", "withdrawn"].includes(value.status)) {
+    context.addIssue({ code: z.ZodIssueCode.custom, message: "A terminal status requires the matching stage." });
+  }
+});
+
+const candidateResumeSchema = z.object({ candidateId: z.string().uuid() });
+
 async function getEmployeeId(sb: any, userId: string) {
   const { data, error } = await sb.from("employees").select("id").eq("user_id", userId).maybeSingle();
   if (error) throw new Error(error.message);
@@ -238,4 +253,51 @@ export const getPublicApplicationStatus = createServerFn({ method: "GET" })
           submittedAt: application.submitted_at,
         }
       : null;
+  });
+
+export const updateApplicationPipeline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => applicationPipelineSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    await requirePermission(sb, context.userId, "recruitment.manage");
+    const { data: application, error } = await sb
+      .from("hr_applications")
+      .update({ stage: data.stage, status: data.status })
+      .eq("id", data.applicationId)
+      .select("id,candidate:hr_candidates(full_name)")
+      .single();
+    if (error || !application) throw new Error(error?.message ?? "Could not update the candidate stage.");
+
+    await sb.from("activity_log").insert({
+      actor_user_id: context.userId,
+      module_key: "hr",
+      entity_type: "job_application",
+      entity_id: application.id,
+      action: "pipeline_updated",
+      summary: `Moved ${(application.candidate as any)?.full_name ?? "candidate"} to ${data.stage}`,
+      after_data: { stage: data.stage, status: data.status },
+    });
+    return { id: application.id };
+  });
+
+export const getCandidateResumeUrl = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => candidateResumeSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase as any;
+    await requirePermission(sb, context.userId, "recruitment.manage");
+    const { data: candidate, error } = await sb
+      .from("hr_candidates")
+      .select("resume_storage_path")
+      .eq("id", data.candidateId)
+      .maybeSingle();
+    if (error || !candidate?.resume_storage_path) throw new Error("No resume is available for this candidate.");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error: signedError } = await supabaseAdmin.storage
+      .from("project-drive")
+      .createSignedUrl(candidate.resume_storage_path, 60);
+    if (signedError || !signed?.signedUrl) throw new Error("Could not prepare the resume for viewing.");
+    return { url: signed.signedUrl };
   });

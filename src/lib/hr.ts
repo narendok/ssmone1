@@ -59,6 +59,26 @@ export interface HrTrainingEnrollment {
   program?: { id: string; title: string; delivery_mode: string; is_mandatory: boolean } | null;
 }
 
+export interface HrCandidate {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  current_location: string | null;
+  resume_filename: string | null;
+  resume_storage_path: string | null;
+}
+
+export interface HrApplication {
+  id: string;
+  stage: string;
+  status: string;
+  submitted_at: string;
+  cover_letter: string | null;
+  candidate: HrCandidate | null;
+  posting: Pick<HrJobPosting, "id" | "title" | "slug"> | null;
+}
+
 const POSTING_SELECT = "id,slug,title,summary,description,location,employment_type,work_mode,is_published,published_at,created_at,department:departments(id,name,code)";
 
 export async function fetchPublishedJobs(): Promise<HrJobPosting[]> {
@@ -82,8 +102,8 @@ export async function fetchPublishedJobBySlug(slug: string): Promise<HrJobPostin
   return (data ?? null) as HrJobPosting | null;
 }
 
-export async function fetchRecruitmentSnapshot(): Promise<{ requisitions: HrJobRequisition[]; postings: HrJobPosting[] }> {
-  const [reqs, posts] = await Promise.all([
+export async function fetchRecruitmentSnapshot(): Promise<{ requisitions: HrJobRequisition[]; postings: HrJobPosting[]; applications: HrApplication[] }> {
+  const [reqs, posts, applications] = await Promise.all([
     sb
       .from("hr_job_requisitions")
       .select("id,title,employment_type,work_mode,location,headcount,status,target_start_date,created_at,department:departments(id,name,code)")
@@ -92,12 +112,18 @@ export async function fetchRecruitmentSnapshot(): Promise<{ requisitions: HrJobR
       .from("hr_job_postings")
       .select(POSTING_SELECT)
       .order("created_at", { ascending: false }),
+    sb
+      .from("hr_applications")
+      .select("id,stage,status,submitted_at,cover_letter,candidate:hr_candidates(id,full_name,email,phone,current_location,resume_filename,resume_storage_path),posting:hr_job_postings(id,title,slug)")
+      .order("submitted_at", { ascending: false }),
   ]);
   if (reqs.error) throw reqs.error;
   if (posts.error) throw posts.error;
+  if (applications.error) throw applications.error;
   return {
     requisitions: (reqs.data ?? []) as HrJobRequisition[],
     postings: (posts.data ?? []) as HrJobPosting[],
+    applications: (applications.data ?? []) as HrApplication[],
   };
 }
 
