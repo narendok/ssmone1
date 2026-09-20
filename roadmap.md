@@ -47,3 +47,9 @@
 ## Phase 6 — Procurement, stores, quality & finance
 
 - [x] Complete the Phase 6 operational workflows, role-gated screens, automation safeguards, and acceptance validation. Atomic GRN-to-incoming-quality lot holds, purchase-request review, delivery-revision decisions, supplier-return controls, payment approvals, RFQ/quotation capture, server-controlled workflow decisions, and signed-in System Admin acceptance are complete. Do not begin Phase 7 without an explicit instruction.
+
+## Phase 7 — Production & manufacturing execution
+
+- [x] Establish the controlled production foundation: role-gated Production workspace, configurable routes, BOM-snapshotted work orders, material readiness, lot-linked kitting records, and unique unit serialization.
+- [x] Add server-controlled work-order creation and lifecycle transitions, including material-readiness blocking before release and approval-gated release/completion.
+- [ ] Add shop-floor execution, in-process quality, testing, NCR/rework/scrap, finished-goods release, PPAP, and dispatch controls without duplicating shared systems.

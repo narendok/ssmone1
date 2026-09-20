@@ -20,6 +20,7 @@ import { Route as FileTokenRouteImport } from './routes/file.$token'
 import { Route as CareersSlugRouteImport } from './routes/careers.$slug'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
 import { Route as AuthenticatedRdTeamRouteImport } from './routes/_authenticated/rd-team'
+import { Route as AuthenticatedProductionRouteImport } from './routes/_authenticated/production'
 import { Route as AuthenticatedPcbRouteImport } from './routes/_authenticated/pcb'
 import { Route as AuthenticatedLocationsRouteImport } from './routes/_authenticated/locations'
 import { Route as AuthenticatedHrRouteImport } from './routes/_authenticated/hr'
@@ -110,6 +111,11 @@ const AuthenticatedSalesRoute = AuthenticatedSalesRouteImport.update({
 const AuthenticatedRdTeamRoute = AuthenticatedRdTeamRouteImport.update({
   id: '/rd-team',
   path: '/rd-team',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedProductionRoute = AuthenticatedProductionRouteImport.update({
+  id: '/production',
+  path: '/production',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPcbRoute = AuthenticatedPcbRouteImport.update({
@@ -336,6 +342,7 @@ export interface FileRoutesByFullPath {
   '/hr': typeof AuthenticatedHrRouteWithChildren
   '/locations': typeof AuthenticatedLocationsRoute
   '/pcb': typeof AuthenticatedPcbRoute
+  '/production': typeof AuthenticatedProductionRoute
   '/rd-team': typeof AuthenticatedRdTeamRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
@@ -384,6 +391,7 @@ export interface FileRoutesByTo {
   '/hr': typeof AuthenticatedHrRouteWithChildren
   '/locations': typeof AuthenticatedLocationsRoute
   '/pcb': typeof AuthenticatedPcbRoute
+  '/production': typeof AuthenticatedProductionRoute
   '/rd-team': typeof AuthenticatedRdTeamRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
@@ -435,6 +443,7 @@ export interface FileRoutesById {
   '/_authenticated/hr': typeof AuthenticatedHrRouteWithChildren
   '/_authenticated/locations': typeof AuthenticatedLocationsRoute
   '/_authenticated/pcb': typeof AuthenticatedPcbRoute
+  '/_authenticated/production': typeof AuthenticatedProductionRoute
   '/_authenticated/rd-team': typeof AuthenticatedRdTeamRoute
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
@@ -487,6 +496,7 @@ export interface FileRouteTypes {
     | '/hr'
     | '/locations'
     | '/pcb'
+    | '/production'
     | '/rd-team'
     | '/sales'
     | '/careers/$slug'
@@ -535,6 +545,7 @@ export interface FileRouteTypes {
     | '/hr'
     | '/locations'
     | '/pcb'
+    | '/production'
     | '/rd-team'
     | '/sales'
     | '/careers/$slug'
@@ -585,6 +596,7 @@ export interface FileRouteTypes {
     | '/_authenticated/hr'
     | '/_authenticated/locations'
     | '/_authenticated/pcb'
+    | '/_authenticated/production'
     | '/_authenticated/rd-team'
     | '/_authenticated/sales'
     | '/careers/$slug'
@@ -711,6 +723,13 @@ declare module '@tanstack/react-router' {
       path: '/rd-team'
       fullPath: '/rd-team'
       preLoaderRoute: typeof AuthenticatedRdTeamRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/production': {
+      id: '/_authenticated/production'
+      path: '/production'
+      fullPath: '/production'
+      preLoaderRoute: typeof AuthenticatedProductionRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/pcb': {
@@ -1005,6 +1024,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHrRoute: typeof AuthenticatedHrRouteWithChildren
   AuthenticatedLocationsRoute: typeof AuthenticatedLocationsRoute
   AuthenticatedPcbRoute: typeof AuthenticatedPcbRoute
+  AuthenticatedProductionRoute: typeof AuthenticatedProductionRoute
   AuthenticatedRdTeamRoute: typeof AuthenticatedRdTeamRoute
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -1041,6 +1061,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHrRoute: AuthenticatedHrRouteWithChildren,
   AuthenticatedLocationsRoute: AuthenticatedLocationsRoute,
   AuthenticatedPcbRoute: AuthenticatedPcbRoute,
+  AuthenticatedProductionRoute: AuthenticatedProductionRoute,
   AuthenticatedRdTeamRoute: AuthenticatedRdTeamRoute,
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
