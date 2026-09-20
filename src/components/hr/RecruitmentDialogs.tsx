@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { createJobPosting, createJobRequisition } from "@/lib/hr.functions";
-import type { HrJobRequisition } from "@/lib/hr";
+import type { HrJobProfile, HrJobRequisition } from "@/lib/hr";
 
 const NONE = "__none";
 
@@ -28,11 +28,13 @@ export function CreateRequisitionDialog({
   open,
   onOpenChange,
   departments,
+  jobProfiles,
   onSubmitted,
 }: {
   open: boolean;
   onOpenChange: (value: boolean) => void;
   departments: DepartmentOption[];
+  jobProfiles: HrJobProfile[];
   onSubmitted: () => void;
 }) {
   const submit = useServerFn(createJobRequisition);
@@ -40,6 +42,7 @@ export function CreateRequisitionDialog({
   const [form, setForm] = useState({
     title: "",
     departmentId: NONE,
+    jobProfileId: NONE,
     employmentType: "Full-time",
     workMode: "On-site",
     location: "",
@@ -50,7 +53,7 @@ export function CreateRequisitionDialog({
 
   useEffect(() => {
     if (!open) return;
-    setForm({ title: "", departmentId: NONE, employmentType: "Full-time", workMode: "On-site", location: "", headcount: "1", justification: "", targetStartDate: "" });
+    setForm({ title: "", departmentId: NONE, jobProfileId: NONE, employmentType: "Full-time", workMode: "On-site", location: "", headcount: "1", justification: "", targetStartDate: "" });
   }, [open]);
 
   async function handleSubmit() {
@@ -61,6 +64,7 @@ export function CreateRequisitionDialog({
         data: {
           title: form.title.trim(),
           departmentId: form.departmentId === NONE ? null : form.departmentId,
+          jobProfileId: form.jobProfileId === NONE ? null : form.jobProfileId,
           employmentType: form.employmentType,
           workMode: form.workMode,
           location: form.location.trim() || null,
@@ -92,6 +96,13 @@ export function CreateRequisitionDialog({
             <Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Senior Embedded Engineer" />
           </div>
           <div className="space-y-1.5">
+             <Label>Job profile</Label>
+             <Select value={form.jobProfileId} onValueChange={(value) => setForm((current) => ({ ...current, jobProfileId: value }))}>
+               <SelectTrigger><SelectValue placeholder="Optional profile" /></SelectTrigger>
+               <SelectContent><SelectItem value={NONE}>No profile</SelectItem>{jobProfiles.map((profile) => <SelectItem key={profile.id} value={profile.id}>{profile.name}</SelectItem>)}</SelectContent>
+             </Select>
+           </div>
+           <div className="space-y-1.5">
             <Label>Department</Label>
             <Select value={form.departmentId} onValueChange={(value) => setForm((current) => ({ ...current, departmentId: value }))}>
               <SelectTrigger><SelectValue placeholder="Choose department" /></SelectTrigger>

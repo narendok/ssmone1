@@ -316,6 +316,9 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
     if (application.stage !== "hired" || application.status !== "hired") {
       throw new Error("Only a hired candidate can begin employee onboarding.");
     }
+    const { data: existingOnboarding, error: existingOnboardingError } = await sb.from("hr_employee_onboardings").select("id").eq("application_id", data.applicationId).maybeSingle();
+    if (existingOnboardingError) throw new Error(existingOnboardingError.message);
+    if (existingOnboarding) throw new Error("Onboarding has already been started for this candidate.");
 
     const candidate = application.candidate as { full_name?: string | null; email?: string | null; phone?: string | null } | null;
     const fullName = candidate?.full_name?.trim();
@@ -341,6 +344,7 @@ export const launchEmployeeOnboarding = createServerFn({ method: "POST" })
       employment_status: matchedUser ? "ACTIVE" : "INVITED",
       date_of_joining: data.startDate,
     }).select("id,employee_code").single();
+    if (employeeError?.code === "23505") throw new Error("An employee already exists with this official email.");
     if (employeeError || !employee) throw new Error(employeeError?.message ?? "Could not create the employee profile.");
 
     if (data.departmentId) {
