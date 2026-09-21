@@ -32,6 +32,7 @@ import { Route as AuthenticatedAssignmentsRouteImport } from './routes/_authenti
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks.index'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
+import { Route as AuthenticatedProductionIndexRouteImport } from './routes/_authenticated/production.index'
 import { Route as ApiPublicDatasheetProxyRouteImport } from './routes/api/public/datasheet-proxy'
 import { Route as AuthenticatedTasksDepartmentsRouteImport } from './routes/_authenticated/tasks.departments'
 import { Route as AuthenticatedStoresInventoryRouteImport } from './routes/_authenticated/stores.inventory'
@@ -178,6 +179,12 @@ const AuthenticatedProjectsIndexRoute =
     id: '/projects/',
     path: '/projects/',
     getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedProductionIndexRoute =
+  AuthenticatedProductionIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedProductionRoute,
   } as any)
 const ApiPublicDatasheetProxyRoute = ApiPublicDatasheetProxyRouteImport.update({
   id: '/api/public/datasheet-proxy',
@@ -406,6 +413,7 @@ export interface FileRoutesByFullPath {
   '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
+  '/production/': typeof AuthenticatedProductionIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
@@ -423,7 +431,6 @@ export interface FileRoutesByTo {
   '/hr': typeof AuthenticatedHrRouteWithChildren
   '/locations': typeof AuthenticatedLocationsRoute
   '/pcb': typeof AuthenticatedPcbRoute
-  '/production': typeof AuthenticatedProductionRouteWithChildren
   '/rd-team': typeof AuthenticatedRdTeamRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
@@ -460,6 +467,7 @@ export interface FileRoutesByTo {
   '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
+  '/production': typeof AuthenticatedProductionIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
@@ -516,6 +524,7 @@ export interface FileRoutesById {
   '/_authenticated/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/_authenticated/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
+  '/_authenticated/production/': typeof AuthenticatedProductionIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
@@ -572,6 +581,7 @@ export interface FileRouteTypes {
     | '/stores/inventory'
     | '/tasks/departments'
     | '/api/public/datasheet-proxy'
+    | '/production/'
     | '/projects/'
     | '/tasks/'
     | '/api/public/hooks/refresh-supplier-data'
@@ -589,7 +599,6 @@ export interface FileRouteTypes {
     | '/hr'
     | '/locations'
     | '/pcb'
-    | '/production'
     | '/rd-team'
     | '/sales'
     | '/careers/$slug'
@@ -626,6 +635,7 @@ export interface FileRouteTypes {
     | '/stores/inventory'
     | '/tasks/departments'
     | '/api/public/datasheet-proxy'
+    | '/production'
     | '/projects'
     | '/tasks'
     | '/api/public/hooks/refresh-supplier-data'
@@ -681,6 +691,7 @@ export interface FileRouteTypes {
     | '/_authenticated/stores/inventory'
     | '/_authenticated/tasks/departments'
     | '/api/public/datasheet-proxy'
+    | '/_authenticated/production/'
     | '/_authenticated/projects/'
     | '/_authenticated/tasks/'
     | '/api/public/hooks/refresh-supplier-data'
@@ -860,6 +871,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/projects/'
       preLoaderRoute: typeof AuthenticatedProjectsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/production/': {
+      id: '/_authenticated/production/'
+      path: '/'
+      fullPath: '/production/'
+      preLoaderRoute: typeof AuthenticatedProductionIndexRouteImport
+      parentRoute: typeof AuthenticatedProductionRoute
     }
     '/api/public/datasheet-proxy': {
       id: '/api/public/datasheet-proxy'
@@ -1099,6 +1117,7 @@ interface AuthenticatedProductionRouteChildren {
   AuthenticatedProductionPpapRoute: typeof AuthenticatedProductionPpapRoute
   AuthenticatedProductionReleaseRoute: typeof AuthenticatedProductionReleaseRoute
   AuthenticatedProductionShopfloorRoute: typeof AuthenticatedProductionShopfloorRoute
+  AuthenticatedProductionIndexRoute: typeof AuthenticatedProductionIndexRoute
 }
 
 const AuthenticatedProductionRouteChildren: AuthenticatedProductionRouteChildren =
@@ -1108,6 +1127,7 @@ const AuthenticatedProductionRouteChildren: AuthenticatedProductionRouteChildren
     AuthenticatedProductionReleaseRoute: AuthenticatedProductionReleaseRoute,
     AuthenticatedProductionShopfloorRoute:
       AuthenticatedProductionShopfloorRoute,
+    AuthenticatedProductionIndexRoute: AuthenticatedProductionIndexRoute,
   }
 
 const AuthenticatedProductionRouteWithChildren =
