@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BriefcaseBusiness, Building2, CircuitBoard, ClipboardList, FileSpreadsheet, FolderKanban, FolderOpen,
   GraduationCap, History, LayoutGrid, ListChecks, MapPin, PackageCheck, PlaneTakeoff, Settings2, ShoppingCart,
-   Truck, Users, Wrench, WalletCards, ShieldCheck, Boxes, FileText, Factory, ClipboardCheck, Send, type LucideIcon,
+    Truck, Users, Wrench, WalletCards, ShieldCheck, Boxes, FileText, Factory, ClipboardCheck, Send, Gauge, Armchair, type LucideIcon,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -52,6 +52,12 @@ const groups: NavGroup[] = [
     { label: "Incoming quality", to: "/quality/incoming", icon: ShieldCheck, permission: "quality.view" },
     { label: "Finance", to: "/finance/expenses", icon: WalletCards, permission: "finance.view" },
     { label: "Payment milestones", to: "/finance/payment-plans", icon: WalletCards, permission: "finance.view" },
+      { label: "Facility", to: "/facility", icon: Building2, permission: "facility.view" },
+      { label: "Assets", to: "/assets", icon: Boxes, permission: "assets.view" },
+      { label: "Maintenance", to: "/maintenance", icon: Wrench, permission: "maintenance.view" },
+      { label: "Calibration", to: "/calibration", icon: Gauge, permission: "calibration.view" },
+      { label: "Security desk", to: "/security", icon: ShieldCheck, permission: "security.view" },
+      { label: "Workplace", to: "/workplace", icon: Armchair, permission: "workplace.view" },
   ] },
   { label: "HR", items: [
     { label: "HR overview", to: "/hr", icon: Users, permission: "hr.view" },
