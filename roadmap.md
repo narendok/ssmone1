@@ -64,4 +64,4 @@
 
 
 ## Phase 10 — External collaboration extensions
-- [ ] Implement the approved external party, secure portals, controlled sharing, transmittals, upload staging, data rooms, customer/supplier/EMS/lab collaboration, and API/webhook foundation; stop before Phase 11.
+- [x] Implement the approved external party, secure portals, controlled sharing, transmittals, upload staging, data rooms, customer/supplier/EMS/lab collaboration, and API/webhook foundation; stop before Phase 11.
