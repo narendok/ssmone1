@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BriefcaseBusiness, Building2, CircuitBoard, ClipboardList, FileSpreadsheet, FolderKanban, FolderOpen,
   GraduationCap, History, LayoutGrid, ListChecks, MapPin, PackageCheck, PlaneTakeoff, Settings2, ShoppingCart,
-    Truck, Users, Wrench, WalletCards, ShieldCheck, Boxes, FileText, Factory, ClipboardCheck, Send, Gauge, Armchair, type LucideIcon,
+    Truck, Users, Wrench, WalletCards, ShieldCheck, Boxes, FileText, Factory, ClipboardCheck, Send, Gauge, Armchair, ChartNoAxesCombined, Headset, type LucideIcon,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
@@ -58,6 +58,8 @@ const groups: NavGroup[] = [
       { label: "Calibration", to: "/calibration", icon: Gauge, permission: "calibration.view" },
       { label: "Security desk", to: "/security", icon: ShieldCheck, permission: "security.view" },
       { label: "Workplace", to: "/workplace", icon: Armchair, permission: "workplace.view" },
+       { label: "QMS", to: "/qms", icon: ChartNoAxesCombined, permission: "qms.view" },
+       { label: "Customer service", to: "/customer-service", icon: Headset, permission: "customer_service.view" },
   ] },
   { label: "HR", items: [
     { label: "HR overview", to: "/hr", icon: Users, permission: "hr.view" },
