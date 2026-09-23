@@ -155,6 +155,216 @@ export type Database = {
         }
         Relationships: []
       }
+      asset_assignments: {
+        Row: {
+          accepted_at: string | null
+          asset_id: string
+          assigned_at: string
+          assigned_by: string | null
+          assigned_location_id: string | null
+          assigned_to_user_id: string | null
+          created_at: string
+          handover_notes: string | null
+          id: string
+          returned_at: string | null
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          asset_id: string
+          assigned_at?: string
+          assigned_by?: string | null
+          assigned_location_id?: string | null
+          assigned_to_user_id?: string | null
+          created_at?: string
+          handover_notes?: string | null
+          id?: string
+          returned_at?: string | null
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          asset_id?: string
+          assigned_at?: string
+          assigned_by?: string | null
+          assigned_location_id?: string | null
+          assigned_to_user_id?: string | null
+          created_at?: string
+          handover_notes?: string | null
+          id?: string
+          returned_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_assignments_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_assignments_assigned_location_id_fkey"
+            columns: ["assigned_location_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_categories: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          requires_calibration: boolean
+          requires_maintenance: boolean
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          requires_calibration?: boolean
+          requires_maintenance?: boolean
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          requires_calibration?: boolean
+          requires_maintenance?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      assets: {
+        Row: {
+          acquisition_cost: number | null
+          acquisition_date: string | null
+          amc_expiry: string | null
+          approved_at: string | null
+          approved_by: string | null
+          asset_code: string
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          custodian_user_id: string | null
+          facility_location_id: string | null
+          grn_id: string | null
+          id: string
+          manufacturer: string | null
+          model_number: string | null
+          name: string
+          purchase_order_id: string | null
+          qr_payload: string
+          serial_number: string | null
+          specifications: Json
+          status: string
+          updated_at: string
+          vendor_id: string | null
+          warranty_expiry: string | null
+        }
+        Insert: {
+          acquisition_cost?: number | null
+          acquisition_date?: string | null
+          amc_expiry?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_code: string
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          custodian_user_id?: string | null
+          facility_location_id?: string | null
+          grn_id?: string | null
+          id?: string
+          manufacturer?: string | null
+          model_number?: string | null
+          name: string
+          purchase_order_id?: string | null
+          qr_payload: string
+          serial_number?: string | null
+          specifications?: Json
+          status?: string
+          updated_at?: string
+          vendor_id?: string | null
+          warranty_expiry?: string | null
+        }
+        Update: {
+          acquisition_cost?: number | null
+          acquisition_date?: string | null
+          amc_expiry?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_code?: string
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          custodian_user_id?: string | null
+          facility_location_id?: string | null
+          grn_id?: string | null
+          id?: string
+          manufacturer?: string | null
+          model_number?: string | null
+          name?: string
+          purchase_order_id?: string | null
+          qr_payload?: string
+          serial_number?: string | null
+          specifications?: Json
+          status?: string
+          updated_at?: string
+          vendor_id?: string | null
+          warranty_expiry?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "asset_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_facility_location_id_fkey"
+            columns: ["facility_location_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_grn_id_fkey"
+            columns: ["grn_id"]
+            isOneToOne: false
+            referencedRelation: "goods_receipt_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assignment_batches: {
         Row: {
           assignee_id: string
@@ -429,6 +639,75 @@ export type Database = {
             columns: ["rule_id"]
             isOneToOne: false
             referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calibration_records: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          calibrated_on: string
+          certificate_drive_node_id: string | null
+          certificate_reference: string | null
+          created_at: string
+          created_by: string | null
+          due_date: string
+          id: string
+          instrument_id: string
+          notes: string | null
+          provider_name: string | null
+          record_code: string
+          result: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          calibrated_on: string
+          certificate_drive_node_id?: string | null
+          certificate_reference?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date: string
+          id?: string
+          instrument_id: string
+          notes?: string | null
+          provider_name?: string | null
+          record_code: string
+          result: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          calibrated_on?: string
+          certificate_drive_node_id?: string | null
+          certificate_reference?: string | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string
+          id?: string
+          instrument_id?: string
+          notes?: string | null
+          provider_name?: string | null
+          record_code?: string
+          result?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calibration_records_certificate_drive_node_id_fkey"
+            columns: ["certificate_drive_node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calibration_records_instrument_id_fkey"
+            columns: ["instrument_id"]
+            isOneToOne: false
+            referencedRelation: "imte_instruments"
             referencedColumns: ["id"]
           },
         ]
@@ -1650,6 +1929,100 @@ export type Database = {
         }
         Relationships: []
       }
+      facility_location_responsibilities: {
+        Row: {
+          active_from: string
+          active_to: string | null
+          created_at: string
+          facility_location_id: string
+          id: string
+          responsibility_type: string
+          user_id: string
+        }
+        Insert: {
+          active_from?: string
+          active_to?: string | null
+          created_at?: string
+          facility_location_id: string
+          id?: string
+          responsibility_type?: string
+          user_id: string
+        }
+        Update: {
+          active_from?: string
+          active_to?: string | null
+          created_at?: string
+          facility_location_id?: string
+          id?: string
+          responsibility_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facility_location_responsibilities_facility_location_id_fkey"
+            columns: ["facility_location_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      facility_locations: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          location_type: string
+          metadata: Json
+          name: string
+          parent_id: string | null
+          qr_payload: string
+          responsible_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location_type: string
+          metadata?: Json
+          name: string
+          parent_id?: string | null
+          qr_payload: string
+          responsible_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          location_type?: string
+          metadata?: Json
+          name?: string
+          parent_id?: string | null
+          qr_payload?: string
+          responsible_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "facility_locations_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       goods_receipt_items: {
         Row: {
           component_id: string
@@ -2858,6 +3231,62 @@ export type Database = {
           },
         ]
       }
+      imte_instruments: {
+        Row: {
+          accuracy: string | null
+          asset_id: string
+          calibration_interval_days: number
+          calibration_status: string
+          created_at: string
+          created_by: string | null
+          id: string
+          instrument_code: string
+          least_count: string | null
+          measurement_range: string | null
+          next_calibration_due: string
+          qr_payload: string
+          updated_at: string
+        }
+        Insert: {
+          accuracy?: string | null
+          asset_id: string
+          calibration_interval_days?: number
+          calibration_status?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instrument_code: string
+          least_count?: string | null
+          measurement_range?: string | null
+          next_calibration_due: string
+          qr_payload: string
+          updated_at?: string
+        }
+        Update: {
+          accuracy?: string | null
+          asset_id?: string
+          calibration_interval_days?: number
+          calibration_status?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          instrument_code?: string
+          least_count?: string | null
+          measurement_range?: string | null
+          next_calibration_due?: string
+          qr_payload?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imte_instruments_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: true
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incoming_inspections: {
         Row: {
           applicability_reason: string | null
@@ -3093,6 +3522,199 @@ export type Database = {
             columns: ["component_id"]
             isOneToOne: false
             referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_plans: {
+        Row: {
+          asset_id: string
+          checklist: Json
+          created_at: string
+          created_by: string | null
+          frequency_days: number
+          id: string
+          is_active: boolean
+          next_due_date: string
+          plan_code: string
+          strategy: string
+          updated_at: string
+        }
+        Insert: {
+          asset_id: string
+          checklist?: Json
+          created_at?: string
+          created_by?: string | null
+          frequency_days: number
+          id?: string
+          is_active?: boolean
+          next_due_date: string
+          plan_code: string
+          strategy: string
+          updated_at?: string
+        }
+        Update: {
+          asset_id?: string
+          checklist?: Json
+          created_at?: string
+          created_by?: string | null
+          frequency_days?: number
+          id?: string
+          is_active?: boolean
+          next_due_date?: string
+          plan_code?: string
+          strategy?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_plans_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_work_orders: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          asset_id: string
+          assigned_to: string | null
+          completed_at: string | null
+          completed_by: string | null
+          completion_notes: string | null
+          created_at: string
+          created_by: string | null
+          description: string
+          due_date: string | null
+          id: string
+          plan_id: string | null
+          priority: string
+          status: string
+          updated_at: string
+          work_order_code: string
+          work_type: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_id: string
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          description: string
+          due_date?: string | null
+          id?: string
+          plan_id?: string | null
+          priority?: string
+          status?: string
+          updated_at?: string
+          work_order_code: string
+          work_type: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_id?: string
+          assigned_to?: string | null
+          completed_at?: string | null
+          completed_by?: string | null
+          completion_notes?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          due_date?: string | null
+          id?: string
+          plan_id?: string | null
+          priority?: string
+          status?: string
+          updated_at?: string
+          work_order_code?: string
+          work_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_work_orders_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_work_orders_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_gate_passes: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          asset_id: string | null
+          created_at: string
+          created_by: string | null
+          destination: string | null
+          id: string
+          pass_code: string
+          pass_type: string
+          purpose: string
+          qr_payload: string
+          released_at: string | null
+          return_due_date: string | null
+          returned_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          destination?: string | null
+          id?: string
+          pass_code: string
+          pass_type: string
+          purpose: string
+          qr_payload: string
+          released_at?: string | null
+          return_due_date?: string | null
+          returned_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          asset_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          destination?: string | null
+          id?: string
+          pass_code?: string
+          pass_type?: string
+          purpose?: string
+          qr_payload?: string
+          released_at?: string | null
+          return_due_date?: string | null
+          returned_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_gate_passes_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
             referencedColumns: ["id"]
           },
         ]
@@ -6549,6 +7171,62 @@ export type Database = {
           },
         ]
       }
+      security_incidents: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          details: string | null
+          facility_location_id: string | null
+          id: string
+          incident_code: string
+          occurred_at: string
+          reported_by: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          details?: string | null
+          facility_location_id?: string | null
+          id?: string
+          incident_code: string
+          occurred_at?: string
+          reported_by?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          details?: string | null
+          facility_location_id?: string | null
+          id?: string
+          incident_code?: string
+          occurred_at?: string
+          reported_by?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_incidents_facility_location_id_fkey"
+            columns: ["facility_location_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_boms: {
         Row: {
           created_at: string
@@ -6727,6 +7405,69 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_entries: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          driver_name: string | null
+          driver_phone: string | null
+          entered_at: string
+          entry_code: string
+          exited_at: string | null
+          gate_location_id: string | null
+          id: string
+          purpose: string | null
+          status: string
+          vehicle_number: string
+          visitor_visit_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          driver_name?: string | null
+          driver_phone?: string | null
+          entered_at?: string
+          entry_code: string
+          exited_at?: string | null
+          gate_location_id?: string | null
+          id?: string
+          purpose?: string | null
+          status?: string
+          vehicle_number: string
+          visitor_visit_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          driver_name?: string | null
+          driver_phone?: string | null
+          entered_at?: string
+          entry_code?: string
+          exited_at?: string | null
+          gate_location_id?: string | null
+          id?: string
+          purpose?: string | null
+          status?: string
+          vehicle_number?: string
+          visitor_visit_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_entries_gate_location_id_fkey"
+            columns: ["gate_location_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_entries_visitor_visit_id_fkey"
+            columns: ["visitor_visit_id"]
+            isOneToOne: false
+            referencedRelation: "visitor_visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vendors: {
         Row: {
           address: string | null
@@ -6789,6 +7530,74 @@ export type Database = {
           vendor_code?: string | null
         }
         Relationships: []
+      }
+      visitor_visits: {
+        Row: {
+          checked_in_at: string | null
+          checked_out_at: string | null
+          company_name: string | null
+          created_at: string
+          created_by: string | null
+          expected_in: string | null
+          expected_out: string | null
+          facility_location_id: string | null
+          host_user_id: string | null
+          id: string
+          id_reference: string | null
+          phone: string | null
+          purpose: string
+          status: string
+          updated_at: string
+          visit_code: string
+          visitor_name: string
+        }
+        Insert: {
+          checked_in_at?: string | null
+          checked_out_at?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          expected_in?: string | null
+          expected_out?: string | null
+          facility_location_id?: string | null
+          host_user_id?: string | null
+          id?: string
+          id_reference?: string | null
+          phone?: string | null
+          purpose: string
+          status?: string
+          updated_at?: string
+          visit_code: string
+          visitor_name: string
+        }
+        Update: {
+          checked_in_at?: string | null
+          checked_out_at?: string | null
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          expected_in?: string | null
+          expected_out?: string | null
+          facility_location_id?: string | null
+          host_user_id?: string | null
+          id?: string
+          id_reference?: string | null
+          phone?: string | null
+          purpose?: string
+          status?: string
+          updated_at?: string
+          visit_code?: string
+          visitor_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visitor_visits_facility_location_id_fkey"
+            columns: ["facility_location_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       work_order_materials: {
         Row: {
@@ -6982,6 +7791,98 @@ export type Database = {
           },
         ]
       }
+      workstation_allocations: {
+        Row: {
+          allocated_at: string
+          allocated_by: string | null
+          created_at: string
+          employee_id: string | null
+          id: string
+          notes: string | null
+          released_at: string | null
+          workstation_id: string
+        }
+        Insert: {
+          allocated_at?: string
+          allocated_by?: string | null
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          notes?: string | null
+          released_at?: string | null
+          workstation_id: string
+        }
+        Update: {
+          allocated_at?: string
+          allocated_by?: string | null
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          notes?: string | null
+          released_at?: string | null
+          workstation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workstation_allocations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workstation_allocations_workstation_id_fkey"
+            columns: ["workstation_id"]
+            isOneToOne: false
+            referencedRelation: "workstations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workstations: {
+        Row: {
+          created_at: string
+          facility_location_id: string | null
+          id: string
+          name: string
+          qr_payload: string
+          status: string
+          updated_at: string
+          workstation_code: string
+          workstation_type: string
+        }
+        Insert: {
+          created_at?: string
+          facility_location_id?: string | null
+          id?: string
+          name: string
+          qr_payload: string
+          status?: string
+          updated_at?: string
+          workstation_code: string
+          workstation_type?: string
+        }
+        Update: {
+          created_at?: string
+          facility_location_id?: string | null
+          id?: string
+          name?: string
+          qr_payload?: string
+          status?: string
+          updated_at?: string
+          workstation_code?: string
+          workstation_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workstations_facility_location_id_fkey"
+            columns: ["facility_location_id"]
+            isOneToOne: false
+            referencedRelation: "facility_locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -7169,6 +8070,10 @@ export type Database = {
         }[]
       }
       phase7_can_production: { Args: { _uid: string }; Returns: boolean }
+      phase8_can: {
+        Args: { _permission: string; _user_id: string }
+        Returns: boolean
+      }
       provision_drive_for_project: {
         Args: { p_project_id: string }
         Returns: undefined
