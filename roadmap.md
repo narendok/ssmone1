@@ -58,3 +58,6 @@
 ## Phase 8 — Facility, assets, maintenance, calibration, security and workplace
 - [x] Implement approved Phase 8 scope; stop before Phase 9.
 - [x] Added Phase 8 facility, asset, maintenance, calibration, security, workplace foundations, QR identifiers, role permissions, RLS, reviewable automations, and mobile-ready operational screens.
+
+## Phase 9 — QMS, customer quality & governance
+- [ ] Implement the approved QMS, KPI, audit, CAPA, customer quality, document-control and management-review layer; stop before Phase 10.
