@@ -186,4 +186,14 @@ All are in the authenticated internal workspace and protected by the existing ex
 
 ## PHASE 10 REQUIRES CORRECTION
 
-**Exact blockers:** implement an external identity and invitation/session layer; enforce party/contact/scope/expiry/revocation server-side on portal reads and writes; wire Phase 10 shares/transmittals/rooms/reviews/uploads to actual external paths; add private staged-upload storage and review/link operations; implement webhook/API authentication, signature verification, delivery/retry and audit; add RLS/isolation tests and the required Phase 1–9 regression coverage. No Phase 11 work was started.
+**Exact blockers:**
+
+1. Implement an external identity and invitation/session layer and enforce party/contact/scope/expiry/revocation server-side on every portal read and write.
+2. Wire Phase 10 shares, transmittals, rooms, reviews and uploads to real external-facing paths; the existing Phase 4 customer portal currently fails closed and returns no shared items.
+3. Add private staged-upload storage, isolated object policies and review/link operations.
+4. Enforce frozen manifests, recipient restrictions, revision history and access-event logging.
+5. Implement API-client authentication/scope enforcement plus webhook signature verification, dispatch, retry, disable and audit behavior.
+6. Restrict privileged Phase 10 write payloads to approved fields and enforce workflow status transitions.
+7. Add cross-party RLS/isolation tests and the required Phase 1–9 end-to-end regression coverage.
+
+No Phase 11 work was started.
