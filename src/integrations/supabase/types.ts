@@ -7119,6 +7119,10 @@ export type Database = {
           submitted_at: string
         }[]
       }
+      has_any_permission: {
+        Args: { _permission_keys: string[]; _user_id: string }
+        Returns: boolean
+      }
       has_permission: {
         Args: { _permission_key: string; _user_id: string }
         Returns: boolean
