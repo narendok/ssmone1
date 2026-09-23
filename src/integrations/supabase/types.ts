@@ -2255,7 +2255,7 @@ export type Database = {
       }
       external_actions: {
         Row: {
-          action_code: string
+          action_code: string | null
           attachments: Json
           created_at: string
           created_by: string | null
@@ -2273,7 +2273,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          action_code: string
+          action_code?: string | null
           attachments?: Json
           created_at?: string
           created_by?: string | null
@@ -2291,7 +2291,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          action_code?: string
+          action_code?: string | null
           attachments?: Json
           created_at?: string
           created_by?: string | null
@@ -2382,7 +2382,7 @@ export type Database = {
       external_contacts: {
         Row: {
           active: boolean
-          contact_code: string
+          contact_code: string | null
           contact_role: string | null
           created_at: string
           created_by: string | null
@@ -2402,7 +2402,7 @@ export type Database = {
         }
         Insert: {
           active?: boolean
-          contact_code: string
+          contact_code?: string | null
           contact_role?: string | null
           created_at?: string
           created_by?: string | null
@@ -2422,7 +2422,7 @@ export type Database = {
         }
         Update: {
           active?: boolean
-          contact_code?: string
+          contact_code?: string | null
           contact_role?: string | null
           created_at?: string
           created_by?: string | null
@@ -2554,7 +2554,7 @@ export type Database = {
           id: string
           nda_required: boolean
           project_id: string | null
-          room_code: string
+          room_code: string | null
           status: string
           title: string
           updated_at: string
@@ -2569,7 +2569,7 @@ export type Database = {
           id?: string
           nda_required?: boolean
           project_id?: string | null
-          room_code: string
+          room_code?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -2584,7 +2584,7 @@ export type Database = {
           id?: string
           nda_required?: boolean
           project_id?: string | null
-          room_code?: string
+          room_code?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -2669,7 +2669,7 @@ export type Database = {
           display_name: string
           id: string
           notes: string | null
-          party_code: string
+          party_code: string | null
           party_type: string
           portal_required: boolean
           portal_title: string | null
@@ -2687,7 +2687,7 @@ export type Database = {
           display_name: string
           id?: string
           notes?: string | null
-          party_code: string
+          party_code?: string | null
           party_type: string
           portal_required?: boolean
           portal_title?: string | null
@@ -2705,7 +2705,7 @@ export type Database = {
           display_name?: string
           id?: string
           notes?: string | null
-          party_code?: string
+          party_code?: string | null
           party_type?: string
           portal_required?: boolean
           portal_title?: string | null
@@ -2869,7 +2869,7 @@ export type Database = {
           revoked_at: string | null
           revoked_by: string | null
           share_mode: string
-          snapshot_code: string
+          snapshot_code: string | null
           source_entity_id: string
           source_entity_type: string
         }
@@ -2887,7 +2887,7 @@ export type Database = {
           revoked_at?: string | null
           revoked_by?: string | null
           share_mode?: string
-          snapshot_code: string
+          snapshot_code?: string | null
           source_entity_id: string
           source_entity_type: string
         }
@@ -2905,7 +2905,7 @@ export type Database = {
           revoked_at?: string | null
           revoked_by?: string | null
           share_mode?: string
-          snapshot_code?: string
+          snapshot_code?: string | null
           source_entity_id?: string
           source_entity_type?: string
         }
@@ -2935,7 +2935,7 @@ export type Database = {
           received_at: string | null
           required_action: string
           status: string
-          transmittal_number: string
+          transmittal_number: string | null
           updated_at: string
         }
         Insert: {
@@ -2953,7 +2953,7 @@ export type Database = {
           received_at?: string | null
           required_action?: string
           status?: string
-          transmittal_number: string
+          transmittal_number?: string | null
           updated_at?: string
         }
         Update: {
@@ -2971,7 +2971,7 @@ export type Database = {
           received_at?: string | null
           required_action?: string
           status?: string
-          transmittal_number?: string
+          transmittal_number?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -3009,7 +3009,7 @@ export type Database = {
           external_contact_id: string | null
           external_party_id: string
           id: string
-          request_code: string
+          request_code: string | null
           requested_document: string
           required_metadata: Json
           source_entity_id: string | null
@@ -3027,7 +3027,7 @@ export type Database = {
           external_contact_id?: string | null
           external_party_id: string
           id?: string
-          request_code: string
+          request_code?: string | null
           requested_document: string
           required_metadata?: Json
           source_entity_id?: string | null
@@ -3045,7 +3045,7 @@ export type Database = {
           external_contact_id?: string | null
           external_party_id?: string
           id?: string
-          request_code?: string
+          request_code?: string | null
           requested_document?: string
           required_metadata?: Json
           source_entity_id?: string | null
@@ -3089,7 +3089,7 @@ export type Database = {
           status: string
           storage_path: string
           updated_at: string
-          upload_code: string
+          upload_code: string | null
         }
         Insert: {
           accepted_drive_node_id?: string | null
@@ -3109,7 +3109,7 @@ export type Database = {
           status?: string
           storage_path: string
           updated_at?: string
-          upload_code: string
+          upload_code?: string | null
         }
         Update: {
           accepted_drive_node_id?: string | null
@@ -3129,7 +3129,7 @@ export type Database = {
           status?: string
           storage_path?: string
           updated_at?: string
-          upload_code?: string
+          upload_code?: string | null
         }
         Relationships: [
           {
