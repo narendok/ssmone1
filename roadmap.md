@@ -57,3 +57,4 @@
 
 ## Phase 8 — Facility, assets, maintenance, calibration, security and workplace
 - [ ] Implement approved Phase 8 scope; stop before Phase 9.
+- [x] Added Phase 8 facility, asset, maintenance, calibration, security, workplace foundations, QR identifiers, role permissions, RLS, reviewable automations, and mobile-ready operational screens.
