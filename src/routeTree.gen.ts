@@ -38,6 +38,7 @@ import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedProductionIndexRouteImport } from './routes/_authenticated/production.index'
 import { Route as AuthenticatedMaintenanceIndexRouteImport } from './routes/_authenticated/maintenance.index'
 import { Route as AuthenticatedFacilityIndexRouteImport } from './routes/_authenticated/facility.index'
+import { Route as AuthenticatedExternalCollaborationIndexRouteImport } from './routes/_authenticated/external-collaboration.index'
 import { Route as AuthenticatedCustomerServiceIndexRouteImport } from './routes/_authenticated/customer-service.index'
 import { Route as AuthenticatedCalibrationIndexRouteImport } from './routes/_authenticated/calibration.index'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets.index'
@@ -80,6 +81,15 @@ import { Route as AuthenticatedHrOnboardingRouteImport } from './routes/_authent
 import { Route as AuthenticatedHrLeaveRouteImport } from './routes/_authenticated/hr.leave'
 import { Route as AuthenticatedFinancePaymentPlansRouteImport } from './routes/_authenticated/finance.payment-plans'
 import { Route as AuthenticatedFinanceExpensesRouteImport } from './routes/_authenticated/finance.expenses'
+import { Route as AuthenticatedExternalCollaborationUploadsRouteImport } from './routes/_authenticated/external-collaboration.uploads'
+import { Route as AuthenticatedExternalCollaborationTransmittalsRouteImport } from './routes/_authenticated/external-collaboration.transmittals'
+import { Route as AuthenticatedExternalCollaborationSharesRouteImport } from './routes/_authenticated/external-collaboration.shares'
+import { Route as AuthenticatedExternalCollaborationReviewsRouteImport } from './routes/_authenticated/external-collaboration.reviews'
+import { Route as AuthenticatedExternalCollaborationIntegrationsRouteImport } from './routes/_authenticated/external-collaboration.integrations'
+import { Route as AuthenticatedExternalCollaborationDataRoomsRouteImport } from './routes/_authenticated/external-collaboration.data-rooms'
+import { Route as AuthenticatedExternalCollaborationContactsRouteImport } from './routes/_authenticated/external-collaboration.contacts'
+import { Route as AuthenticatedExternalCollaborationActionsRouteImport } from './routes/_authenticated/external-collaboration.actions'
+import { Route as AuthenticatedExternalCollaborationAccessRouteImport } from './routes/_authenticated/external-collaboration.access'
 import { Route as AuthenticatedCustomerServiceWarrantyRouteImport } from './routes/_authenticated/customer-service.warranty'
 import { Route as AuthenticatedCustomerServiceSatisfactionRouteImport } from './routes/_authenticated/customer-service.satisfaction'
 import { Route as AuthenticatedCustomerServiceReturnsRouteImport } from './routes/_authenticated/customer-service.returns'
@@ -237,6 +247,12 @@ const AuthenticatedFacilityIndexRoute =
   AuthenticatedFacilityIndexRouteImport.update({
     id: '/facility/',
     path: '/facility/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedExternalCollaborationIndexRoute =
+  AuthenticatedExternalCollaborationIndexRouteImport.update({
+    id: '/external-collaboration/',
+    path: '/external-collaboration/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCustomerServiceIndexRoute =
@@ -482,6 +498,60 @@ const AuthenticatedFinanceExpensesRoute =
     path: '/finance/expenses',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedExternalCollaborationUploadsRoute =
+  AuthenticatedExternalCollaborationUploadsRouteImport.update({
+    id: '/external-collaboration/uploads',
+    path: '/external-collaboration/uploads',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedExternalCollaborationTransmittalsRoute =
+  AuthenticatedExternalCollaborationTransmittalsRouteImport.update({
+    id: '/external-collaboration/transmittals',
+    path: '/external-collaboration/transmittals',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedExternalCollaborationSharesRoute =
+  AuthenticatedExternalCollaborationSharesRouteImport.update({
+    id: '/external-collaboration/shares',
+    path: '/external-collaboration/shares',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedExternalCollaborationReviewsRoute =
+  AuthenticatedExternalCollaborationReviewsRouteImport.update({
+    id: '/external-collaboration/reviews',
+    path: '/external-collaboration/reviews',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedExternalCollaborationIntegrationsRoute =
+  AuthenticatedExternalCollaborationIntegrationsRouteImport.update({
+    id: '/external-collaboration/integrations',
+    path: '/external-collaboration/integrations',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedExternalCollaborationDataRoomsRoute =
+  AuthenticatedExternalCollaborationDataRoomsRouteImport.update({
+    id: '/external-collaboration/data-rooms',
+    path: '/external-collaboration/data-rooms',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedExternalCollaborationContactsRoute =
+  AuthenticatedExternalCollaborationContactsRouteImport.update({
+    id: '/external-collaboration/contacts',
+    path: '/external-collaboration/contacts',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedExternalCollaborationActionsRoute =
+  AuthenticatedExternalCollaborationActionsRouteImport.update({
+    id: '/external-collaboration/actions',
+    path: '/external-collaboration/actions',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedExternalCollaborationAccessRoute =
+  AuthenticatedExternalCollaborationAccessRouteImport.update({
+    id: '/external-collaboration/access',
+    path: '/external-collaboration/access',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCustomerServiceWarrantyRoute =
   AuthenticatedCustomerServiceWarrantyRouteImport.update({
     id: '/customer-service/warranty',
@@ -552,6 +622,15 @@ export interface FileRoutesByFullPath {
   '/customer-service/returns': typeof AuthenticatedCustomerServiceReturnsRoute
   '/customer-service/satisfaction': typeof AuthenticatedCustomerServiceSatisfactionRoute
   '/customer-service/warranty': typeof AuthenticatedCustomerServiceWarrantyRoute
+  '/external-collaboration/access': typeof AuthenticatedExternalCollaborationAccessRoute
+  '/external-collaboration/actions': typeof AuthenticatedExternalCollaborationActionsRoute
+  '/external-collaboration/contacts': typeof AuthenticatedExternalCollaborationContactsRoute
+  '/external-collaboration/data-rooms': typeof AuthenticatedExternalCollaborationDataRoomsRoute
+  '/external-collaboration/integrations': typeof AuthenticatedExternalCollaborationIntegrationsRoute
+  '/external-collaboration/reviews': typeof AuthenticatedExternalCollaborationReviewsRoute
+  '/external-collaboration/shares': typeof AuthenticatedExternalCollaborationSharesRoute
+  '/external-collaboration/transmittals': typeof AuthenticatedExternalCollaborationTransmittalsRoute
+  '/external-collaboration/uploads': typeof AuthenticatedExternalCollaborationUploadsRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/finance/payment-plans': typeof AuthenticatedFinancePaymentPlansRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
@@ -594,6 +673,7 @@ export interface FileRoutesByFullPath {
   '/assets/': typeof AuthenticatedAssetsIndexRoute
   '/calibration/': typeof AuthenticatedCalibrationIndexRoute
   '/customer-service/': typeof AuthenticatedCustomerServiceIndexRoute
+  '/external-collaboration/': typeof AuthenticatedExternalCollaborationIndexRoute
   '/facility/': typeof AuthenticatedFacilityIndexRoute
   '/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
   '/production/': typeof AuthenticatedProductionIndexRoute
@@ -630,6 +710,15 @@ export interface FileRoutesByTo {
   '/customer-service/returns': typeof AuthenticatedCustomerServiceReturnsRoute
   '/customer-service/satisfaction': typeof AuthenticatedCustomerServiceSatisfactionRoute
   '/customer-service/warranty': typeof AuthenticatedCustomerServiceWarrantyRoute
+  '/external-collaboration/access': typeof AuthenticatedExternalCollaborationAccessRoute
+  '/external-collaboration/actions': typeof AuthenticatedExternalCollaborationActionsRoute
+  '/external-collaboration/contacts': typeof AuthenticatedExternalCollaborationContactsRoute
+  '/external-collaboration/data-rooms': typeof AuthenticatedExternalCollaborationDataRoomsRoute
+  '/external-collaboration/integrations': typeof AuthenticatedExternalCollaborationIntegrationsRoute
+  '/external-collaboration/reviews': typeof AuthenticatedExternalCollaborationReviewsRoute
+  '/external-collaboration/shares': typeof AuthenticatedExternalCollaborationSharesRoute
+  '/external-collaboration/transmittals': typeof AuthenticatedExternalCollaborationTransmittalsRoute
+  '/external-collaboration/uploads': typeof AuthenticatedExternalCollaborationUploadsRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/finance/payment-plans': typeof AuthenticatedFinancePaymentPlansRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
@@ -672,6 +761,7 @@ export interface FileRoutesByTo {
   '/assets': typeof AuthenticatedAssetsIndexRoute
   '/calibration': typeof AuthenticatedCalibrationIndexRoute
   '/customer-service': typeof AuthenticatedCustomerServiceIndexRoute
+  '/external-collaboration': typeof AuthenticatedExternalCollaborationIndexRoute
   '/facility': typeof AuthenticatedFacilityIndexRoute
   '/maintenance': typeof AuthenticatedMaintenanceIndexRoute
   '/production': typeof AuthenticatedProductionIndexRoute
@@ -711,6 +801,15 @@ export interface FileRoutesById {
   '/_authenticated/customer-service/returns': typeof AuthenticatedCustomerServiceReturnsRoute
   '/_authenticated/customer-service/satisfaction': typeof AuthenticatedCustomerServiceSatisfactionRoute
   '/_authenticated/customer-service/warranty': typeof AuthenticatedCustomerServiceWarrantyRoute
+  '/_authenticated/external-collaboration/access': typeof AuthenticatedExternalCollaborationAccessRoute
+  '/_authenticated/external-collaboration/actions': typeof AuthenticatedExternalCollaborationActionsRoute
+  '/_authenticated/external-collaboration/contacts': typeof AuthenticatedExternalCollaborationContactsRoute
+  '/_authenticated/external-collaboration/data-rooms': typeof AuthenticatedExternalCollaborationDataRoomsRoute
+  '/_authenticated/external-collaboration/integrations': typeof AuthenticatedExternalCollaborationIntegrationsRoute
+  '/_authenticated/external-collaboration/reviews': typeof AuthenticatedExternalCollaborationReviewsRoute
+  '/_authenticated/external-collaboration/shares': typeof AuthenticatedExternalCollaborationSharesRoute
+  '/_authenticated/external-collaboration/transmittals': typeof AuthenticatedExternalCollaborationTransmittalsRoute
+  '/_authenticated/external-collaboration/uploads': typeof AuthenticatedExternalCollaborationUploadsRoute
   '/_authenticated/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/_authenticated/finance/payment-plans': typeof AuthenticatedFinancePaymentPlansRoute
   '/_authenticated/hr/leave': typeof AuthenticatedHrLeaveRoute
@@ -753,6 +852,7 @@ export interface FileRoutesById {
   '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
   '/_authenticated/calibration/': typeof AuthenticatedCalibrationIndexRoute
   '/_authenticated/customer-service/': typeof AuthenticatedCustomerServiceIndexRoute
+  '/_authenticated/external-collaboration/': typeof AuthenticatedExternalCollaborationIndexRoute
   '/_authenticated/facility/': typeof AuthenticatedFacilityIndexRoute
   '/_authenticated/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
   '/_authenticated/production/': typeof AuthenticatedProductionIndexRoute
@@ -792,6 +892,15 @@ export interface FileRouteTypes {
     | '/customer-service/returns'
     | '/customer-service/satisfaction'
     | '/customer-service/warranty'
+    | '/external-collaboration/access'
+    | '/external-collaboration/actions'
+    | '/external-collaboration/contacts'
+    | '/external-collaboration/data-rooms'
+    | '/external-collaboration/integrations'
+    | '/external-collaboration/reviews'
+    | '/external-collaboration/shares'
+    | '/external-collaboration/transmittals'
+    | '/external-collaboration/uploads'
     | '/finance/expenses'
     | '/finance/payment-plans'
     | '/hr/leave'
@@ -834,6 +943,7 @@ export interface FileRouteTypes {
     | '/assets/'
     | '/calibration/'
     | '/customer-service/'
+    | '/external-collaboration/'
     | '/facility/'
     | '/maintenance/'
     | '/production/'
@@ -870,6 +980,15 @@ export interface FileRouteTypes {
     | '/customer-service/returns'
     | '/customer-service/satisfaction'
     | '/customer-service/warranty'
+    | '/external-collaboration/access'
+    | '/external-collaboration/actions'
+    | '/external-collaboration/contacts'
+    | '/external-collaboration/data-rooms'
+    | '/external-collaboration/integrations'
+    | '/external-collaboration/reviews'
+    | '/external-collaboration/shares'
+    | '/external-collaboration/transmittals'
+    | '/external-collaboration/uploads'
     | '/finance/expenses'
     | '/finance/payment-plans'
     | '/hr/leave'
@@ -912,6 +1031,7 @@ export interface FileRouteTypes {
     | '/assets'
     | '/calibration'
     | '/customer-service'
+    | '/external-collaboration'
     | '/facility'
     | '/maintenance'
     | '/production'
@@ -950,6 +1070,15 @@ export interface FileRouteTypes {
     | '/_authenticated/customer-service/returns'
     | '/_authenticated/customer-service/satisfaction'
     | '/_authenticated/customer-service/warranty'
+    | '/_authenticated/external-collaboration/access'
+    | '/_authenticated/external-collaboration/actions'
+    | '/_authenticated/external-collaboration/contacts'
+    | '/_authenticated/external-collaboration/data-rooms'
+    | '/_authenticated/external-collaboration/integrations'
+    | '/_authenticated/external-collaboration/reviews'
+    | '/_authenticated/external-collaboration/shares'
+    | '/_authenticated/external-collaboration/transmittals'
+    | '/_authenticated/external-collaboration/uploads'
     | '/_authenticated/finance/expenses'
     | '/_authenticated/finance/payment-plans'
     | '/_authenticated/hr/leave'
@@ -992,6 +1121,7 @@ export interface FileRouteTypes {
     | '/_authenticated/assets/'
     | '/_authenticated/calibration/'
     | '/_authenticated/customer-service/'
+    | '/_authenticated/external-collaboration/'
     | '/_authenticated/facility/'
     | '/_authenticated/maintenance/'
     | '/_authenticated/production/'
@@ -1218,6 +1348,13 @@ declare module '@tanstack/react-router' {
       path: '/facility'
       fullPath: '/facility/'
       preLoaderRoute: typeof AuthenticatedFacilityIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/external-collaboration/': {
+      id: '/_authenticated/external-collaboration/'
+      path: '/external-collaboration'
+      fullPath: '/external-collaboration/'
+      preLoaderRoute: typeof AuthenticatedExternalCollaborationIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/customer-service/': {
@@ -1514,6 +1651,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinanceExpensesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/external-collaboration/uploads': {
+      id: '/_authenticated/external-collaboration/uploads'
+      path: '/external-collaboration/uploads'
+      fullPath: '/external-collaboration/uploads'
+      preLoaderRoute: typeof AuthenticatedExternalCollaborationUploadsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/external-collaboration/transmittals': {
+      id: '/_authenticated/external-collaboration/transmittals'
+      path: '/external-collaboration/transmittals'
+      fullPath: '/external-collaboration/transmittals'
+      preLoaderRoute: typeof AuthenticatedExternalCollaborationTransmittalsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/external-collaboration/shares': {
+      id: '/_authenticated/external-collaboration/shares'
+      path: '/external-collaboration/shares'
+      fullPath: '/external-collaboration/shares'
+      preLoaderRoute: typeof AuthenticatedExternalCollaborationSharesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/external-collaboration/reviews': {
+      id: '/_authenticated/external-collaboration/reviews'
+      path: '/external-collaboration/reviews'
+      fullPath: '/external-collaboration/reviews'
+      preLoaderRoute: typeof AuthenticatedExternalCollaborationReviewsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/external-collaboration/integrations': {
+      id: '/_authenticated/external-collaboration/integrations'
+      path: '/external-collaboration/integrations'
+      fullPath: '/external-collaboration/integrations'
+      preLoaderRoute: typeof AuthenticatedExternalCollaborationIntegrationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/external-collaboration/data-rooms': {
+      id: '/_authenticated/external-collaboration/data-rooms'
+      path: '/external-collaboration/data-rooms'
+      fullPath: '/external-collaboration/data-rooms'
+      preLoaderRoute: typeof AuthenticatedExternalCollaborationDataRoomsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/external-collaboration/contacts': {
+      id: '/_authenticated/external-collaboration/contacts'
+      path: '/external-collaboration/contacts'
+      fullPath: '/external-collaboration/contacts'
+      preLoaderRoute: typeof AuthenticatedExternalCollaborationContactsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/external-collaboration/actions': {
+      id: '/_authenticated/external-collaboration/actions'
+      path: '/external-collaboration/actions'
+      fullPath: '/external-collaboration/actions'
+      preLoaderRoute: typeof AuthenticatedExternalCollaborationActionsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/external-collaboration/access': {
+      id: '/_authenticated/external-collaboration/access'
+      path: '/external-collaboration/access'
+      fullPath: '/external-collaboration/access'
+      preLoaderRoute: typeof AuthenticatedExternalCollaborationAccessRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/customer-service/warranty': {
       id: '/_authenticated/customer-service/warranty'
       path: '/customer-service/warranty'
@@ -1629,6 +1829,15 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCustomerServiceReturnsRoute: typeof AuthenticatedCustomerServiceReturnsRoute
   AuthenticatedCustomerServiceSatisfactionRoute: typeof AuthenticatedCustomerServiceSatisfactionRoute
   AuthenticatedCustomerServiceWarrantyRoute: typeof AuthenticatedCustomerServiceWarrantyRoute
+  AuthenticatedExternalCollaborationAccessRoute: typeof AuthenticatedExternalCollaborationAccessRoute
+  AuthenticatedExternalCollaborationActionsRoute: typeof AuthenticatedExternalCollaborationActionsRoute
+  AuthenticatedExternalCollaborationContactsRoute: typeof AuthenticatedExternalCollaborationContactsRoute
+  AuthenticatedExternalCollaborationDataRoomsRoute: typeof AuthenticatedExternalCollaborationDataRoomsRoute
+  AuthenticatedExternalCollaborationIntegrationsRoute: typeof AuthenticatedExternalCollaborationIntegrationsRoute
+  AuthenticatedExternalCollaborationReviewsRoute: typeof AuthenticatedExternalCollaborationReviewsRoute
+  AuthenticatedExternalCollaborationSharesRoute: typeof AuthenticatedExternalCollaborationSharesRoute
+  AuthenticatedExternalCollaborationTransmittalsRoute: typeof AuthenticatedExternalCollaborationTransmittalsRoute
+  AuthenticatedExternalCollaborationUploadsRoute: typeof AuthenticatedExternalCollaborationUploadsRoute
   AuthenticatedFinanceExpensesRoute: typeof AuthenticatedFinanceExpensesRoute
   AuthenticatedFinancePaymentPlansRoute: typeof AuthenticatedFinancePaymentPlansRoute
   AuthenticatedProcurementDeliveryRevisionsRoute: typeof AuthenticatedProcurementDeliveryRevisionsRoute
@@ -1661,6 +1870,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
   AuthenticatedCalibrationIndexRoute: typeof AuthenticatedCalibrationIndexRoute
   AuthenticatedCustomerServiceIndexRoute: typeof AuthenticatedCustomerServiceIndexRoute
+  AuthenticatedExternalCollaborationIndexRoute: typeof AuthenticatedExternalCollaborationIndexRoute
   AuthenticatedFacilityIndexRoute: typeof AuthenticatedFacilityIndexRoute
   AuthenticatedMaintenanceIndexRoute: typeof AuthenticatedMaintenanceIndexRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
@@ -1695,6 +1905,24 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedCustomerServiceSatisfactionRoute,
   AuthenticatedCustomerServiceWarrantyRoute:
     AuthenticatedCustomerServiceWarrantyRoute,
+  AuthenticatedExternalCollaborationAccessRoute:
+    AuthenticatedExternalCollaborationAccessRoute,
+  AuthenticatedExternalCollaborationActionsRoute:
+    AuthenticatedExternalCollaborationActionsRoute,
+  AuthenticatedExternalCollaborationContactsRoute:
+    AuthenticatedExternalCollaborationContactsRoute,
+  AuthenticatedExternalCollaborationDataRoomsRoute:
+    AuthenticatedExternalCollaborationDataRoomsRoute,
+  AuthenticatedExternalCollaborationIntegrationsRoute:
+    AuthenticatedExternalCollaborationIntegrationsRoute,
+  AuthenticatedExternalCollaborationReviewsRoute:
+    AuthenticatedExternalCollaborationReviewsRoute,
+  AuthenticatedExternalCollaborationSharesRoute:
+    AuthenticatedExternalCollaborationSharesRoute,
+  AuthenticatedExternalCollaborationTransmittalsRoute:
+    AuthenticatedExternalCollaborationTransmittalsRoute,
+  AuthenticatedExternalCollaborationUploadsRoute:
+    AuthenticatedExternalCollaborationUploadsRoute,
   AuthenticatedFinanceExpensesRoute: AuthenticatedFinanceExpensesRoute,
   AuthenticatedFinancePaymentPlansRoute: AuthenticatedFinancePaymentPlansRoute,
   AuthenticatedProcurementDeliveryRevisionsRoute:
@@ -1731,6 +1959,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCalibrationIndexRoute: AuthenticatedCalibrationIndexRoute,
   AuthenticatedCustomerServiceIndexRoute:
     AuthenticatedCustomerServiceIndexRoute,
+  AuthenticatedExternalCollaborationIndexRoute:
+    AuthenticatedExternalCollaborationIndexRoute,
   AuthenticatedFacilityIndexRoute: AuthenticatedFacilityIndexRoute,
   AuthenticatedMaintenanceIndexRoute: AuthenticatedMaintenanceIndexRoute,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
