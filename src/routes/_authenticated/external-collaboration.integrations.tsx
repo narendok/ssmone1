@@ -1,0 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { PermissionGate } from "@/components/PermissionGate";
+import { Phase10ListPage } from "@/components/phase10/Phase10ListPage";
+export const Route = createFileRoute("/_authenticated/external-collaboration/integrations")({ component: () => <PermissionGate permission="external_collaboration.view"><Phase10ListPage config={{eyebrow:"External collaboration",title:"API & webhooks",description:"Register human-reviewed client credentials and event subscriptions; never expose a secret in this workspace.",table:"external_webhook_subscriptions",columns:[{key:"endpoint_url",label:"Endpoint"},{key:"active",label:"Active"},{key:"last_delivery_at",label:"Last delivery"}],inputs:[{key:"endpoint_url",label:"Webhook endpoint",required:true},{key:"signing_secret_hint",label:"Signing secret hint"}],createLabel:"Add webhook subscription"}} /></PermissionGate> });
