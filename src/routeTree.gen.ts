@@ -30,9 +30,15 @@ import { Route as AuthenticatedCustomersRouteImport } from './routes/_authentica
 import { Route as AuthenticatedBomRouteImport } from './routes/_authenticated/bom'
 import { Route as AuthenticatedAssignmentsRouteImport } from './routes/_authenticated/assignments'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedWorkplaceIndexRouteImport } from './routes/_authenticated/workplace.index'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks.index'
+import { Route as AuthenticatedSecurityIndexRouteImport } from './routes/_authenticated/security.index'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedProductionIndexRouteImport } from './routes/_authenticated/production.index'
+import { Route as AuthenticatedMaintenanceIndexRouteImport } from './routes/_authenticated/maintenance.index'
+import { Route as AuthenticatedFacilityIndexRouteImport } from './routes/_authenticated/facility.index'
+import { Route as AuthenticatedCalibrationIndexRouteImport } from './routes/_authenticated/calibration.index'
+import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets.index'
 import { Route as ApiPublicDatasheetProxyRouteImport } from './routes/api/public/datasheet-proxy'
 import { Route as AuthenticatedTasksDepartmentsRouteImport } from './routes/_authenticated/tasks.departments'
 import { Route as AuthenticatedStoresInventoryRouteImport } from './routes/_authenticated/stores.inventory'
@@ -169,11 +175,23 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedWorkplaceIndexRoute =
+  AuthenticatedWorkplaceIndexRouteImport.update({
+    id: '/workplace/',
+    path: '/workplace/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTasksIndexRoute = AuthenticatedTasksIndexRouteImport.update({
   id: '/tasks/',
   path: '/tasks/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedSecurityIndexRoute =
+  AuthenticatedSecurityIndexRouteImport.update({
+    id: '/security/',
+    path: '/security/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedProjectsIndexRoute =
   AuthenticatedProjectsIndexRouteImport.update({
     id: '/projects/',
@@ -185,6 +203,30 @@ const AuthenticatedProductionIndexRoute =
     id: '/',
     path: '/',
     getParentRoute: () => AuthenticatedProductionRoute,
+  } as any)
+const AuthenticatedMaintenanceIndexRoute =
+  AuthenticatedMaintenanceIndexRouteImport.update({
+    id: '/maintenance/',
+    path: '/maintenance/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFacilityIndexRoute =
+  AuthenticatedFacilityIndexRouteImport.update({
+    id: '/facility/',
+    path: '/facility/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCalibrationIndexRoute =
+  AuthenticatedCalibrationIndexRouteImport.update({
+    id: '/calibration/',
+    path: '/calibration/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAssetsIndexRoute =
+  AuthenticatedAssetsIndexRouteImport.update({
+    id: '/assets/',
+    path: '/assets/',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const ApiPublicDatasheetProxyRoute = ApiPublicDatasheetProxyRouteImport.update({
   id: '/api/public/datasheet-proxy',
@@ -413,9 +455,15 @@ export interface FileRoutesByFullPath {
   '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
+  '/assets/': typeof AuthenticatedAssetsIndexRoute
+  '/calibration/': typeof AuthenticatedCalibrationIndexRoute
+  '/facility/': typeof AuthenticatedFacilityIndexRoute
+  '/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
   '/production/': typeof AuthenticatedProductionIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/security/': typeof AuthenticatedSecurityIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
+  '/workplace/': typeof AuthenticatedWorkplaceIndexRoute
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
 }
 export interface FileRoutesByTo {
@@ -467,9 +515,15 @@ export interface FileRoutesByTo {
   '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
+  '/assets': typeof AuthenticatedAssetsIndexRoute
+  '/calibration': typeof AuthenticatedCalibrationIndexRoute
+  '/facility': typeof AuthenticatedFacilityIndexRoute
+  '/maintenance': typeof AuthenticatedMaintenanceIndexRoute
   '/production': typeof AuthenticatedProductionIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
+  '/security': typeof AuthenticatedSecurityIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
+  '/workplace': typeof AuthenticatedWorkplaceIndexRoute
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
 }
 export interface FileRoutesById {
@@ -524,9 +578,15 @@ export interface FileRoutesById {
   '/_authenticated/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/_authenticated/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
+  '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
+  '/_authenticated/calibration/': typeof AuthenticatedCalibrationIndexRoute
+  '/_authenticated/facility/': typeof AuthenticatedFacilityIndexRoute
+  '/_authenticated/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
   '/_authenticated/production/': typeof AuthenticatedProductionIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/_authenticated/security/': typeof AuthenticatedSecurityIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
+  '/_authenticated/workplace/': typeof AuthenticatedWorkplaceIndexRoute
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
 }
 export interface FileRouteTypes {
@@ -581,9 +641,15 @@ export interface FileRouteTypes {
     | '/stores/inventory'
     | '/tasks/departments'
     | '/api/public/datasheet-proxy'
+    | '/assets/'
+    | '/calibration/'
+    | '/facility/'
+    | '/maintenance/'
     | '/production/'
     | '/projects/'
+    | '/security/'
     | '/tasks/'
+    | '/workplace/'
     | '/api/public/hooks/refresh-supplier-data'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -635,9 +701,15 @@ export interface FileRouteTypes {
     | '/stores/inventory'
     | '/tasks/departments'
     | '/api/public/datasheet-proxy'
+    | '/assets'
+    | '/calibration'
+    | '/facility'
+    | '/maintenance'
     | '/production'
     | '/projects'
+    | '/security'
     | '/tasks'
+    | '/workplace'
     | '/api/public/hooks/refresh-supplier-data'
   id:
     | '__root__'
@@ -691,9 +763,15 @@ export interface FileRouteTypes {
     | '/_authenticated/stores/inventory'
     | '/_authenticated/tasks/departments'
     | '/api/public/datasheet-proxy'
+    | '/_authenticated/assets/'
+    | '/_authenticated/calibration/'
+    | '/_authenticated/facility/'
+    | '/_authenticated/maintenance/'
     | '/_authenticated/production/'
     | '/_authenticated/projects/'
+    | '/_authenticated/security/'
     | '/_authenticated/tasks/'
+    | '/_authenticated/workplace/'
     | '/api/public/hooks/refresh-supplier-data'
   fileRoutesById: FileRoutesById
 }
@@ -858,11 +936,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/workplace/': {
+      id: '/_authenticated/workplace/'
+      path: '/workplace'
+      fullPath: '/workplace/'
+      preLoaderRoute: typeof AuthenticatedWorkplaceIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/tasks/': {
       id: '/_authenticated/tasks/'
       path: '/tasks'
       fullPath: '/tasks/'
       preLoaderRoute: typeof AuthenticatedTasksIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/security/': {
+      id: '/_authenticated/security/'
+      path: '/security'
+      fullPath: '/security/'
+      preLoaderRoute: typeof AuthenticatedSecurityIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/projects/': {
@@ -878,6 +970,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/production/'
       preLoaderRoute: typeof AuthenticatedProductionIndexRouteImport
       parentRoute: typeof AuthenticatedProductionRoute
+    }
+    '/_authenticated/maintenance/': {
+      id: '/_authenticated/maintenance/'
+      path: '/maintenance'
+      fullPath: '/maintenance/'
+      preLoaderRoute: typeof AuthenticatedMaintenanceIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/facility/': {
+      id: '/_authenticated/facility/'
+      path: '/facility'
+      fullPath: '/facility/'
+      preLoaderRoute: typeof AuthenticatedFacilityIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/calibration/': {
+      id: '/_authenticated/calibration/'
+      path: '/calibration'
+      fullPath: '/calibration/'
+      preLoaderRoute: typeof AuthenticatedCalibrationIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/assets/': {
+      id: '/_authenticated/assets/'
+      path: '/assets'
+      fullPath: '/assets/'
+      preLoaderRoute: typeof AuthenticatedAssetsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/api/public/datasheet-proxy': {
       id: '/api/public/datasheet-proxy'
@@ -1168,8 +1288,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsProjectsRoute: typeof AuthenticatedSettingsProjectsRoute
   AuthenticatedStoresInventoryRoute: typeof AuthenticatedStoresInventoryRoute
   AuthenticatedTasksDepartmentsRoute: typeof AuthenticatedTasksDepartmentsRoute
+  AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
+  AuthenticatedCalibrationIndexRoute: typeof AuthenticatedCalibrationIndexRoute
+  AuthenticatedFacilityIndexRoute: typeof AuthenticatedFacilityIndexRoute
+  AuthenticatedMaintenanceIndexRoute: typeof AuthenticatedMaintenanceIndexRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
+  AuthenticatedSecurityIndexRoute: typeof AuthenticatedSecurityIndexRoute
   AuthenticatedTasksIndexRoute: typeof AuthenticatedTasksIndexRoute
+  AuthenticatedWorkplaceIndexRoute: typeof AuthenticatedWorkplaceIndexRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
@@ -1208,8 +1334,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsProjectsRoute: AuthenticatedSettingsProjectsRoute,
   AuthenticatedStoresInventoryRoute: AuthenticatedStoresInventoryRoute,
   AuthenticatedTasksDepartmentsRoute: AuthenticatedTasksDepartmentsRoute,
+  AuthenticatedAssetsIndexRoute: AuthenticatedAssetsIndexRoute,
+  AuthenticatedCalibrationIndexRoute: AuthenticatedCalibrationIndexRoute,
+  AuthenticatedFacilityIndexRoute: AuthenticatedFacilityIndexRoute,
+  AuthenticatedMaintenanceIndexRoute: AuthenticatedMaintenanceIndexRoute,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
+  AuthenticatedSecurityIndexRoute: AuthenticatedSecurityIndexRoute,
   AuthenticatedTasksIndexRoute: AuthenticatedTasksIndexRoute,
+  AuthenticatedWorkplaceIndexRoute: AuthenticatedWorkplaceIndexRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
