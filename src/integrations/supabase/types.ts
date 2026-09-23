@@ -2195,6 +2195,268 @@ export type Database = {
         }
         Relationships: []
       }
+      external_access_events: {
+        Row: {
+          entity_id: string | null
+          entity_type: string
+          event_type: string
+          external_contact_id: string | null
+          external_party_id: string | null
+          id: string
+          metadata: Json
+          occurred_at: string
+          snapshot_id: string | null
+        }
+        Insert: {
+          entity_id?: string | null
+          entity_type: string
+          event_type: string
+          external_contact_id?: string | null
+          external_party_id?: string | null
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          snapshot_id?: string | null
+        }
+        Update: {
+          entity_id?: string | null
+          entity_type?: string
+          event_type?: string
+          external_contact_id?: string | null
+          external_party_id?: string | null
+          id?: string
+          metadata?: Json
+          occurred_at?: string
+          snapshot_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_access_events_external_contact_id_fkey"
+            columns: ["external_contact_id"]
+            isOneToOne: false
+            referencedRelation: "external_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_access_events_external_party_id_fkey"
+            columns: ["external_party_id"]
+            isOneToOne: false
+            referencedRelation: "external_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_access_events_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "external_share_snapshots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_actions: {
+        Row: {
+          action_code: string
+          attachments: Json
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          external_contact_id: string | null
+          external_party_id: string
+          id: string
+          project_id: string | null
+          response: string | null
+          source_entity_id: string | null
+          source_entity_type: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_code: string
+          attachments?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          external_contact_id?: string | null
+          external_party_id: string
+          id?: string
+          project_id?: string | null
+          response?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_code?: string
+          attachments?: Json
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          external_contact_id?: string | null
+          external_party_id?: string
+          id?: string
+          project_id?: string | null
+          response?: string | null
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_actions_external_contact_id_fkey"
+            columns: ["external_contact_id"]
+            isOneToOne: false
+            referencedRelation: "external_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_actions_external_party_id_fkey"
+            columns: ["external_party_id"]
+            isOneToOne: false
+            referencedRelation: "external_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_actions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_api_clients: {
+        Row: {
+          active: boolean
+          client_key_hint: string
+          client_name: string
+          created_at: string
+          created_by: string | null
+          external_party_id: string | null
+          id: string
+          last_used_at: string | null
+          scopes: Json
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          client_key_hint: string
+          client_name: string
+          created_at?: string
+          created_by?: string | null
+          external_party_id?: string | null
+          id?: string
+          last_used_at?: string | null
+          scopes?: Json
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          client_key_hint?: string
+          client_name?: string
+          created_at?: string
+          created_by?: string | null
+          external_party_id?: string | null
+          id?: string
+          last_used_at?: string | null
+          scopes?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_api_clients_external_party_id_fkey"
+            columns: ["external_party_id"]
+            isOneToOne: false
+            referencedRelation: "external_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_contacts: {
+        Row: {
+          active: boolean
+          contact_code: string
+          contact_role: string | null
+          created_at: string
+          created_by: string | null
+          customer_contact_id: string | null
+          designation: string | null
+          email: string
+          external_party_id: string
+          full_name: string
+          id: string
+          last_login_at: string | null
+          notes: string | null
+          phone: string | null
+          portal_enabled: boolean
+          preferred_language: string
+          timezone: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          contact_code: string
+          contact_role?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_contact_id?: string | null
+          designation?: string | null
+          email: string
+          external_party_id: string
+          full_name: string
+          id?: string
+          last_login_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          portal_enabled?: boolean
+          preferred_language?: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          contact_code?: string
+          contact_role?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_contact_id?: string | null
+          designation?: string | null
+          email?: string
+          external_party_id?: string
+          full_name?: string
+          id?: string
+          last_login_at?: string | null
+          notes?: string | null
+          phone?: string | null
+          portal_enabled?: boolean
+          preferred_language?: string
+          timezone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_contacts_customer_contact_id_fkey"
+            columns: ["customer_contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_contacts_external_party_id_fkey"
+            columns: ["external_party_id"]
+            isOneToOne: false
+            referencedRelation: "external_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       external_data_cache: {
         Row: {
           cache_key: string
@@ -2239,6 +2501,110 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      external_data_room_items: {
+        Row: {
+          category: string
+          created_at: string
+          data_room_id: string
+          id: string
+          is_favorite_eligible: boolean
+          revision_reference: string | null
+          source_entity_id: string
+          source_entity_type: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          data_room_id: string
+          id?: string
+          is_favorite_eligible?: boolean
+          revision_reference?: string | null
+          source_entity_id: string
+          source_entity_type: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          data_room_id?: string
+          id?: string
+          is_favorite_eligible?: boolean
+          revision_reference?: string | null
+          source_entity_id?: string
+          source_entity_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_data_room_items_data_room_id_fkey"
+            columns: ["data_room_id"]
+            isOneToOne: false
+            referencedRelation: "external_data_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_data_rooms: {
+        Row: {
+          confidentiality_classification: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expires_at: string | null
+          external_party_id: string
+          id: string
+          nda_required: boolean
+          project_id: string | null
+          room_code: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          confidentiality_classification?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          external_party_id: string
+          id?: string
+          nda_required?: boolean
+          project_id?: string | null
+          room_code: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          confidentiality_classification?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          external_party_id?: string
+          id?: string
+          nda_required?: boolean
+          project_id?: string | null
+          room_code?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_data_rooms_external_party_id_fkey"
+            columns: ["external_party_id"]
+            isOneToOne: false
+            referencedRelation: "external_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_data_rooms_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       external_integrations: {
         Row: {
@@ -2293,6 +2659,602 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      external_parties: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          display_name: string
+          id: string
+          notes: string | null
+          party_code: string
+          party_type: string
+          portal_required: boolean
+          portal_title: string | null
+          preferred_language: string
+          support_email: string | null
+          timezone: string | null
+          updated_at: string
+          vendor_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          display_name: string
+          id?: string
+          notes?: string | null
+          party_code: string
+          party_type: string
+          portal_required?: boolean
+          portal_title?: string | null
+          preferred_language?: string
+          support_email?: string | null
+          timezone?: string | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          display_name?: string
+          id?: string
+          notes?: string | null
+          party_code?: string
+          party_type?: string
+          portal_required?: boolean
+          portal_title?: string | null
+          preferred_language?: string
+          support_email?: string | null
+          timezone?: string | null
+          updated_at?: string
+          vendor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_parties_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_parties_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_portal_access: {
+        Row: {
+          access_role: string
+          access_scope: Json
+          created_at: string
+          deactivated_at: string | null
+          deactivation_reason: string | null
+          expires_at: string | null
+          external_contact_id: string
+          id: string
+          invited_by: string | null
+          is_active: boolean
+          portal_type: string
+          updated_at: string
+        }
+        Insert: {
+          access_role: string
+          access_scope?: Json
+          created_at?: string
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
+          expires_at?: string | null
+          external_contact_id: string
+          id?: string
+          invited_by?: string | null
+          is_active?: boolean
+          portal_type: string
+          updated_at?: string
+        }
+        Update: {
+          access_role?: string
+          access_scope?: Json
+          created_at?: string
+          deactivated_at?: string | null
+          deactivation_reason?: string | null
+          expires_at?: string | null
+          external_contact_id?: string
+          id?: string
+          invited_by?: string | null
+          is_active?: boolean
+          portal_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_portal_access_external_contact_id_fkey"
+            columns: ["external_contact_id"]
+            isOneToOne: false
+            referencedRelation: "external_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_review_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          external_contact_id: string | null
+          external_party_id: string
+          id: string
+          request_type: string
+          responded_at: string | null
+          response: string | null
+          response_metadata: Json
+          revision_reference: string | null
+          source_entity_id: string
+          source_entity_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          external_contact_id?: string | null
+          external_party_id: string
+          id?: string
+          request_type: string
+          responded_at?: string | null
+          response?: string | null
+          response_metadata?: Json
+          revision_reference?: string | null
+          source_entity_id: string
+          source_entity_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          external_contact_id?: string | null
+          external_party_id?: string
+          id?: string
+          request_type?: string
+          responded_at?: string | null
+          response?: string | null
+          response_metadata?: Json
+          revision_reference?: string | null
+          source_entity_id?: string
+          source_entity_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_review_requests_external_contact_id_fkey"
+            columns: ["external_contact_id"]
+            isOneToOne: false
+            referencedRelation: "external_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_review_requests_external_party_id_fkey"
+            columns: ["external_party_id"]
+            isOneToOne: false
+            referencedRelation: "external_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_share_snapshots: {
+        Row: {
+          checksum: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          external_party_id: string
+          id: string
+          manifest: Json
+          permission: string
+          recipient_email: string | null
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          share_mode: string
+          snapshot_code: string
+          source_entity_id: string
+          source_entity_type: string
+        }
+        Insert: {
+          checksum?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          external_party_id: string
+          id?: string
+          manifest?: Json
+          permission?: string
+          recipient_email?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          share_mode?: string
+          snapshot_code: string
+          source_entity_id: string
+          source_entity_type: string
+        }
+        Update: {
+          checksum?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          external_party_id?: string
+          id?: string
+          manifest?: Json
+          permission?: string
+          recipient_email?: string | null
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          share_mode?: string
+          snapshot_code?: string
+          source_entity_id?: string
+          source_entity_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_share_snapshots_external_party_id_fkey"
+            columns: ["external_party_id"]
+            isOneToOne: false
+            referencedRelation: "external_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_transmittals: {
+        Row: {
+          acknowledged_by_contact_id: string | null
+          created_at: string
+          created_by: string | null
+          document_manifest: Json
+          due_date: string | null
+          external_party_id: string
+          id: string
+          issued_at: string | null
+          message: string | null
+          project_id: string | null
+          purpose: string
+          received_at: string | null
+          required_action: string
+          status: string
+          transmittal_number: string
+          updated_at: string
+        }
+        Insert: {
+          acknowledged_by_contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_manifest?: Json
+          due_date?: string | null
+          external_party_id: string
+          id?: string
+          issued_at?: string | null
+          message?: string | null
+          project_id?: string | null
+          purpose: string
+          received_at?: string | null
+          required_action?: string
+          status?: string
+          transmittal_number: string
+          updated_at?: string
+        }
+        Update: {
+          acknowledged_by_contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          document_manifest?: Json
+          due_date?: string | null
+          external_party_id?: string
+          id?: string
+          issued_at?: string | null
+          message?: string | null
+          project_id?: string | null
+          purpose?: string
+          received_at?: string | null
+          required_action?: string
+          status?: string
+          transmittal_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_transmittals_acknowledged_by_contact_id_fkey"
+            columns: ["acknowledged_by_contact_id"]
+            isOneToOne: false
+            referencedRelation: "external_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_transmittals_external_party_id_fkey"
+            columns: ["external_party_id"]
+            isOneToOne: false
+            referencedRelation: "external_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_transmittals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_upload_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          destination: string | null
+          due_date: string | null
+          expected_format: string | null
+          external_contact_id: string | null
+          external_party_id: string
+          id: string
+          request_code: string
+          requested_document: string
+          required_metadata: Json
+          source_entity_id: string | null
+          source_entity_type: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          destination?: string | null
+          due_date?: string | null
+          expected_format?: string | null
+          external_contact_id?: string | null
+          external_party_id: string
+          id?: string
+          request_code: string
+          requested_document: string
+          required_metadata?: Json
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          destination?: string | null
+          due_date?: string | null
+          expected_format?: string | null
+          external_contact_id?: string | null
+          external_party_id?: string
+          id?: string
+          request_code?: string
+          requested_document?: string
+          required_metadata?: Json
+          source_entity_id?: string | null
+          source_entity_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_upload_requests_external_contact_id_fkey"
+            columns: ["external_contact_id"]
+            isOneToOne: false
+            referencedRelation: "external_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_upload_requests_external_party_id_fkey"
+            columns: ["external_party_id"]
+            isOneToOne: false
+            referencedRelation: "external_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_uploads: {
+        Row: {
+          accepted_drive_node_id: string | null
+          checksum: string | null
+          created_at: string
+          external_contact_id: string | null
+          external_party_id: string
+          file_size: number | null
+          id: string
+          metadata: Json
+          mime_type: string | null
+          original_filename: string
+          request_id: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          storage_path: string
+          updated_at: string
+          upload_code: string
+        }
+        Insert: {
+          accepted_drive_node_id?: string | null
+          checksum?: string | null
+          created_at?: string
+          external_contact_id?: string | null
+          external_party_id: string
+          file_size?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          original_filename: string
+          request_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          storage_path: string
+          updated_at?: string
+          upload_code: string
+        }
+        Update: {
+          accepted_drive_node_id?: string | null
+          checksum?: string | null
+          created_at?: string
+          external_contact_id?: string | null
+          external_party_id?: string
+          file_size?: number | null
+          id?: string
+          metadata?: Json
+          mime_type?: string | null
+          original_filename?: string
+          request_id?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          storage_path?: string
+          updated_at?: string
+          upload_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_uploads_accepted_drive_node_id_fkey"
+            columns: ["accepted_drive_node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_uploads_external_contact_id_fkey"
+            columns: ["external_contact_id"]
+            isOneToOne: false
+            referencedRelation: "external_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_uploads_external_party_id_fkey"
+            columns: ["external_party_id"]
+            isOneToOne: false
+            referencedRelation: "external_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_uploads_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "external_upload_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_webhook_deliveries: {
+        Row: {
+          attempted_at: string | null
+          completed_at: string | null
+          created_at: string
+          event_key: string
+          id: string
+          idempotency_key: string
+          response_status: number | null
+          response_summary: string | null
+          status: string
+          subscription_id: string
+        }
+        Insert: {
+          attempted_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          event_key: string
+          id?: string
+          idempotency_key: string
+          response_status?: number | null
+          response_summary?: string | null
+          status?: string
+          subscription_id: string
+        }
+        Update: {
+          attempted_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          event_key?: string
+          id?: string
+          idempotency_key?: string
+          response_status?: number | null
+          response_summary?: string | null
+          status?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_webhook_deliveries_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "external_webhook_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_webhook_subscriptions: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          endpoint_url: string
+          event_types: Json
+          external_party_id: string | null
+          id: string
+          last_delivery_at: string | null
+          signing_secret_hint: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          endpoint_url: string
+          event_types?: Json
+          external_party_id?: string | null
+          id?: string
+          last_delivery_at?: string | null
+          signing_secret_hint?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          endpoint_url?: string
+          event_types?: Json
+          external_party_id?: string | null
+          id?: string
+          last_delivery_at?: string | null
+          signing_secret_hint?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_webhook_subscriptions_external_party_id_fkey"
+            columns: ["external_party_id"]
+            isOneToOne: false
+            referencedRelation: "external_parties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       facility_location_responsibilities: {
         Row: {
