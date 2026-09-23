@@ -61,6 +61,9 @@ const groups: NavGroup[] = [
        { label: "QMS", to: "/qms", icon: ChartNoAxesCombined, permission: "qms.view" },
        { label: "Customer service", to: "/customer-service", icon: Headset, permission: "customer_service.view" },
         { label: "External collaboration", to: "/external-collaboration", icon: Handshake, permission: "external_collaboration.view" },
+        { label: "Transmittals", to: "/external-collaboration/transmittals", icon: Send, permission: "external_collaboration.view" },
+        { label: "External actions", to: "/external-collaboration/actions", icon: ClipboardList, permission: "external_collaboration.view" },
+        { label: "Upload requests", to: "/external-collaboration/uploads", icon: FileText, permission: "external_collaboration.view" },
   ] },
   { label: "HR", items: [
     { label: "HR overview", to: "/hr", icon: Users, permission: "hr.view" },
