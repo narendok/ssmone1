@@ -1,0 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { PermissionGate } from "@/components/PermissionGate";
+import { Phase9ListPage } from "@/components/phase9/Phase9ListPage";
+export const Route = createFileRoute("/_authenticated/qms/improvements")({ component: () => <PermissionGate permission="qms.view"><Phase9ListPage config={{eyebrow:"Quality management",title:"Continual improvement",description:"Track evidence-backed improvement work from QMS, customer and operational signals.",table:"qms_improvements",columns:[{key:"improvement_code",label:"Improvement"},{key:"title",label:"Title"},{key:"status",label:"Status"},{key:"target_date",label:"Target"}],inputs:[{key:"title",label:"Improvement title",required:true},{key:"description",label:"Description",type:"textarea"},{key:"benefit_summary",label:"Expected benefit",type:"textarea"},{key:"target_date",label:"Target date",type:"date"}],createLabel:"Create improvement"}} /></PermissionGate> });
