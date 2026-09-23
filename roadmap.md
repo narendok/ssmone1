@@ -54,3 +54,6 @@
 - [x] Add server-controlled work-order creation and lifecycle transitions, including material-readiness blocking before release and approval-gated release/completion.
 - [x] Add shop-floor execution, in-process quality, testing, and approval-gated NCR/rework/scrap dispositions with unit-level traceability.
 - [x] Add finished-goods release, PPAP, and dispatch controls without duplicating shared systems. Finished-goods release, PPAP packages, controlled dispatch, and signed-in production route validation are complete.
+
+## Phase 8 — Facility, assets, maintenance, calibration, security and workplace
+- [ ] Implement approved Phase 8 scope; stop before Phase 9.
