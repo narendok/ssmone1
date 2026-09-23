@@ -61,3 +61,7 @@
 
 ## Phase 9 — QMS, customer quality & governance
 - [x] Implement the approved QMS, KPI, audit, CAPA, customer quality, document-control and management-review layer; stop before Phase 10.
+
+
+## Phase 10 — External collaboration extensions
+- [ ] Implement the approved external party, secure portals, controlled sharing, transmittals, upload staging, data rooms, customer/supplier/EMS/lab collaboration, and API/webhook foundation; stop before Phase 11.
