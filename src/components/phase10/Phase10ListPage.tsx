@@ -15,7 +15,7 @@ import { toast } from "sonner";
 
 const sb = supabase as any;
 type Phase10Table = "external_parties" | "external_contacts" | "external_portal_access" | "external_share_snapshots" | "external_transmittals" | "external_review_requests" | "external_actions" | "external_upload_requests" | "external_data_rooms" | "external_data_room_items" | "external_api_clients" | "external_webhook_subscriptions";
-type InputConfig = { key: string; label: string; type?: "text" | "date" | "number" | "textarea"; options?: { value: string; label: string }[]; required?: boolean; description?: string };
+type InputConfig = { key: string; label: string; type?: "text" | "date" | "number" | "textarea" | "select"; options?: { value: string; label: string }[]; required?: boolean; description?: string };
 export type Phase10Config = { eyebrow: string; title: string; description: string; table: Phase10Table; columns: { key: string; label: string }[]; inputs: InputConfig[]; createLabel?: string };
 
 export function Phase10ListPage({ config }: { config: Phase10Config }) {
