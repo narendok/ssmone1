@@ -33,10 +33,12 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedWorkplaceIndexRouteImport } from './routes/_authenticated/workplace.index'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks.index'
 import { Route as AuthenticatedSecurityIndexRouteImport } from './routes/_authenticated/security.index'
+import { Route as AuthenticatedQmsIndexRouteImport } from './routes/_authenticated/qms.index'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedProductionIndexRouteImport } from './routes/_authenticated/production.index'
 import { Route as AuthenticatedMaintenanceIndexRouteImport } from './routes/_authenticated/maintenance.index'
 import { Route as AuthenticatedFacilityIndexRouteImport } from './routes/_authenticated/facility.index'
+import { Route as AuthenticatedCustomerServiceIndexRouteImport } from './routes/_authenticated/customer-service.index'
 import { Route as AuthenticatedCalibrationIndexRouteImport } from './routes/_authenticated/calibration.index'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets.index'
 import { Route as ApiPublicDatasheetProxyRouteImport } from './routes/api/public/datasheet-proxy'
@@ -45,6 +47,17 @@ import { Route as AuthenticatedStoresInventoryRouteImport } from './routes/_auth
 import { Route as AuthenticatedSettingsProjectsRouteImport } from './routes/_authenticated/settings.projects'
 import { Route as AuthenticatedSettingsCategoriesRouteImport } from './routes/_authenticated/settings.categories'
 import { Route as AuthenticatedQualityIncomingRouteImport } from './routes/_authenticated/quality.incoming'
+import { Route as AuthenticatedQmsRisksRouteImport } from './routes/_authenticated/qms.risks'
+import { Route as AuthenticatedQmsRecordsRouteImport } from './routes/_authenticated/qms.records'
+import { Route as AuthenticatedQmsObjectivesRouteImport } from './routes/_authenticated/qms.objectives'
+import { Route as AuthenticatedQmsManagementReviewRouteImport } from './routes/_authenticated/qms.management-review'
+import { Route as AuthenticatedQmsLessonsLearnedRouteImport } from './routes/_authenticated/qms.lessons-learned'
+import { Route as AuthenticatedQmsKpiRouteImport } from './routes/_authenticated/qms.kpi'
+import { Route as AuthenticatedQmsImprovementsRouteImport } from './routes/_authenticated/qms.improvements'
+import { Route as AuthenticatedQmsFindingsRouteImport } from './routes/_authenticated/qms.findings'
+import { Route as AuthenticatedQmsContingencyRouteImport } from './routes/_authenticated/qms.contingency'
+import { Route as AuthenticatedQmsCapaRouteImport } from './routes/_authenticated/qms.capa'
+import { Route as AuthenticatedQmsAuditsRouteImport } from './routes/_authenticated/qms.audits'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects.$projectId'
 import { Route as AuthenticatedProductionShopfloorRouteImport } from './routes/_authenticated/production.shopfloor'
 import { Route as AuthenticatedProductionReleaseRouteImport } from './routes/_authenticated/production.release'
@@ -67,6 +80,11 @@ import { Route as AuthenticatedHrOnboardingRouteImport } from './routes/_authent
 import { Route as AuthenticatedHrLeaveRouteImport } from './routes/_authenticated/hr.leave'
 import { Route as AuthenticatedFinancePaymentPlansRouteImport } from './routes/_authenticated/finance.payment-plans'
 import { Route as AuthenticatedFinanceExpensesRouteImport } from './routes/_authenticated/finance.expenses'
+import { Route as AuthenticatedCustomerServiceWarrantyRouteImport } from './routes/_authenticated/customer-service.warranty'
+import { Route as AuthenticatedCustomerServiceSatisfactionRouteImport } from './routes/_authenticated/customer-service.satisfaction'
+import { Route as AuthenticatedCustomerServiceReturnsRouteImport } from './routes/_authenticated/customer-service.returns'
+import { Route as AuthenticatedCustomerServiceFieldFailuresRouteImport } from './routes/_authenticated/customer-service.field-failures'
+import { Route as AuthenticatedCustomerServiceComplaintsRouteImport } from './routes/_authenticated/customer-service.complaints'
 import { Route as AuthenticatedCategorySlugRouteImport } from './routes/_authenticated/category.$slug'
 import { Route as ApiPublicHooksRefreshSupplierDataRouteImport } from './routes/api/public/hooks/refresh-supplier-data'
 
@@ -192,6 +210,11 @@ const AuthenticatedSecurityIndexRoute =
     path: '/security/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedQmsIndexRoute = AuthenticatedQmsIndexRouteImport.update({
+  id: '/qms/',
+  path: '/qms/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProjectsIndexRoute =
   AuthenticatedProjectsIndexRouteImport.update({
     id: '/projects/',
@@ -214,6 +237,12 @@ const AuthenticatedFacilityIndexRoute =
   AuthenticatedFacilityIndexRouteImport.update({
     id: '/facility/',
     path: '/facility/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCustomerServiceIndexRoute =
+  AuthenticatedCustomerServiceIndexRouteImport.update({
+    id: '/customer-service/',
+    path: '/customer-service/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCalibrationIndexRoute =
@@ -263,6 +292,67 @@ const AuthenticatedQualityIncomingRoute =
     path: '/quality/incoming',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedQmsRisksRoute = AuthenticatedQmsRisksRouteImport.update({
+  id: '/qms/risks',
+  path: '/qms/risks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedQmsRecordsRoute = AuthenticatedQmsRecordsRouteImport.update({
+  id: '/qms/records',
+  path: '/qms/records',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedQmsObjectivesRoute =
+  AuthenticatedQmsObjectivesRouteImport.update({
+    id: '/qms/objectives',
+    path: '/qms/objectives',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedQmsManagementReviewRoute =
+  AuthenticatedQmsManagementReviewRouteImport.update({
+    id: '/qms/management-review',
+    path: '/qms/management-review',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedQmsLessonsLearnedRoute =
+  AuthenticatedQmsLessonsLearnedRouteImport.update({
+    id: '/qms/lessons-learned',
+    path: '/qms/lessons-learned',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedQmsKpiRoute = AuthenticatedQmsKpiRouteImport.update({
+  id: '/qms/kpi',
+  path: '/qms/kpi',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedQmsImprovementsRoute =
+  AuthenticatedQmsImprovementsRouteImport.update({
+    id: '/qms/improvements',
+    path: '/qms/improvements',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedQmsFindingsRoute =
+  AuthenticatedQmsFindingsRouteImport.update({
+    id: '/qms/findings',
+    path: '/qms/findings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedQmsContingencyRoute =
+  AuthenticatedQmsContingencyRouteImport.update({
+    id: '/qms/contingency',
+    path: '/qms/contingency',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedQmsCapaRoute = AuthenticatedQmsCapaRouteImport.update({
+  id: '/qms/capa',
+  path: '/qms/capa',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedQmsAuditsRoute = AuthenticatedQmsAuditsRouteImport.update({
+  id: '/qms/audits',
+  path: '/qms/audits',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProjectsProjectIdRoute =
   AuthenticatedProjectsProjectIdRouteImport.update({
     id: '/projects/$projectId',
@@ -392,6 +482,36 @@ const AuthenticatedFinanceExpensesRoute =
     path: '/finance/expenses',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCustomerServiceWarrantyRoute =
+  AuthenticatedCustomerServiceWarrantyRouteImport.update({
+    id: '/customer-service/warranty',
+    path: '/customer-service/warranty',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCustomerServiceSatisfactionRoute =
+  AuthenticatedCustomerServiceSatisfactionRouteImport.update({
+    id: '/customer-service/satisfaction',
+    path: '/customer-service/satisfaction',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCustomerServiceReturnsRoute =
+  AuthenticatedCustomerServiceReturnsRouteImport.update({
+    id: '/customer-service/returns',
+    path: '/customer-service/returns',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCustomerServiceFieldFailuresRoute =
+  AuthenticatedCustomerServiceFieldFailuresRouteImport.update({
+    id: '/customer-service/field-failures',
+    path: '/customer-service/field-failures',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCustomerServiceComplaintsRoute =
+  AuthenticatedCustomerServiceComplaintsRouteImport.update({
+    id: '/customer-service/complaints',
+    path: '/customer-service/complaints',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCategorySlugRoute =
   AuthenticatedCategorySlugRouteImport.update({
     id: '/category/$slug',
@@ -427,6 +547,11 @@ export interface FileRoutesByFullPath {
   '/portal/$token': typeof PortalTokenRoute
   '/share/$token': typeof ShareTokenRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
+  '/customer-service/complaints': typeof AuthenticatedCustomerServiceComplaintsRoute
+  '/customer-service/field-failures': typeof AuthenticatedCustomerServiceFieldFailuresRoute
+  '/customer-service/returns': typeof AuthenticatedCustomerServiceReturnsRoute
+  '/customer-service/satisfaction': typeof AuthenticatedCustomerServiceSatisfactionRoute
+  '/customer-service/warranty': typeof AuthenticatedCustomerServiceWarrantyRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/finance/payment-plans': typeof AuthenticatedFinancePaymentPlansRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
@@ -449,6 +574,17 @@ export interface FileRoutesByFullPath {
   '/production/release': typeof AuthenticatedProductionReleaseRoute
   '/production/shopfloor': typeof AuthenticatedProductionShopfloorRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/qms/audits': typeof AuthenticatedQmsAuditsRoute
+  '/qms/capa': typeof AuthenticatedQmsCapaRoute
+  '/qms/contingency': typeof AuthenticatedQmsContingencyRoute
+  '/qms/findings': typeof AuthenticatedQmsFindingsRoute
+  '/qms/improvements': typeof AuthenticatedQmsImprovementsRoute
+  '/qms/kpi': typeof AuthenticatedQmsKpiRoute
+  '/qms/lessons-learned': typeof AuthenticatedQmsLessonsLearnedRoute
+  '/qms/management-review': typeof AuthenticatedQmsManagementReviewRoute
+  '/qms/objectives': typeof AuthenticatedQmsObjectivesRoute
+  '/qms/records': typeof AuthenticatedQmsRecordsRoute
+  '/qms/risks': typeof AuthenticatedQmsRisksRoute
   '/quality/incoming': typeof AuthenticatedQualityIncomingRoute
   '/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
   '/settings/projects': typeof AuthenticatedSettingsProjectsRoute
@@ -457,10 +593,12 @@ export interface FileRoutesByFullPath {
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
   '/assets/': typeof AuthenticatedAssetsIndexRoute
   '/calibration/': typeof AuthenticatedCalibrationIndexRoute
+  '/customer-service/': typeof AuthenticatedCustomerServiceIndexRoute
   '/facility/': typeof AuthenticatedFacilityIndexRoute
   '/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
   '/production/': typeof AuthenticatedProductionIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/qms/': typeof AuthenticatedQmsIndexRoute
   '/security/': typeof AuthenticatedSecurityIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/workplace/': typeof AuthenticatedWorkplaceIndexRoute
@@ -487,6 +625,11 @@ export interface FileRoutesByTo {
   '/share/$token': typeof ShareTokenRoute
   '/': typeof AuthenticatedIndexRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
+  '/customer-service/complaints': typeof AuthenticatedCustomerServiceComplaintsRoute
+  '/customer-service/field-failures': typeof AuthenticatedCustomerServiceFieldFailuresRoute
+  '/customer-service/returns': typeof AuthenticatedCustomerServiceReturnsRoute
+  '/customer-service/satisfaction': typeof AuthenticatedCustomerServiceSatisfactionRoute
+  '/customer-service/warranty': typeof AuthenticatedCustomerServiceWarrantyRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/finance/payment-plans': typeof AuthenticatedFinancePaymentPlansRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
@@ -509,6 +652,17 @@ export interface FileRoutesByTo {
   '/production/release': typeof AuthenticatedProductionReleaseRoute
   '/production/shopfloor': typeof AuthenticatedProductionShopfloorRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/qms/audits': typeof AuthenticatedQmsAuditsRoute
+  '/qms/capa': typeof AuthenticatedQmsCapaRoute
+  '/qms/contingency': typeof AuthenticatedQmsContingencyRoute
+  '/qms/findings': typeof AuthenticatedQmsFindingsRoute
+  '/qms/improvements': typeof AuthenticatedQmsImprovementsRoute
+  '/qms/kpi': typeof AuthenticatedQmsKpiRoute
+  '/qms/lessons-learned': typeof AuthenticatedQmsLessonsLearnedRoute
+  '/qms/management-review': typeof AuthenticatedQmsManagementReviewRoute
+  '/qms/objectives': typeof AuthenticatedQmsObjectivesRoute
+  '/qms/records': typeof AuthenticatedQmsRecordsRoute
+  '/qms/risks': typeof AuthenticatedQmsRisksRoute
   '/quality/incoming': typeof AuthenticatedQualityIncomingRoute
   '/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
   '/settings/projects': typeof AuthenticatedSettingsProjectsRoute
@@ -517,10 +671,12 @@ export interface FileRoutesByTo {
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
   '/assets': typeof AuthenticatedAssetsIndexRoute
   '/calibration': typeof AuthenticatedCalibrationIndexRoute
+  '/customer-service': typeof AuthenticatedCustomerServiceIndexRoute
   '/facility': typeof AuthenticatedFacilityIndexRoute
   '/maintenance': typeof AuthenticatedMaintenanceIndexRoute
   '/production': typeof AuthenticatedProductionIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
+  '/qms': typeof AuthenticatedQmsIndexRoute
   '/security': typeof AuthenticatedSecurityIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/workplace': typeof AuthenticatedWorkplaceIndexRoute
@@ -550,6 +706,11 @@ export interface FileRoutesById {
   '/share/$token': typeof ShareTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/category/$slug': typeof AuthenticatedCategorySlugRoute
+  '/_authenticated/customer-service/complaints': typeof AuthenticatedCustomerServiceComplaintsRoute
+  '/_authenticated/customer-service/field-failures': typeof AuthenticatedCustomerServiceFieldFailuresRoute
+  '/_authenticated/customer-service/returns': typeof AuthenticatedCustomerServiceReturnsRoute
+  '/_authenticated/customer-service/satisfaction': typeof AuthenticatedCustomerServiceSatisfactionRoute
+  '/_authenticated/customer-service/warranty': typeof AuthenticatedCustomerServiceWarrantyRoute
   '/_authenticated/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/_authenticated/finance/payment-plans': typeof AuthenticatedFinancePaymentPlansRoute
   '/_authenticated/hr/leave': typeof AuthenticatedHrLeaveRoute
@@ -572,6 +733,17 @@ export interface FileRoutesById {
   '/_authenticated/production/release': typeof AuthenticatedProductionReleaseRoute
   '/_authenticated/production/shopfloor': typeof AuthenticatedProductionShopfloorRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/_authenticated/qms/audits': typeof AuthenticatedQmsAuditsRoute
+  '/_authenticated/qms/capa': typeof AuthenticatedQmsCapaRoute
+  '/_authenticated/qms/contingency': typeof AuthenticatedQmsContingencyRoute
+  '/_authenticated/qms/findings': typeof AuthenticatedQmsFindingsRoute
+  '/_authenticated/qms/improvements': typeof AuthenticatedQmsImprovementsRoute
+  '/_authenticated/qms/kpi': typeof AuthenticatedQmsKpiRoute
+  '/_authenticated/qms/lessons-learned': typeof AuthenticatedQmsLessonsLearnedRoute
+  '/_authenticated/qms/management-review': typeof AuthenticatedQmsManagementReviewRoute
+  '/_authenticated/qms/objectives': typeof AuthenticatedQmsObjectivesRoute
+  '/_authenticated/qms/records': typeof AuthenticatedQmsRecordsRoute
+  '/_authenticated/qms/risks': typeof AuthenticatedQmsRisksRoute
   '/_authenticated/quality/incoming': typeof AuthenticatedQualityIncomingRoute
   '/_authenticated/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
   '/_authenticated/settings/projects': typeof AuthenticatedSettingsProjectsRoute
@@ -580,10 +752,12 @@ export interface FileRoutesById {
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
   '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
   '/_authenticated/calibration/': typeof AuthenticatedCalibrationIndexRoute
+  '/_authenticated/customer-service/': typeof AuthenticatedCustomerServiceIndexRoute
   '/_authenticated/facility/': typeof AuthenticatedFacilityIndexRoute
   '/_authenticated/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
   '/_authenticated/production/': typeof AuthenticatedProductionIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/_authenticated/qms/': typeof AuthenticatedQmsIndexRoute
   '/_authenticated/security/': typeof AuthenticatedSecurityIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/workplace/': typeof AuthenticatedWorkplaceIndexRoute
@@ -613,6 +787,11 @@ export interface FileRouteTypes {
     | '/portal/$token'
     | '/share/$token'
     | '/category/$slug'
+    | '/customer-service/complaints'
+    | '/customer-service/field-failures'
+    | '/customer-service/returns'
+    | '/customer-service/satisfaction'
+    | '/customer-service/warranty'
     | '/finance/expenses'
     | '/finance/payment-plans'
     | '/hr/leave'
@@ -635,6 +814,17 @@ export interface FileRouteTypes {
     | '/production/release'
     | '/production/shopfloor'
     | '/projects/$projectId'
+    | '/qms/audits'
+    | '/qms/capa'
+    | '/qms/contingency'
+    | '/qms/findings'
+    | '/qms/improvements'
+    | '/qms/kpi'
+    | '/qms/lessons-learned'
+    | '/qms/management-review'
+    | '/qms/objectives'
+    | '/qms/records'
+    | '/qms/risks'
     | '/quality/incoming'
     | '/settings/categories'
     | '/settings/projects'
@@ -643,10 +833,12 @@ export interface FileRouteTypes {
     | '/api/public/datasheet-proxy'
     | '/assets/'
     | '/calibration/'
+    | '/customer-service/'
     | '/facility/'
     | '/maintenance/'
     | '/production/'
     | '/projects/'
+    | '/qms/'
     | '/security/'
     | '/tasks/'
     | '/workplace/'
@@ -673,6 +865,11 @@ export interface FileRouteTypes {
     | '/share/$token'
     | '/'
     | '/category/$slug'
+    | '/customer-service/complaints'
+    | '/customer-service/field-failures'
+    | '/customer-service/returns'
+    | '/customer-service/satisfaction'
+    | '/customer-service/warranty'
     | '/finance/expenses'
     | '/finance/payment-plans'
     | '/hr/leave'
@@ -695,6 +892,17 @@ export interface FileRouteTypes {
     | '/production/release'
     | '/production/shopfloor'
     | '/projects/$projectId'
+    | '/qms/audits'
+    | '/qms/capa'
+    | '/qms/contingency'
+    | '/qms/findings'
+    | '/qms/improvements'
+    | '/qms/kpi'
+    | '/qms/lessons-learned'
+    | '/qms/management-review'
+    | '/qms/objectives'
+    | '/qms/records'
+    | '/qms/risks'
     | '/quality/incoming'
     | '/settings/categories'
     | '/settings/projects'
@@ -703,10 +911,12 @@ export interface FileRouteTypes {
     | '/api/public/datasheet-proxy'
     | '/assets'
     | '/calibration'
+    | '/customer-service'
     | '/facility'
     | '/maintenance'
     | '/production'
     | '/projects'
+    | '/qms'
     | '/security'
     | '/tasks'
     | '/workplace'
@@ -735,6 +945,11 @@ export interface FileRouteTypes {
     | '/share/$token'
     | '/_authenticated/'
     | '/_authenticated/category/$slug'
+    | '/_authenticated/customer-service/complaints'
+    | '/_authenticated/customer-service/field-failures'
+    | '/_authenticated/customer-service/returns'
+    | '/_authenticated/customer-service/satisfaction'
+    | '/_authenticated/customer-service/warranty'
     | '/_authenticated/finance/expenses'
     | '/_authenticated/finance/payment-plans'
     | '/_authenticated/hr/leave'
@@ -757,6 +972,17 @@ export interface FileRouteTypes {
     | '/_authenticated/production/release'
     | '/_authenticated/production/shopfloor'
     | '/_authenticated/projects/$projectId'
+    | '/_authenticated/qms/audits'
+    | '/_authenticated/qms/capa'
+    | '/_authenticated/qms/contingency'
+    | '/_authenticated/qms/findings'
+    | '/_authenticated/qms/improvements'
+    | '/_authenticated/qms/kpi'
+    | '/_authenticated/qms/lessons-learned'
+    | '/_authenticated/qms/management-review'
+    | '/_authenticated/qms/objectives'
+    | '/_authenticated/qms/records'
+    | '/_authenticated/qms/risks'
     | '/_authenticated/quality/incoming'
     | '/_authenticated/settings/categories'
     | '/_authenticated/settings/projects'
@@ -765,10 +991,12 @@ export interface FileRouteTypes {
     | '/api/public/datasheet-proxy'
     | '/_authenticated/assets/'
     | '/_authenticated/calibration/'
+    | '/_authenticated/customer-service/'
     | '/_authenticated/facility/'
     | '/_authenticated/maintenance/'
     | '/_authenticated/production/'
     | '/_authenticated/projects/'
+    | '/_authenticated/qms/'
     | '/_authenticated/security/'
     | '/_authenticated/tasks/'
     | '/_authenticated/workplace/'
@@ -957,6 +1185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSecurityIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/qms/': {
+      id: '/_authenticated/qms/'
+      path: '/qms'
+      fullPath: '/qms/'
+      preLoaderRoute: typeof AuthenticatedQmsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/projects/': {
       id: '/_authenticated/projects/'
       path: '/projects'
@@ -983,6 +1218,13 @@ declare module '@tanstack/react-router' {
       path: '/facility'
       fullPath: '/facility/'
       preLoaderRoute: typeof AuthenticatedFacilityIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/customer-service/': {
+      id: '/_authenticated/customer-service/'
+      path: '/customer-service'
+      fullPath: '/customer-service/'
+      preLoaderRoute: typeof AuthenticatedCustomerServiceIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/calibration/': {
@@ -1039,6 +1281,83 @@ declare module '@tanstack/react-router' {
       path: '/quality/incoming'
       fullPath: '/quality/incoming'
       preLoaderRoute: typeof AuthenticatedQualityIncomingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/qms/risks': {
+      id: '/_authenticated/qms/risks'
+      path: '/qms/risks'
+      fullPath: '/qms/risks'
+      preLoaderRoute: typeof AuthenticatedQmsRisksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/qms/records': {
+      id: '/_authenticated/qms/records'
+      path: '/qms/records'
+      fullPath: '/qms/records'
+      preLoaderRoute: typeof AuthenticatedQmsRecordsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/qms/objectives': {
+      id: '/_authenticated/qms/objectives'
+      path: '/qms/objectives'
+      fullPath: '/qms/objectives'
+      preLoaderRoute: typeof AuthenticatedQmsObjectivesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/qms/management-review': {
+      id: '/_authenticated/qms/management-review'
+      path: '/qms/management-review'
+      fullPath: '/qms/management-review'
+      preLoaderRoute: typeof AuthenticatedQmsManagementReviewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/qms/lessons-learned': {
+      id: '/_authenticated/qms/lessons-learned'
+      path: '/qms/lessons-learned'
+      fullPath: '/qms/lessons-learned'
+      preLoaderRoute: typeof AuthenticatedQmsLessonsLearnedRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/qms/kpi': {
+      id: '/_authenticated/qms/kpi'
+      path: '/qms/kpi'
+      fullPath: '/qms/kpi'
+      preLoaderRoute: typeof AuthenticatedQmsKpiRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/qms/improvements': {
+      id: '/_authenticated/qms/improvements'
+      path: '/qms/improvements'
+      fullPath: '/qms/improvements'
+      preLoaderRoute: typeof AuthenticatedQmsImprovementsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/qms/findings': {
+      id: '/_authenticated/qms/findings'
+      path: '/qms/findings'
+      fullPath: '/qms/findings'
+      preLoaderRoute: typeof AuthenticatedQmsFindingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/qms/contingency': {
+      id: '/_authenticated/qms/contingency'
+      path: '/qms/contingency'
+      fullPath: '/qms/contingency'
+      preLoaderRoute: typeof AuthenticatedQmsContingencyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/qms/capa': {
+      id: '/_authenticated/qms/capa'
+      path: '/qms/capa'
+      fullPath: '/qms/capa'
+      preLoaderRoute: typeof AuthenticatedQmsCapaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/qms/audits': {
+      id: '/_authenticated/qms/audits'
+      path: '/qms/audits'
+      fullPath: '/qms/audits'
+      preLoaderRoute: typeof AuthenticatedQmsAuditsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/projects/$projectId': {
@@ -1195,6 +1514,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinanceExpensesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/customer-service/warranty': {
+      id: '/_authenticated/customer-service/warranty'
+      path: '/customer-service/warranty'
+      fullPath: '/customer-service/warranty'
+      preLoaderRoute: typeof AuthenticatedCustomerServiceWarrantyRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/customer-service/satisfaction': {
+      id: '/_authenticated/customer-service/satisfaction'
+      path: '/customer-service/satisfaction'
+      fullPath: '/customer-service/satisfaction'
+      preLoaderRoute: typeof AuthenticatedCustomerServiceSatisfactionRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/customer-service/returns': {
+      id: '/_authenticated/customer-service/returns'
+      path: '/customer-service/returns'
+      fullPath: '/customer-service/returns'
+      preLoaderRoute: typeof AuthenticatedCustomerServiceReturnsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/customer-service/field-failures': {
+      id: '/_authenticated/customer-service/field-failures'
+      path: '/customer-service/field-failures'
+      fullPath: '/customer-service/field-failures'
+      preLoaderRoute: typeof AuthenticatedCustomerServiceFieldFailuresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/customer-service/complaints': {
+      id: '/_authenticated/customer-service/complaints'
+      path: '/customer-service/complaints'
+      fullPath: '/customer-service/complaints'
+      preLoaderRoute: typeof AuthenticatedCustomerServiceComplaintsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/category/$slug': {
       id: '/_authenticated/category/$slug'
       path: '/category/$slug'
@@ -1270,6 +1624,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCategorySlugRoute: typeof AuthenticatedCategorySlugRoute
+  AuthenticatedCustomerServiceComplaintsRoute: typeof AuthenticatedCustomerServiceComplaintsRoute
+  AuthenticatedCustomerServiceFieldFailuresRoute: typeof AuthenticatedCustomerServiceFieldFailuresRoute
+  AuthenticatedCustomerServiceReturnsRoute: typeof AuthenticatedCustomerServiceReturnsRoute
+  AuthenticatedCustomerServiceSatisfactionRoute: typeof AuthenticatedCustomerServiceSatisfactionRoute
+  AuthenticatedCustomerServiceWarrantyRoute: typeof AuthenticatedCustomerServiceWarrantyRoute
   AuthenticatedFinanceExpensesRoute: typeof AuthenticatedFinanceExpensesRoute
   AuthenticatedFinancePaymentPlansRoute: typeof AuthenticatedFinancePaymentPlansRoute
   AuthenticatedProcurementDeliveryRevisionsRoute: typeof AuthenticatedProcurementDeliveryRevisionsRoute
@@ -1283,6 +1642,17 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedProcurementSupplierQualityRoute: typeof AuthenticatedProcurementSupplierQualityRoute
   AuthenticatedProcurementVendorsRoute: typeof AuthenticatedProcurementVendorsRoute
   AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRoute
+  AuthenticatedQmsAuditsRoute: typeof AuthenticatedQmsAuditsRoute
+  AuthenticatedQmsCapaRoute: typeof AuthenticatedQmsCapaRoute
+  AuthenticatedQmsContingencyRoute: typeof AuthenticatedQmsContingencyRoute
+  AuthenticatedQmsFindingsRoute: typeof AuthenticatedQmsFindingsRoute
+  AuthenticatedQmsImprovementsRoute: typeof AuthenticatedQmsImprovementsRoute
+  AuthenticatedQmsKpiRoute: typeof AuthenticatedQmsKpiRoute
+  AuthenticatedQmsLessonsLearnedRoute: typeof AuthenticatedQmsLessonsLearnedRoute
+  AuthenticatedQmsManagementReviewRoute: typeof AuthenticatedQmsManagementReviewRoute
+  AuthenticatedQmsObjectivesRoute: typeof AuthenticatedQmsObjectivesRoute
+  AuthenticatedQmsRecordsRoute: typeof AuthenticatedQmsRecordsRoute
+  AuthenticatedQmsRisksRoute: typeof AuthenticatedQmsRisksRoute
   AuthenticatedQualityIncomingRoute: typeof AuthenticatedQualityIncomingRoute
   AuthenticatedSettingsCategoriesRoute: typeof AuthenticatedSettingsCategoriesRoute
   AuthenticatedSettingsProjectsRoute: typeof AuthenticatedSettingsProjectsRoute
@@ -1290,9 +1660,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedTasksDepartmentsRoute: typeof AuthenticatedTasksDepartmentsRoute
   AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
   AuthenticatedCalibrationIndexRoute: typeof AuthenticatedCalibrationIndexRoute
+  AuthenticatedCustomerServiceIndexRoute: typeof AuthenticatedCustomerServiceIndexRoute
   AuthenticatedFacilityIndexRoute: typeof AuthenticatedFacilityIndexRoute
   AuthenticatedMaintenanceIndexRoute: typeof AuthenticatedMaintenanceIndexRoute
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
+  AuthenticatedQmsIndexRoute: typeof AuthenticatedQmsIndexRoute
   AuthenticatedSecurityIndexRoute: typeof AuthenticatedSecurityIndexRoute
   AuthenticatedTasksIndexRoute: typeof AuthenticatedTasksIndexRoute
   AuthenticatedWorkplaceIndexRoute: typeof AuthenticatedWorkplaceIndexRoute
@@ -1313,6 +1685,16 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCategorySlugRoute: AuthenticatedCategorySlugRoute,
+  AuthenticatedCustomerServiceComplaintsRoute:
+    AuthenticatedCustomerServiceComplaintsRoute,
+  AuthenticatedCustomerServiceFieldFailuresRoute:
+    AuthenticatedCustomerServiceFieldFailuresRoute,
+  AuthenticatedCustomerServiceReturnsRoute:
+    AuthenticatedCustomerServiceReturnsRoute,
+  AuthenticatedCustomerServiceSatisfactionRoute:
+    AuthenticatedCustomerServiceSatisfactionRoute,
+  AuthenticatedCustomerServiceWarrantyRoute:
+    AuthenticatedCustomerServiceWarrantyRoute,
   AuthenticatedFinanceExpensesRoute: AuthenticatedFinanceExpensesRoute,
   AuthenticatedFinancePaymentPlansRoute: AuthenticatedFinancePaymentPlansRoute,
   AuthenticatedProcurementDeliveryRevisionsRoute:
@@ -1329,6 +1711,17 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedProcurementSupplierQualityRoute,
   AuthenticatedProcurementVendorsRoute: AuthenticatedProcurementVendorsRoute,
   AuthenticatedProjectsProjectIdRoute: AuthenticatedProjectsProjectIdRoute,
+  AuthenticatedQmsAuditsRoute: AuthenticatedQmsAuditsRoute,
+  AuthenticatedQmsCapaRoute: AuthenticatedQmsCapaRoute,
+  AuthenticatedQmsContingencyRoute: AuthenticatedQmsContingencyRoute,
+  AuthenticatedQmsFindingsRoute: AuthenticatedQmsFindingsRoute,
+  AuthenticatedQmsImprovementsRoute: AuthenticatedQmsImprovementsRoute,
+  AuthenticatedQmsKpiRoute: AuthenticatedQmsKpiRoute,
+  AuthenticatedQmsLessonsLearnedRoute: AuthenticatedQmsLessonsLearnedRoute,
+  AuthenticatedQmsManagementReviewRoute: AuthenticatedQmsManagementReviewRoute,
+  AuthenticatedQmsObjectivesRoute: AuthenticatedQmsObjectivesRoute,
+  AuthenticatedQmsRecordsRoute: AuthenticatedQmsRecordsRoute,
+  AuthenticatedQmsRisksRoute: AuthenticatedQmsRisksRoute,
   AuthenticatedQualityIncomingRoute: AuthenticatedQualityIncomingRoute,
   AuthenticatedSettingsCategoriesRoute: AuthenticatedSettingsCategoriesRoute,
   AuthenticatedSettingsProjectsRoute: AuthenticatedSettingsProjectsRoute,
@@ -1336,9 +1729,12 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedTasksDepartmentsRoute: AuthenticatedTasksDepartmentsRoute,
   AuthenticatedAssetsIndexRoute: AuthenticatedAssetsIndexRoute,
   AuthenticatedCalibrationIndexRoute: AuthenticatedCalibrationIndexRoute,
+  AuthenticatedCustomerServiceIndexRoute:
+    AuthenticatedCustomerServiceIndexRoute,
   AuthenticatedFacilityIndexRoute: AuthenticatedFacilityIndexRoute,
   AuthenticatedMaintenanceIndexRoute: AuthenticatedMaintenanceIndexRoute,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
+  AuthenticatedQmsIndexRoute: AuthenticatedQmsIndexRoute,
   AuthenticatedSecurityIndexRoute: AuthenticatedSecurityIndexRoute,
   AuthenticatedTasksIndexRoute: AuthenticatedTasksIndexRoute,
   AuthenticatedWorkplaceIndexRoute: AuthenticatedWorkplaceIndexRoute,

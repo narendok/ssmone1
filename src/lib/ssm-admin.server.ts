@@ -40,6 +40,8 @@ const ROLE_DEFINITIONS = [
   ["Security", "Security operations", true],
   ["Asset Manager", "Asset lifecycle and custody operations", true],
   ["Calibration", "Measurement equipment and calibration operations", true],
+  ["QMS Manager", "QMS governance, audit and CAPA operations", true],
+  ["Customer Service", "Customer complaint, warranty and return operations", true],
   ["Finance", "Finance operations", true],
   ["Viewer / Auditor", "Read-only access", true],
 ] as const;
@@ -62,9 +64,11 @@ const MODULES = [
   ["calibration", "Calibration", "Operations", "/calibration", "ENABLED", 83],
   ["security", "Security", "Operations", "/security", "ENABLED", 84],
   ["workplace", "Workplace", "Operations", "/workplace", "ENABLED", 85],
+  ["qms", "QMS", "Operations", "/qms", "ENABLED", 86],
+  ["customer_service", "Customer Service", "Operations", "/customer-service", "ENABLED", 87],
 ] as const;
 
-const PERMISSION_MODULES = ["home", "my_work", "projects", "engineering", "procurement", "stores", "quality", "finance", "people", "documents", "admin", "facility", "assets", "maintenance", "calibration", "security", "workplace"];
+const PERMISSION_MODULES = ["home", "my_work", "projects", "engineering", "procurement", "stores", "quality", "finance", "people", "documents", "admin", "facility", "assets", "maintenance", "calibration", "security", "workplace", "qms", "customer_service"];
 const PERMISSION_ACTIONS = ["view", "create", "edit", "delete", "approve", "share", "export", "admin"];
 const HR_PERMISSIONS = [
   ["hr.view", "hr", "View HR workspace", "Allows access to the HR workspace and employee self-service."],

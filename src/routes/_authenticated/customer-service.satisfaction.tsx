@@ -1,0 +1,4 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { PermissionGate } from "@/components/PermissionGate";
+import { Phase9ListPage } from "@/components/phase9/Phase9ListPage";
+export const Route = createFileRoute("/_authenticated/customer-service/satisfaction")({ component: () => <PermissionGate permission="customer_service.view"><Phase9ListPage config={{eyebrow:"Customer service",title:"Customer satisfaction",description:"Maintain evidence-backed customer feedback and satisfaction trend inputs.",table:"customer_satisfaction_surveys",columns:[{key:"survey_code",label:"Survey"},{key:"score",label:"Score"},{key:"period_start",label:"Period start"},{key:"status",label:"Status"}],inputs:[{key:"score",label:"Score",type:"number"},{key:"feedback",label:"Feedback",type:"textarea"},{key:"period_start",label:"Period start",type:"date"},{key:"period_end",label:"Period end",type:"date"}],createLabel:"Record satisfaction"}} /></PermissionGate> });

@@ -923,6 +923,101 @@ export type Database = {
           },
         ]
       }
+      customer_complaints: {
+        Row: {
+          closure_due_date: string | null
+          complaint_code: string
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          customer_visible_update: string | null
+          description: string
+          dispatch_id: string | null
+          id: string
+          internal_analysis: string | null
+          owner_user_id: string | null
+          production_unit_id: string | null
+          project_id: string | null
+          received_at: string
+          response_due_date: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          closure_due_date?: string | null
+          complaint_code: string
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          customer_visible_update?: string | null
+          description: string
+          dispatch_id?: string | null
+          id?: string
+          internal_analysis?: string | null
+          owner_user_id?: string | null
+          production_unit_id?: string | null
+          project_id?: string | null
+          received_at?: string
+          response_due_date?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          closure_due_date?: string | null
+          complaint_code?: string
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          customer_visible_update?: string | null
+          description?: string
+          dispatch_id?: string | null
+          id?: string
+          internal_analysis?: string | null
+          owner_user_id?: string | null
+          production_unit_id?: string | null
+          project_id?: string | null
+          received_at?: string
+          response_due_date?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_complaints_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_dispatch_id_fkey"
+            columns: ["dispatch_id"]
+            isOneToOne: false
+            referencedRelation: "production_dispatches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_production_unit_id_fkey"
+            columns: ["production_unit_id"]
+            isOneToOne: false
+            referencedRelation: "production_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_complaints_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_contacts: {
         Row: {
           created_at: string
@@ -978,6 +1073,76 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_field_failures: {
+        Row: {
+          analysis_status: string
+          analysis_summary: string | null
+          complaint_id: string | null
+          confirmed_at: string | null
+          created_at: string
+          created_by: string
+          failure_code: string
+          failure_mode: string | null
+          failure_summary: string
+          id: string
+          production_unit_id: string | null
+          return_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          analysis_status?: string
+          analysis_summary?: string | null
+          complaint_id?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          created_by?: string
+          failure_code: string
+          failure_mode?: string | null
+          failure_summary: string
+          id?: string
+          production_unit_id?: string | null
+          return_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          analysis_status?: string
+          analysis_summary?: string | null
+          complaint_id?: string | null
+          confirmed_at?: string | null
+          created_at?: string
+          created_by?: string
+          failure_code?: string
+          failure_mode?: string | null
+          failure_summary?: string
+          id?: string
+          production_unit_id?: string | null
+          return_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_field_failures_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "customer_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_field_failures_production_unit_id_fkey"
+            columns: ["production_unit_id"]
+            isOneToOne: false
+            referencedRelation: "production_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_field_failures_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "customer_returns"
             referencedColumns: ["id"]
           },
         ]
@@ -1174,6 +1339,206 @@ export type Database = {
             columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "sales_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_returns: {
+        Row: {
+          complaint_id: string | null
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          disposition: string | null
+          id: string
+          production_unit_id: string | null
+          received_date: string | null
+          return_code: string
+          return_reason: string | null
+          status: string
+          updated_at: string
+          warranty_claim_id: string | null
+        }
+        Insert: {
+          complaint_id?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          disposition?: string | null
+          id?: string
+          production_unit_id?: string | null
+          received_date?: string | null
+          return_code: string
+          return_reason?: string | null
+          status?: string
+          updated_at?: string
+          warranty_claim_id?: string | null
+        }
+        Update: {
+          complaint_id?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          disposition?: string | null
+          id?: string
+          production_unit_id?: string | null
+          received_date?: string | null
+          return_code?: string
+          return_reason?: string | null
+          status?: string
+          updated_at?: string
+          warranty_claim_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_returns_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "customer_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_returns_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_returns_production_unit_id_fkey"
+            columns: ["production_unit_id"]
+            isOneToOne: false
+            referencedRelation: "production_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_returns_warranty_claim_id_fkey"
+            columns: ["warranty_claim_id"]
+            isOneToOne: false
+            referencedRelation: "customer_warranty_claims"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_satisfaction_surveys: {
+        Row: {
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          evidence_reference: string | null
+          feedback: string | null
+          id: string
+          period_end: string | null
+          period_start: string | null
+          score: number | null
+          status: string
+          survey_code: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          evidence_reference?: string | null
+          feedback?: string | null
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          score?: number | null
+          status?: string
+          survey_code: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          evidence_reference?: string | null
+          feedback?: string | null
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          score?: number | null
+          status?: string
+          survey_code?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_satisfaction_surveys_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_warranty_claims: {
+        Row: {
+          claim_code: string
+          claim_summary: string
+          complaint_id: string | null
+          created_at: string
+          created_by: string
+          customer_id: string | null
+          eligibility_notes: string | null
+          eligibility_status: string
+          id: string
+          owner_user_id: string | null
+          production_unit_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          claim_code: string
+          claim_summary: string
+          complaint_id?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          eligibility_notes?: string | null
+          eligibility_status?: string
+          id?: string
+          owner_user_id?: string | null
+          production_unit_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          claim_code?: string
+          claim_summary?: string
+          complaint_id?: string | null
+          created_at?: string
+          created_by?: string
+          customer_id?: string | null
+          eligibility_notes?: string | null
+          eligibility_status?: string
+          id?: string
+          owner_user_id?: string | null
+          production_unit_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_warranty_claims_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "customer_complaints"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_warranty_claims_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_warranty_claims_production_unit_id_fkey"
+            columns: ["production_unit_id"]
+            isOneToOne: false
+            referencedRelation: "production_units"
             referencedColumns: ["id"]
           },
         ]
@@ -6181,6 +6546,901 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qms_audit_findings: {
+        Row: {
+          audit_id: string
+          created_at: string
+          created_by: string
+          description: string
+          due_date: string | null
+          evidence_reference: string | null
+          finding_code: string
+          finding_type: string
+          id: string
+          owner_user_id: string | null
+          requirement_reference: string | null
+          severity: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          audit_id: string
+          created_at?: string
+          created_by?: string
+          description: string
+          due_date?: string | null
+          evidence_reference?: string | null
+          finding_code: string
+          finding_type?: string
+          id?: string
+          owner_user_id?: string | null
+          requirement_reference?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          audit_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          due_date?: string | null
+          evidence_reference?: string | null
+          finding_code?: string
+          finding_type?: string
+          id?: string
+          owner_user_id?: string | null
+          requirement_reference?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qms_audit_findings_audit_id_fkey"
+            columns: ["audit_id"]
+            isOneToOne: false
+            referencedRelation: "qms_audits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qms_audits: {
+        Row: {
+          audit_code: string
+          audit_type: string
+          auditee_user_id: string | null
+          auditor_user_id: string | null
+          checklist_reference: string | null
+          created_at: string
+          created_by: string
+          criteria: string | null
+          department_id: string | null
+          id: string
+          planned_date: string | null
+          process_name: string | null
+          risk_basis: string | null
+          scope: string | null
+          status: string
+          summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          audit_code: string
+          audit_type: string
+          auditee_user_id?: string | null
+          auditor_user_id?: string | null
+          checklist_reference?: string | null
+          created_at?: string
+          created_by?: string
+          criteria?: string | null
+          department_id?: string | null
+          id?: string
+          planned_date?: string | null
+          process_name?: string | null
+          risk_basis?: string | null
+          scope?: string | null
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audit_code?: string
+          audit_type?: string
+          auditee_user_id?: string | null
+          auditor_user_id?: string | null
+          checklist_reference?: string | null
+          created_at?: string
+          created_by?: string
+          criteria?: string | null
+          department_id?: string | null
+          id?: string
+          planned_date?: string | null
+          process_name?: string | null
+          risk_basis?: string | null
+          scope?: string | null
+          status?: string
+          summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qms_audits_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qms_capas: {
+        Row: {
+          capa_code: string
+          closed_at: string | null
+          closed_by: string | null
+          containment_action: string | null
+          correction_action: string | null
+          corrective_action: string | null
+          created_at: string
+          created_by: string
+          effectiveness_due_date: string | null
+          effectiveness_review: string | null
+          effectiveness_reviewer_id: string | null
+          id: string
+          owner_user_id: string | null
+          problem_statement: string
+          root_cause_method: string | null
+          root_cause_summary: string | null
+          source_record_id: string | null
+          source_type: string | null
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          capa_code: string
+          closed_at?: string | null
+          closed_by?: string | null
+          containment_action?: string | null
+          correction_action?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          created_by?: string
+          effectiveness_due_date?: string | null
+          effectiveness_review?: string | null
+          effectiveness_reviewer_id?: string | null
+          id?: string
+          owner_user_id?: string | null
+          problem_statement: string
+          root_cause_method?: string | null
+          root_cause_summary?: string | null
+          source_record_id?: string | null
+          source_type?: string | null
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          capa_code?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          containment_action?: string | null
+          correction_action?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          created_by?: string
+          effectiveness_due_date?: string | null
+          effectiveness_review?: string | null
+          effectiveness_reviewer_id?: string | null
+          id?: string
+          owner_user_id?: string | null
+          problem_statement?: string
+          root_cause_method?: string | null
+          root_cause_summary?: string | null
+          source_record_id?: string | null
+          source_type?: string | null
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qms_contingency_plans: {
+        Row: {
+          affected_process: string | null
+          backup_resource: string | null
+          communication_plan: string | null
+          created_at: string
+          created_by: string
+          customer_impact: string | null
+          id: string
+          last_review_date: string | null
+          last_test_date: string | null
+          next_review_date: string | null
+          plan_code: string
+          recovery_steps: string | null
+          recovery_validation: string | null
+          response_plan: string
+          responsible_roles: string | null
+          risk_id: string | null
+          scenario: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          affected_process?: string | null
+          backup_resource?: string | null
+          communication_plan?: string | null
+          created_at?: string
+          created_by?: string
+          customer_impact?: string | null
+          id?: string
+          last_review_date?: string | null
+          last_test_date?: string | null
+          next_review_date?: string | null
+          plan_code: string
+          recovery_steps?: string | null
+          recovery_validation?: string | null
+          response_plan: string
+          responsible_roles?: string | null
+          risk_id?: string | null
+          scenario: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          affected_process?: string | null
+          backup_resource?: string | null
+          communication_plan?: string | null
+          created_at?: string
+          created_by?: string
+          customer_impact?: string | null
+          id?: string
+          last_review_date?: string | null
+          last_test_date?: string | null
+          next_review_date?: string | null
+          plan_code?: string
+          recovery_steps?: string | null
+          recovery_validation?: string | null
+          response_plan?: string
+          responsible_roles?: string | null
+          risk_id?: string | null
+          scenario?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qms_contingency_plans_risk_id_fkey"
+            columns: ["risk_id"]
+            isOneToOne: false
+            referencedRelation: "qms_risks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qms_contingency_tests: {
+        Row: {
+          action_summary: string | null
+          created_at: string
+          created_by: string
+          effectiveness: string | null
+          evidence_reference: string | null
+          gap_summary: string | null
+          id: string
+          observed_result: string | null
+          participants: string | null
+          plan_id: string
+          test_date: string
+        }
+        Insert: {
+          action_summary?: string | null
+          created_at?: string
+          created_by?: string
+          effectiveness?: string | null
+          evidence_reference?: string | null
+          gap_summary?: string | null
+          id?: string
+          observed_result?: string | null
+          participants?: string | null
+          plan_id: string
+          test_date: string
+        }
+        Update: {
+          action_summary?: string | null
+          created_at?: string
+          created_by?: string
+          effectiveness?: string | null
+          evidence_reference?: string | null
+          gap_summary?: string | null
+          id?: string
+          observed_result?: string | null
+          participants?: string | null
+          plan_id?: string
+          test_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qms_contingency_tests_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "qms_contingency_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qms_improvements: {
+        Row: {
+          benefit_summary: string | null
+          created_at: string
+          created_by: string
+          description: string | null
+          evidence_reference: string | null
+          id: string
+          improvement_code: string
+          owner_user_id: string | null
+          source_record_id: string | null
+          source_type: string | null
+          status: string
+          target_date: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          benefit_summary?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          evidence_reference?: string | null
+          id?: string
+          improvement_code: string
+          owner_user_id?: string | null
+          source_record_id?: string | null
+          source_type?: string | null
+          status?: string
+          target_date?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          benefit_summary?: string | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          evidence_reference?: string | null
+          id?: string
+          improvement_code?: string
+          owner_user_id?: string | null
+          source_record_id?: string | null
+          source_type?: string | null
+          status?: string
+          target_date?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qms_kpi_formula_versions: {
+        Row: {
+          calculation_method: string
+          change_reason: string | null
+          changed_by: string
+          created_at: string
+          effective_date: string
+          id: string
+          kpi_id: string
+          source_reference: string | null
+          version_number: number
+        }
+        Insert: {
+          calculation_method: string
+          change_reason?: string | null
+          changed_by?: string
+          created_at?: string
+          effective_date?: string
+          id?: string
+          kpi_id: string
+          source_reference?: string | null
+          version_number: number
+        }
+        Update: {
+          calculation_method?: string
+          change_reason?: string | null
+          changed_by?: string
+          created_at?: string
+          effective_date?: string
+          id?: string
+          kpi_id?: string
+          source_reference?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qms_kpi_formula_versions_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "qms_kpis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qms_kpi_snapshots: {
+        Row: {
+          created_at: string
+          data_quality_reason: string | null
+          data_quality_status: string
+          entered_by: string | null
+          evidence_reference: string | null
+          formula_version_id: string | null
+          id: string
+          kpi_id: string
+          period_end: string
+          period_start: string
+          reviewed_by: string | null
+          source_data_timestamp: string | null
+          status: string
+          target_value: number | null
+          value: number | null
+        }
+        Insert: {
+          created_at?: string
+          data_quality_reason?: string | null
+          data_quality_status?: string
+          entered_by?: string | null
+          evidence_reference?: string | null
+          formula_version_id?: string | null
+          id?: string
+          kpi_id: string
+          period_end: string
+          period_start: string
+          reviewed_by?: string | null
+          source_data_timestamp?: string | null
+          status?: string
+          target_value?: number | null
+          value?: number | null
+        }
+        Update: {
+          created_at?: string
+          data_quality_reason?: string | null
+          data_quality_status?: string
+          entered_by?: string | null
+          evidence_reference?: string | null
+          formula_version_id?: string | null
+          id?: string
+          kpi_id?: string
+          period_end?: string
+          period_start?: string
+          reviewed_by?: string | null
+          source_data_timestamp?: string | null
+          status?: string
+          target_value?: number | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qms_kpi_snapshots_formula_version_id_fkey"
+            columns: ["formula_version_id"]
+            isOneToOne: false
+            referencedRelation: "qms_kpi_formula_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qms_kpi_snapshots_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "qms_kpis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qms_kpis: {
+        Row: {
+          calculation_method: string | null
+          created_at: string
+          created_by: string
+          critical_threshold: number | null
+          department_id: string | null
+          description: string | null
+          direction: string
+          frequency: string
+          id: string
+          is_active: boolean
+          kpi_code: string
+          name: string
+          owner_user_id: string | null
+          reviewer_user_id: string | null
+          source_reference: string | null
+          source_type: string
+          target_value: number | null
+          unit: string | null
+          updated_at: string
+          warning_threshold: number | null
+        }
+        Insert: {
+          calculation_method?: string | null
+          created_at?: string
+          created_by?: string
+          critical_threshold?: number | null
+          department_id?: string | null
+          description?: string | null
+          direction?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          kpi_code: string
+          name: string
+          owner_user_id?: string | null
+          reviewer_user_id?: string | null
+          source_reference?: string | null
+          source_type?: string
+          target_value?: number | null
+          unit?: string | null
+          updated_at?: string
+          warning_threshold?: number | null
+        }
+        Update: {
+          calculation_method?: string | null
+          created_at?: string
+          created_by?: string
+          critical_threshold?: number | null
+          department_id?: string | null
+          description?: string | null
+          direction?: string
+          frequency?: string
+          id?: string
+          is_active?: boolean
+          kpi_code?: string
+          name?: string
+          owner_user_id?: string | null
+          reviewer_user_id?: string | null
+          source_reference?: string | null
+          source_type?: string
+          target_value?: number | null
+          unit?: string | null
+          updated_at?: string
+          warning_threshold?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qms_kpis_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qms_lessons_learned: {
+        Row: {
+          applicability: string | null
+          context: string | null
+          created_at: string
+          created_by: string
+          id: string
+          lesson: string
+          lesson_code: string
+          recommendation: string | null
+          source_record_id: string | null
+          source_type: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          applicability?: string | null
+          context?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          lesson: string
+          lesson_code: string
+          recommendation?: string | null
+          source_record_id?: string | null
+          source_type?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          applicability?: string | null
+          context?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          lesson?: string
+          lesson_code?: string
+          recommendation?: string | null
+          source_record_id?: string | null
+          source_type?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qms_management_reviews: {
+        Row: {
+          action_summary: string | null
+          created_at: string
+          created_by: string
+          decisions: string | null
+          id: string
+          meeting_date: string | null
+          next_review_date: string | null
+          performance_summary: string | null
+          planned_date: string
+          review_code: string
+          scope: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action_summary?: string | null
+          created_at?: string
+          created_by?: string
+          decisions?: string | null
+          id?: string
+          meeting_date?: string | null
+          next_review_date?: string | null
+          performance_summary?: string | null
+          planned_date: string
+          review_code: string
+          scope?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action_summary?: string | null
+          created_at?: string
+          created_by?: string
+          decisions?: string | null
+          id?: string
+          meeting_date?: string | null
+          next_review_date?: string | null
+          performance_summary?: string | null
+          planned_date?: string
+          review_code?: string
+          scope?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qms_objective_kpis: {
+        Row: {
+          created_at: string
+          kpi_id: string
+          objective_id: string
+        }
+        Insert: {
+          created_at?: string
+          kpi_id: string
+          objective_id: string
+        }
+        Update: {
+          created_at?: string
+          kpi_id?: string
+          objective_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qms_objective_kpis_kpi_id_fkey"
+            columns: ["kpi_id"]
+            isOneToOne: false
+            referencedRelation: "qms_kpis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "qms_objective_kpis_objective_id_fkey"
+            columns: ["objective_id"]
+            isOneToOne: false
+            referencedRelation: "qms_quality_objectives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qms_quality_objectives: {
+        Row: {
+          action_plan: string | null
+          baseline_value: number | null
+          created_at: string
+          created_by: string
+          department_id: string | null
+          description: string | null
+          end_date: string | null
+          evidence_reference: string | null
+          frequency: string
+          id: string
+          metric_summary: string | null
+          objective_code: string
+          owner_user_id: string | null
+          review_notes: string | null
+          start_date: string | null
+          status: string
+          target_value: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          action_plan?: string | null
+          baseline_value?: number | null
+          created_at?: string
+          created_by?: string
+          department_id?: string | null
+          description?: string | null
+          end_date?: string | null
+          evidence_reference?: string | null
+          frequency?: string
+          id?: string
+          metric_summary?: string | null
+          objective_code: string
+          owner_user_id?: string | null
+          review_notes?: string | null
+          start_date?: string | null
+          status?: string
+          target_value?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          action_plan?: string | null
+          baseline_value?: number | null
+          created_at?: string
+          created_by?: string
+          department_id?: string | null
+          description?: string | null
+          end_date?: string | null
+          evidence_reference?: string | null
+          frequency?: string
+          id?: string
+          metric_summary?: string | null
+          objective_code?: string
+          owner_user_id?: string | null
+          review_notes?: string | null
+          start_date?: string | null
+          status?: string
+          target_value?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qms_quality_objectives_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qms_retention_policies: {
+        Row: {
+          archive_method: string | null
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          legal_customer_basis: string | null
+          owner_user_id: string | null
+          record_type: string
+          retention_duration_months: number
+          retention_trigger: string
+          updated_at: string
+        }
+        Insert: {
+          archive_method?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          legal_customer_basis?: string | null
+          owner_user_id?: string | null
+          record_type: string
+          retention_duration_months: number
+          retention_trigger: string
+          updated_at?: string
+        }
+        Update: {
+          archive_method?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          legal_customer_basis?: string | null
+          owner_user_id?: string | null
+          record_type?: string
+          retention_duration_months?: number
+          retention_trigger?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      qms_risks: {
+        Row: {
+          action_plan: string | null
+          cause: string | null
+          created_at: string
+          created_by: string
+          department_id: string | null
+          description: string
+          due_date: string | null
+          existing_controls: string | null
+          id: string
+          likelihood: number | null
+          owner_user_id: string | null
+          potential_impact: string | null
+          process_name: string | null
+          record_kind: string
+          residual_risk: number | null
+          risk_code: string
+          risk_evaluation: number | null
+          severity: number | null
+          source_record_id: string | null
+          source_type: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          action_plan?: string | null
+          cause?: string | null
+          created_at?: string
+          created_by?: string
+          department_id?: string | null
+          description: string
+          due_date?: string | null
+          existing_controls?: string | null
+          id?: string
+          likelihood?: number | null
+          owner_user_id?: string | null
+          potential_impact?: string | null
+          process_name?: string | null
+          record_kind?: string
+          residual_risk?: number | null
+          risk_code: string
+          risk_evaluation?: number | null
+          severity?: number | null
+          source_record_id?: string | null
+          source_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          action_plan?: string | null
+          cause?: string | null
+          created_at?: string
+          created_by?: string
+          department_id?: string | null
+          description?: string
+          due_date?: string | null
+          existing_controls?: string | null
+          id?: string
+          likelihood?: number | null
+          owner_user_id?: string | null
+          potential_impact?: string | null
+          process_name?: string | null
+          record_kind?: string
+          residual_risk?: number | null
+          risk_code?: string
+          risk_evaluation?: number | null
+          severity?: number | null
+          source_record_id?: string | null
+          source_type?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qms_risks_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
         ]
