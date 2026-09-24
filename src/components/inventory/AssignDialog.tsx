@@ -33,6 +33,7 @@ export function AssignDialog({ open, onOpenChange, components, onSaved }: Props)
   const [projectId, setProjectId] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [requestKey, setRequestKey] = useState("");
   const [search, setSearch] = useState("");
   const [lines, setLines] = useState<Line[]>(() =>
     components.map((c) => ({ part: c, locationId: c.locations[0]?.id ?? "", qty: 1 }))
@@ -99,7 +100,7 @@ export function AssignDialog({ open, onOpenChange, components, onSaved }: Props)
       _project_name: project?.name ?? null,
       _notes: notes.trim() || null,
       _items: lines.map((line) => ({ component_id: line.part.id, location_id: line.locationId, quantity: line.qty })),
-      _idempotency_key: crypto.randomUUID(),
+      _idempotency_key: requestKey || crypto.randomUUID(),
     });
     if (error) { setSaving(false); return toast.error(error.message); }
 
@@ -110,6 +111,7 @@ export function AssignDialog({ open, onOpenChange, components, onSaved }: Props)
       { description: assignee?.email ? `Notification queued for ${assignee.email}` : undefined }
     );
     setSaving(false);
+    setRequestKey("");
     onSaved(lines[0].part.id);
   }
 

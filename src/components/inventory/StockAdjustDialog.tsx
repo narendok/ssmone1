@@ -24,6 +24,7 @@ export function StockAdjustDialog({ open, onOpenChange, component, onSaved }: Pr
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
+  const [requestKey, setRequestKey] = useState("");
 
   const loc = component.locations.find((l) => l.id === locationId);
 
@@ -38,7 +39,7 @@ export function StockAdjustDialog({ open, onOpenChange, component, onSaved }: Pr
       _location_id: loc.id,
       _delta: delta,
       _reason: note.trim(),
-      _idempotency_key: crypto.randomUUID(),
+      _idempotency_key: requestKey || crypto.randomUUID(),
     });
     if (error) { setSaving(false); return toast.error(error.message); }
 
@@ -54,6 +55,7 @@ export function StockAdjustDialog({ open, onOpenChange, component, onSaved }: Pr
       });
     }
     setSaving(false);
+    setRequestKey("");
     onSaved(component.id);
   }
 

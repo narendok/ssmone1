@@ -20,6 +20,7 @@ function AssignmentsPage() {
   const qc = useQueryClient();
   const [returning, setReturning] = useState<any | null>(null);
   const [retQty, setRetQty] = useState(0);
+  const [returnRequestKey, setReturnRequestKey] = useState("");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["assignments_all"],
@@ -33,11 +34,11 @@ function AssignmentsPage() {
     },
   });
 
-  async function returnRow(row: any, qty: number) {
+  async function returnRow(row: any, qty: number, requestKey = crypto.randomUUID()) {
     const { error } = await (supabase as any).rpc("post_material_return", {
       _assignment_id: row.id,
       _quantity: qty,
-      _idempotency_key: crypto.randomUUID(),
+      _idempotency_key: requestKey,
     });
     if (error) throw error;
   }
@@ -51,9 +52,10 @@ function AssignmentsPage() {
     if (!returning) return;
     const remaining = returning.quantity - returning.quantity_returned;
     if (retQty <= 0 || retQty > remaining) return toast.error(`Return 1–${remaining}`);
-    await returnRow(returning, retQty);
+    await returnRow(returning, retQty, returnRequestKey || crypto.randomUUID());
     toast.success(`Returned ${retQty} pcs`);
     setReturning(null);
+    setReturnRequestKey("");
     refreshLists();
   }
 
@@ -106,7 +108,7 @@ function AssignmentsPage() {
                   <Button size="sm" variant="outline" onClick={() => handleReturnBundle(b.rows)}>Return all</Button>
                 )}
               </div>
-              <AssignTable rows={b.rows} isLoading={false} onReturn={(r) => { setReturning(r); setRetQty(r.quantity - r.quantity_returned); }} />
+              <AssignTable rows={b.rows} isLoading={false} onReturn={(r) => { setReturning(r); setRetQty(r.quantity - r.quantity_returned); setReturnRequestKey(crypto.randomUUID()); }} />
             </Card>
           );
         })}
