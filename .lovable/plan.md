@@ -61,3 +61,11 @@ Android/mobile client
 ```
 
 The mobile app will never receive privileged credentials or directly perform authoritative multi-table stock updates.
+
+## Mandatory technical acceptance criteria
+- **Payload-bound idempotency:** Every critical stock request stores a canonical payload fingerprint with its request UUID. An identical retry returns the original result; reusing the UUID with a different payload fails as an idempotency conflict.
+- **Deterministic locking:** Multi-row GRN and stock operations lock PO lines, lots, locations, and reservations in a stable deterministic order. Validation and mutation stay in the same authoritative transaction.
+- **RLS-safe projections:** Operational projections remain subject to least-privilege checks and do not accidentally bypass row access controls. Verification explicitly proves that Store/Receiving roles cannot retrieve unit prices, totals, tax, margins, payment terms, vendor bank details, or finance-only data.
+- **Android trust boundary:** Android uses only the authenticated session and client-safe URL/publishable key. It never receives service access, database credentials, or server credentials, and never posts authoritative multi-table stock mutations directly.
+- **Web regression protection:** The existing web adjustment, R&D kit issue, and return journeys retain their current interaction flow while using the new server transactions. Tests prove one successful effect, complete rollback on failure, no duplicate effect on retry, and continuing readability of historical records.
+- **Readiness report:** The final remediation report lists Mobile Stages 5A, 5B, 5C, 5D, 5E, 5F, and 5G separately as READY or BLOCKED, then stops. It does not begin Web Phase 11 or Android implementation.
