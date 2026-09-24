@@ -21,6 +21,12 @@ A single existing managed backend is evidenced by the current project configurat
 4. Use the documented authenticated server mutation/RPC contracts for controlled actions.
 5. For private files, request authorized signed delivery/upload flows; never build public object URLs.
 
+## Stage 5 controlled inventory actions
+
+- Android posts Final GRN only through `create_grn` with a UUID generated once per submission and persisted across retries. The same UUID and unchanged payload return the original result; a changed payload is rejected.
+- Material issue, return, transfer, and adjustment use their respective protected posting contracts. They are online-only, server-numbered, and never composed from client-side table writes.
+- Use only `operational_receiving_purchase_orders` and `operational_receiving_purchase_order_items` for receiving screens. These operational projections deliberately omit unit prices, totals, tax, margins, payment terms, vendor banking, and finance-only data.
+
 ## RLS assumptions
 
 - Every mobile request is made with the current user session.
