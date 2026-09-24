@@ -34,7 +34,7 @@ function AssignmentsPage() {
     },
   });
 
-  async function returnRow(row: any, qty: number, requestKey = crypto.randomUUID()) {
+  async function returnRow(row: any, qty: number, requestKey: `${string}-${string}-${string}-${string}-${string}` = crypto.randomUUID()) {
     const { error } = await (supabase as any).rpc("post_material_return", {
       _assignment_id: row.id,
       _quantity: qty,
@@ -52,7 +52,7 @@ function AssignmentsPage() {
     if (!returning) return;
     const remaining = returning.quantity - returning.quantity_returned;
     if (retQty <= 0 || retQty > remaining) return toast.error(`Return 1–${remaining}`);
-    await returnRow(returning, retQty, returnRequestKey || crypto.randomUUID());
+    await returnRow(returning, retQty, (returnRequestKey || crypto.randomUUID()) as `${string}-${string}-${string}-${string}-${string}`);
     toast.success(`Returned ${retQty} pcs`);
     setReturning(null);
     setReturnRequestKey("");
