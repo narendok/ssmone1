@@ -33,7 +33,7 @@ export const finalizeExternalUpload = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase.from("external_uploads").select("id").eq("id", data.uploadId).maybeSingle();
     if (error || !row) throw new Error("The staged upload was not found.");
-    await context.supabase.rpc("external_log_access", { _entity_type: "external_upload", _entity_id: data.uploadId, _event_type: "UPLOAD_SUBMITTED", _snapshot_id: null, _metadata: {} });
+    await context.supabase.rpc("external_log_access", { _entity_type: "external_upload", _entity_id: data.uploadId, _event_type: "UPLOAD_SUBMITTED", _metadata: {} });
     return { ok: true };
   });
 

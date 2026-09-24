@@ -15,7 +15,7 @@ export const Route = createFileRoute("/api/public/external-webhook/$subscription
     let payload: unknown;
     try { payload = JSON.parse(body); } catch { return new Response("Invalid JSON", { status: 400 }); }
     const idempotencyKey = request.headers.get("idempotency-key") ?? crypto.randomUUID();
-    const { error } = await supabaseAdmin.from("external_webhook_deliveries").insert({ subscription_id: subscription.id, event_key: "inbound.received", idempotency_key: idempotencyKey, status: "COMPLETED", response_status: 202, response_summary: "Accepted after signature validation", attempted_at: new Date().toISOString(), completed_at: new Date().toISOString(), payload, attempt_count: 1 });
+    const { error } = await supabaseAdmin.from("external_webhook_deliveries").insert({ subscription_id: subscription.id, event_key: "inbound.received", idempotency_key: idempotencyKey, status: "COMPLETED", response_status: 202, response_summary: "Accepted after signature validation", attempted_at: new Date().toISOString(), completed_at: new Date().toISOString(), payload: payload as any, attempt_count: 1 });
     if (error && !error.message.toLowerCase().includes("duplicate")) return new Response("Could not record delivery", { status: 500 });
     return new Response("Accepted", { status: 202 });
   } } },

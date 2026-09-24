@@ -31,7 +31,7 @@ export const getExternalPortal = createServerFn({ method: "GET" })
       context.supabase.from("external_upload_requests").select("id,request_code,requested_document,status,due_date").order("created_at", { ascending: false }),
       context.supabase.from("external_data_rooms").select("id,room_code,title,description,expires_at").order("created_at", { ascending: false }),
     ]);
-    await context.supabase.rpc("external_log_access", { _entity_type: "external_portal", _entity_id: contact.id, _event_type: "PORTAL_OPENED", _snapshot_id: null, _metadata: {} });
+    await context.supabase.rpc("external_log_access", { _entity_type: "external_portal", _entity_id: contact.id, _event_type: "PORTAL_OPENED", _metadata: {} });
     return { name: contact.full_name, party: (contact.external_parties as unknown as { display_name?: string } | null)?.display_name ?? "External partner", shares: shares ?? [], transmittals: transmittals ?? [], reviews: reviews ?? [], uploadRequests: uploads ?? [], rooms: rooms ?? [] };
   });
 
@@ -41,6 +41,6 @@ export const respondToExternalReview = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("external_review_requests").update({ response: data.response, status: data.status }).eq("id", data.reviewId);
     if (error) throw new Error(error.message);
-    await context.supabase.rpc("external_log_access", { _entity_type: "external_review_request", _entity_id: data.reviewId, _event_type: "RESPONSE_SUBMITTED", _snapshot_id: null, _metadata: { status: data.status } });
+    await context.supabase.rpc("external_log_access", { _entity_type: "external_review_request", _entity_id: data.reviewId, _event_type: "RESPONSE_SUBMITTED", _metadata: { status: data.status } });
     return { ok: true };
   });
