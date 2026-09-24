@@ -99,6 +99,7 @@ import { Route as AuthenticatedCustomerServiceFieldFailuresRouteImport } from '.
 import { Route as AuthenticatedCustomerServiceComplaintsRouteImport } from './routes/_authenticated/customer-service.complaints'
 import { Route as AuthenticatedCategorySlugRouteImport } from './routes/_authenticated/category.$slug'
 import { Route as ApiPublicHooksRefreshSupplierDataRouteImport } from './routes/api/public/hooks/refresh-supplier-data'
+import { Route as ApiPublicExternalWebhookSubscriptionIdRouteImport } from './routes/api/public/external-webhook.$subscriptionId'
 
 const ExternalPortalRoute = ExternalPortalRouteImport.update({
   id: '/external-portal',
@@ -606,6 +607,12 @@ const ApiPublicHooksRefreshSupplierDataRoute =
     path: '/api/public/hooks/refresh-supplier-data',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicExternalWebhookSubscriptionIdRoute =
+  ApiPublicExternalWebhookSubscriptionIdRouteImport.update({
+    id: '/api/public/external-webhook/$subscriptionId',
+    path: '/api/public/external-webhook/$subscriptionId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -696,6 +703,7 @@ export interface FileRoutesByFullPath {
   '/security/': typeof AuthenticatedSecurityIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/workplace/': typeof AuthenticatedWorkplaceIndexRoute
+  '/api/public/external-webhook/$subscriptionId': typeof ApiPublicExternalWebhookSubscriptionIdRoute
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
 }
 export interface FileRoutesByTo {
@@ -786,6 +794,7 @@ export interface FileRoutesByTo {
   '/security': typeof AuthenticatedSecurityIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/workplace': typeof AuthenticatedWorkplaceIndexRoute
+  '/api/public/external-webhook/$subscriptionId': typeof ApiPublicExternalWebhookSubscriptionIdRoute
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
 }
 export interface FileRoutesById {
@@ -879,6 +888,7 @@ export interface FileRoutesById {
   '/_authenticated/security/': typeof AuthenticatedSecurityIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/workplace/': typeof AuthenticatedWorkplaceIndexRoute
+  '/api/public/external-webhook/$subscriptionId': typeof ApiPublicExternalWebhookSubscriptionIdRoute
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
 }
 export interface FileRouteTypes {
@@ -972,6 +982,7 @@ export interface FileRouteTypes {
     | '/security/'
     | '/tasks/'
     | '/workplace/'
+    | '/api/public/external-webhook/$subscriptionId'
     | '/api/public/hooks/refresh-supplier-data'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -1062,6 +1073,7 @@ export interface FileRouteTypes {
     | '/security'
     | '/tasks'
     | '/workplace'
+    | '/api/public/external-webhook/$subscriptionId'
     | '/api/public/hooks/refresh-supplier-data'
   id:
     | '__root__'
@@ -1154,6 +1166,7 @@ export interface FileRouteTypes {
     | '/_authenticated/security/'
     | '/_authenticated/tasks/'
     | '/_authenticated/workplace/'
+    | '/api/public/external-webhook/$subscriptionId'
     | '/api/public/hooks/refresh-supplier-data'
   fileRoutesById: FileRoutesById
 }
@@ -1167,6 +1180,7 @@ export interface RootRouteChildren {
   PortalTokenRoute: typeof PortalTokenRoute
   ShareTokenRoute: typeof ShareTokenRoute
   ApiPublicDatasheetProxyRoute: typeof ApiPublicDatasheetProxyRoute
+  ApiPublicExternalWebhookSubscriptionIdRoute: typeof ApiPublicExternalWebhookSubscriptionIdRoute
   ApiPublicHooksRefreshSupplierDataRoute: typeof ApiPublicHooksRefreshSupplierDataRoute
 }
 
@@ -1802,6 +1816,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRefreshSupplierDataRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/external-webhook/$subscriptionId': {
+      id: '/api/public/external-webhook/$subscriptionId'
+      path: '/api/public/external-webhook/$subscriptionId'
+      fullPath: '/api/public/external-webhook/$subscriptionId'
+      preLoaderRoute: typeof ApiPublicExternalWebhookSubscriptionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -2045,6 +2066,8 @@ const rootRouteChildren: RootRouteChildren = {
   PortalTokenRoute: PortalTokenRoute,
   ShareTokenRoute: ShareTokenRoute,
   ApiPublicDatasheetProxyRoute: ApiPublicDatasheetProxyRoute,
+  ApiPublicExternalWebhookSubscriptionIdRoute:
+    ApiPublicExternalWebhookSubscriptionIdRoute,
   ApiPublicHooksRefreshSupplierDataRoute:
     ApiPublicHooksRefreshSupplierDataRoute,
 }
