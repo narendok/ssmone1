@@ -173,6 +173,8 @@ export function CreateGRNDialog({
     if (!items.length) return toast.error("Enter at least one accepted or rejected quantity");
 
     setSaving(true);
+    const key = requestKey || crypto.randomUUID();
+    if (!requestKey) setRequestKey(key);
     try {
       const res = await createGrn({
         po_id: po.id,
@@ -180,7 +182,7 @@ export function CreateGRNDialog({
         vendor_invoice_date: invoiceDate || null,
         storage_notes: storeNotes.trim() || null,
         items,
-        idempotency_key: requestKey || crypto.randomUUID(),
+        idempotency_key: key,
       });
       toast.success(
         `${res.grn_number} posted. ${res.total_quantity} units are on quality hold pending incoming inspection` +

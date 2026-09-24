@@ -94,13 +94,15 @@ export function AssignDialog({ open, onOpenChange, components, onSaved }: Props)
     setSaving(true);
     const project = projects.find((p) => p.id === projectId);
     const assignee = members.find((m) => m.id === assigneeId);
+    const key = requestKey || crypto.randomUUID();
+    if (!requestKey) setRequestKey(key);
     const { data, error } = await (supabase as any).rpc("post_material_issue", {
       _assignee_id: assigneeId,
       _project_id: project?.id ?? null,
       _project_name: project?.name ?? null,
       _notes: notes.trim() || null,
       _items: lines.map((line) => ({ component_id: line.part.id, location_id: line.locationId, quantity: line.qty })),
-      _idempotency_key: requestKey || crypto.randomUUID(),
+      _idempotency_key: key,
     });
     if (error) { setSaving(false); return toast.error(error.message); }
 

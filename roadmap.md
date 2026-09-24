@@ -4,6 +4,13 @@
 
 - [x] Repair the sign-in page hydration mismatch.
 
+## Mobile Stage 5 backend remediation
+
+- [x] Add payload-bound idempotent, atomic GRN and inventory posting contracts with deterministic locking and server-owned document numbers.
+- [x] Route existing web GRN, R&D issue/return, and stock-adjustment screens through the controlled contracts without changing their user journeys.
+- [x] Add commercial-safe operational receiving projections and refresh the mobile handoff package with individual 5A–5G readiness.
+- [ ] Obtain approved test identities/environment support for live session-scoped RLS and concurrent transaction acceptance evidence. **Blocker:** no dedicated test identities/environment are available in this task.
+
 ## Phase 4 — Sales, customer requirements & handover
 
 - [x] Build the sales foundation: customer master, contacts, enquiries, opportunities, owner assignment, navigation and dashboard. Customer, contact, enquiry, opportunity database foundations and sales/customer overview screens are complete; enquiry and opportunity creation forms remain.

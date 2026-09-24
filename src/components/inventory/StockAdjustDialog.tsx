@@ -34,12 +34,14 @@ export function StockAdjustDialog({ open, onOpenChange, component, onSaved }: Pr
     setSaving(true);
     const delta = direction === "add" ? qty : -qty;
     if (!note.trim()) { setSaving(false); return toast.error("Provide a reason for this adjustment"); }
+    const key = requestKey || crypto.randomUUID();
+    if (!requestKey) setRequestKey(key);
     const { data, error } = await (supabase as any).rpc("post_stock_adjustment", {
       _component_id: component.id,
       _location_id: loc.id,
       _delta: delta,
       _reason: note.trim(),
-      _idempotency_key: requestKey || crypto.randomUUID(),
+      _idempotency_key: key,
     });
     if (error) { setSaving(false); return toast.error(error.message); }
 
