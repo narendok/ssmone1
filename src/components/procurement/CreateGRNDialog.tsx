@@ -80,6 +80,7 @@ export function CreateGRNDialog({
   const [qaManufacturer, setQaManufacturer] = useState("");
   const [qaCategory, setQaCategory] = useState(NO_REASON);
   const [qaBusy, setQaBusy] = useState(false);
+  const [requestKey, setRequestKey] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -87,6 +88,7 @@ export function CreateGRNDialog({
       setInvoiceNo("");
       setInvoiceDate("");
       setRows({});
+      setRequestKey(crypto.randomUUID());
     }
   }, [open, poId]);
 
@@ -171,6 +173,8 @@ export function CreateGRNDialog({
     if (!items.length) return toast.error("Enter at least one accepted or rejected quantity");
 
     setSaving(true);
+    const key = requestKey || crypto.randomUUID();
+    if (!requestKey) setRequestKey(key);
     try {
       const res = await createGrn({
         po_id: po.id,
@@ -178,6 +182,7 @@ export function CreateGRNDialog({
         vendor_invoice_date: invoiceDate || null,
         storage_notes: storeNotes.trim() || null,
         items,
+        idempotency_key: key,
       });
       toast.success(
         `${res.grn_number} posted. ${res.total_quantity} units are on quality hold pending incoming inspection` +

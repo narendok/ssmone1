@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Trash2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,11 +29,11 @@ interface Line {
 }
 
 export function AssignDialog({ open, onOpenChange, components, onSaved }: Props) {
-  const { user } = useAuth();
   const [assigneeId, setAssigneeId] = useState("");
   const [projectId, setProjectId] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [requestKey, setRequestKey] = useState("");
   const [search, setSearch] = useState("");
   const [lines, setLines] = useState<Line[]>(() =>
     components.map((c) => ({ part: c, locationId: c.locations[0]?.id ?? "", qty: 1 }))
@@ -93,62 +92,28 @@ export function AssignDialog({ open, onOpenChange, components, onSaved }: Props)
     }
 
     setSaving(true);
-    const assignee = members.find((m) => m.id === assigneeId);
     const project = projects.find((p) => p.id === projectId);
-
-    let batchId: string | null = null;
-    const { data: batch, error: bErr } = await supabase
-      .from("assignment_batches")
-      .insert({
-        assignee_id: assigneeId,
-        project_id: project?.id ?? null,
-        notes: notes || null,
-        created_by: user?.id ?? null,
-      })
-      .select("id")
-      .single();
-    if (bErr) { setSaving(false); return toast.error(bErr.message); }
-    batchId = batch.id;
-
-    for (const l of lines) {
-      const loc = l.part.locations.find((x) => x.id === l.locationId)!;
-      const { error: locErr } = await supabase
-        .from("locations")
-        .update({ quantity: loc.quantity - l.qty })
-        .eq("id", loc.id);
-      if (locErr) { setSaving(false); return toast.error(locErr.message); }
-
-      const { error: aErr } = await supabase.from("assignments").insert({
-        component_id: l.part.id,
-        location_id: loc.id,
-        quantity: l.qty,
-        assignee_id: assigneeId,
-        assigned_by: user?.id,
-        batch_id: batchId,
-        project_id: project?.id ?? null,
-        project_name: project?.name ?? null,
-        notes: notes || null,
-      });
-      if (aErr) { setSaving(false); return toast.error(aErr.message); }
-
-      await supabase.from("stock_history").insert({
-        component_id: l.part.id,
-        location_id: loc.id,
-        delta: -l.qty,
-        action: "assign",
-        note: `Assigned ${l.qty} to ${assignee?.name}${project ? ` (${project.name})` : ""}`,
-        user_id: user?.id,
-        user_email: user?.email,
-      });
-    }
+    const assignee = members.find((m) => m.id === assigneeId);
+    const key = requestKey || crypto.randomUUID();
+    if (!requestKey) setRequestKey(key);
+    const { data, error } = await (supabase as any).rpc("post_material_issue", {
+      _assignee_id: assigneeId,
+      _project_id: project?.id ?? null,
+      _project_name: project?.name ?? null,
+      _notes: notes.trim() || null,
+      _items: lines.map((line) => ({ component_id: line.part.id, location_id: line.locationId, quantity: line.qty })),
+      _idempotency_key: key,
+    });
+    if (error) { setSaving(false); return toast.error(error.message); }
 
     toast.success(
       lines.length === 1
-        ? `Assigned ${lines[0].qty}× ${lines[0].part.name} to ${assignee?.name}`
-        : `Assigned ${lines.length} items to ${assignee?.name} as one bundle`,
+        ? `${data.issue_number}: assigned ${lines[0].qty}× ${lines[0].part.name} to ${assignee?.name}`
+        : `${data.issue_number}: assigned ${lines.length} items to ${assignee?.name} as one bundle`,
       { description: assignee?.email ? `Notification queued for ${assignee.email}` : undefined }
     );
     setSaving(false);
+    setRequestKey("");
     onSaved(lines[0].part.id);
   }
 

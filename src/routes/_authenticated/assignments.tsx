@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,9 +18,9 @@ export const Route = createFileRoute("/_authenticated/assignments")({
 
 function AssignmentsPage() {
   const qc = useQueryClient();
-  const { user } = useAuth();
   const [returning, setReturning] = useState<any | null>(null);
   const [retQty, setRetQty] = useState(0);
+  const [returnRequestKey, setReturnRequestKey] = useState("");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["assignments_all"],
@@ -35,30 +34,13 @@ function AssignmentsPage() {
     },
   });
 
-  async function returnRow(row: any, qty: number) {
-    const newReturned = row.quantity_returned + qty;
-    const newStatus = newReturned >= row.quantity ? "returned" : "partial";
-
-    await supabase.from("assignments").update({
-      quantity_returned: newReturned,
-      status: newStatus,
-      returned_at: newStatus === "returned" ? new Date().toISOString() : null,
-    }).eq("id", row.id);
-
-    if (row.location_id) {
-      const { data: loc } = await supabase.from("locations").select("quantity").eq("id", row.location_id).single();
-      if (loc) await supabase.from("locations").update({ quantity: loc.quantity + qty }).eq("id", row.location_id);
-    }
-
-    await supabase.from("stock_history").insert({
-      component_id: row.component_id,
-      location_id: row.location_id,
-      delta: qty,
-      action: "return",
-      note: `Returned from ${row.assignee?.name}`,
-      user_id: user?.id,
-      user_email: user?.email,
+  async function returnRow(row: any, qty: number, requestKey: `${string}-${string}-${string}-${string}-${string}` = crypto.randomUUID()) {
+    const { error } = await (supabase as any).rpc("post_material_return", {
+      _assignment_id: row.id,
+      _quantity: qty,
+      _idempotency_key: requestKey,
     });
+    if (error) throw error;
   }
 
   function refreshLists() {
@@ -70,9 +52,10 @@ function AssignmentsPage() {
     if (!returning) return;
     const remaining = returning.quantity - returning.quantity_returned;
     if (retQty <= 0 || retQty > remaining) return toast.error(`Return 1–${remaining}`);
-    await returnRow(returning, retQty);
+    await returnRow(returning, retQty, (returnRequestKey || crypto.randomUUID()) as `${string}-${string}-${string}-${string}-${string}`);
     toast.success(`Returned ${retQty} pcs`);
     setReturning(null);
+    setReturnRequestKey("");
     refreshLists();
   }
 
@@ -125,7 +108,7 @@ function AssignmentsPage() {
                   <Button size="sm" variant="outline" onClick={() => handleReturnBundle(b.rows)}>Return all</Button>
                 )}
               </div>
-              <AssignTable rows={b.rows} isLoading={false} onReturn={(r) => { setReturning(r); setRetQty(r.quantity - r.quantity_returned); }} />
+              <AssignTable rows={b.rows} isLoading={false} onReturn={(r) => { setReturning(r); setRetQty(r.quantity - r.quantity_returned); setReturnRequestKey(crypto.randomUUID()); }} />
             </Card>
           );
         })}

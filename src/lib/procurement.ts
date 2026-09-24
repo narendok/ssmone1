@@ -203,6 +203,7 @@ export async function createGrn(input: {
   vendor_invoice_date: string | null;
   storage_notes: string | null;
   items: NewGrnLine[];
+  idempotency_key: string;
 }): Promise<{ grn_id: string; grn_number: string; total_quantity: number; total_rejected: number; po_status: string }> {
   const { data, error } = await sb.rpc("create_grn", {
     _po_id: input.po_id,
@@ -210,6 +211,7 @@ export async function createGrn(input: {
     _vendor_invoice_date: input.vendor_invoice_date,
     _storage_notes: input.storage_notes,
     _items: input.items,
+    _idempotency_key: input.idempotency_key,
   });
   if (error) throw error;
   return data as { grn_id: string; grn_number: string; total_quantity: number; total_rejected: number; po_status: string };

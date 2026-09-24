@@ -1,5 +1,5 @@
 {
-  "contract_version": "2026-09-24",
+  "contract_version": "2026-09-24-stage5-remediated",
   "source_of_truth": "Lovable Cloud backend and generated src/integrations/supabase/types.ts",
   "environment": {
     "mobile_config": [
@@ -88,7 +88,7 @@
     },
     {
       "name": "create_grn",
-      "description": "Atomic GRN posting via a security-definer RPC; service-side only."
+      "description": "Atomic, server-numbered GRN posting with opaque UUID idempotency and payload binding."
     },
     {
       "name": "create_phase6_quotation",
@@ -257,6 +257,22 @@
     {
       "name": "try_acquire_automation_lease",
       "description": "See generated type signature; server/database function."
+    },
+    {
+      "name": "post_material_issue",
+      "description": "Atomic numbered material issue posting with request-key idempotency."
+    },
+    {
+      "name": "post_material_return",
+      "description": "Atomic partial-return-safe posting with request-key idempotency."
+    },
+    {
+      "name": "post_stock_transfer",
+      "description": "Atomic balance-neutral transfer with request-key idempotency."
+    },
+    {
+      "name": "post_stock_adjustment",
+      "description": "Atomic reason-required adjustment with request-key idempotency."
     }
   ],
   "inventories": {
@@ -2426,7 +2442,7 @@
       "status_field": "status",
       "revision_field": null,
       "read_contract": "Authenticated database client; RLS policies are authoritative.",
-      "write_contract": "updateIncomingInspection → decide_incoming_inspection",
+      "write_contract": "updateIncomingInspection \u2192 decide_incoming_inspection",
       "rpc": null,
       "function": null,
       "edge_function": null,
@@ -2858,7 +2874,7 @@
       "status_field": null,
       "revision_field": null,
       "read_contract": "Authenticated database client; RLS policies are authoritative.",
-      "write_contract": "createPhase7Dispatch → create_phase7_dispatch",
+      "write_contract": "createPhase7Dispatch \u2192 create_phase7_dispatch",
       "rpc": null,
       "function": null,
       "edge_function": null,
@@ -2906,7 +2922,7 @@
       "status_field": null,
       "revision_field": null,
       "read_contract": "Authenticated database client; RLS policies are authoritative.",
-      "write_contract": "recordPhase7UnitInspection → record_phase7_unit_inspection",
+      "write_contract": "recordPhase7UnitInspection \u2192 record_phase7_unit_inspection",
       "rpc": null,
       "function": null,
       "edge_function": null,
@@ -2978,7 +2994,7 @@
       "status_field": null,
       "revision_field": null,
       "read_contract": "Authenticated database client; RLS policies are authoritative.",
-      "write_contract": "dispositionPhase7Ncr → disposition_phase7_ncr",
+      "write_contract": "dispositionPhase7Ncr \u2192 disposition_phase7_ncr",
       "rpc": null,
       "function": null,
       "edge_function": null,
@@ -3074,7 +3090,7 @@
       "status_field": null,
       "revision_field": null,
       "read_contract": "Authenticated database client; RLS policies are authoritative.",
-      "write_contract": "recordPhase7UnitExecution → record_phase7_unit_execution",
+      "write_contract": "recordPhase7UnitExecution \u2192 record_phase7_unit_execution",
       "rpc": null,
       "function": null,
       "edge_function": null,
@@ -3098,7 +3114,7 @@
       "status_field": null,
       "revision_field": null,
       "read_contract": "Authenticated database client; RLS policies are authoritative.",
-      "write_contract": "recordPhase7UnitTest → record_phase7_unit_test",
+      "write_contract": "recordPhase7UnitTest \u2192 record_phase7_unit_test",
       "rpc": null,
       "function": null,
       "edge_function": null,
@@ -3986,7 +4002,7 @@
       "status_field": "status",
       "revision_field": null,
       "read_contract": "Authenticated database client; RLS policies are authoritative.",
-      "write_contract": "createQuotation → create_phase6_quotation",
+      "write_contract": "createQuotation \u2192 create_phase6_quotation",
       "rpc": null,
       "function": null,
       "edge_function": null,
@@ -4130,7 +4146,7 @@
       "status_field": "status",
       "revision_field": null,
       "read_contract": "Authenticated database client; RLS policies are authoritative.",
-      "write_contract": "createRfq → create_phase6_rfq",
+      "write_contract": "createRfq \u2192 create_phase6_rfq",
       "rpc": null,
       "function": null,
       "edge_function": null,
@@ -4538,7 +4554,7 @@
       "status_field": "status",
       "revision_field": null,
       "read_contract": "Authenticated database client; RLS policies are authoritative.",
-      "write_contract": "createPhase7WorkOrder → create_phase7_work_order",
+      "write_contract": "createPhase7WorkOrder \u2192 create_phase7_work_order",
       "rpc": null,
       "function": null,
       "edge_function": null,
@@ -4606,5 +4622,52 @@
     "Material issue, return, transfer, and adjustment posting contracts are not evidenced as dedicated atomic server transactions.",
     "No separate DEV/UAT/PROD strategy is evidenced.",
     "No outbound webhook dispatch/retry worker is evidenced."
-  ]
+  ],
+  "stage_5": {
+    "final_grn": {
+      "status": "READY",
+      "contract": "create_grn with idempotency UUID",
+      "offline": "draft-only; final posting online-required"
+    },
+    "material_issue": {
+      "status": "READY",
+      "contract": "post_material_issue",
+      "offline": "online-required"
+    },
+    "material_return": {
+      "status": "READY",
+      "contract": "post_material_return",
+      "offline": "online-required"
+    },
+    "stock_transfer": {
+      "status": "READY",
+      "contract": "post_stock_transfer",
+      "offline": "online-required"
+    },
+    "stock_adjustment": {
+      "status": "READY",
+      "contract": "post_stock_adjustment",
+      "offline": "online-required"
+    },
+    "operational_receiving_reads": {
+      "status": "READY",
+      "views": [
+        "operational_receiving_purchase_orders",
+        "operational_receiving_purchase_order_items"
+      ],
+      "excludes": [
+        "unit prices",
+        "totals",
+        "tax",
+        "margins",
+        "payment terms",
+        "vendor bank details",
+        "finance-only information"
+      ]
+    },
+    "session_acceptance_tests": {
+      "status": "BLOCKED",
+      "reason": "Dedicated live-session RLS and concurrency acceptance evidence is not yet available."
+    }
+  }
 }

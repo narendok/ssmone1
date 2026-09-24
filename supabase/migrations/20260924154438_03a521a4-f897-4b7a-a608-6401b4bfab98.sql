@@ -1,0 +1,13 @@
+REVOKE ALL ON public.inventory_transaction_requests FROM authenticated, anon;
+REVOKE ALL ON FUNCTION public.inventory_payload_hash(jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.inventory_request_result(uuid,text,jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.create_grn(uuid,text,date,text,jsonb,uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.post_material_issue(uuid,uuid,text,text,jsonb,uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.post_material_return(uuid,integer,uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.post_stock_transfer(uuid,uuid,uuid,integer,text,uuid) FROM anon;
+REVOKE ALL ON FUNCTION public.post_stock_adjustment(uuid,uuid,integer,text,uuid) FROM anon;
+GRANT EXECUTE ON FUNCTION public.create_grn(uuid,text,date,text,jsonb,uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.post_material_issue(uuid,uuid,text,text,jsonb,uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.post_material_return(uuid,integer,uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.post_stock_transfer(uuid,uuid,uuid,integer,text,uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.post_stock_adjustment(uuid,uuid,integer,text,uuid) TO authenticated;

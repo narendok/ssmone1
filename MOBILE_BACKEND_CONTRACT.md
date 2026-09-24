@@ -1,6 +1,6 @@
 # MOBILE BACKEND CONTRACT
 
-**Generated:** 2026-09-24 UTC  
+**Generated:** 2026-09-24 UTC; refreshed after Mobile Stage 5 remediation.  
 **Authority:** live managed backend inventory, current migration history, and `src/integrations/supabase/types.ts`. This contract does not create a mobile backend or mobile UI. Object classifications below describe handoff suitability, not a blanket confirmation that every mobile user can read every object; RLS and purpose-specific permissions remain authoritative.
 
 ## Environment strategy
@@ -449,19 +449,21 @@
 
 ### Final GRN
 
-- **Authority:** `create_grn(_po_id, _vendor_invoice_number, _vendor_invoice_date, _storage_notes, _items)`
-- **Caller:** authenticated server workflow using service-only execution; do not call directly from Android.
+- **Authority:** `create_grn(_po_id, _vendor_invoice_number, _vendor_invoice_date, _storage_notes, _items, _idempotency_key)`
+- **Caller:** authenticated approved operational client/session; Android sends the protected RPC only with its current session and never with privileged credentials.
 - **Inputs/outputs:** authoritative generated signature is in `src/integrations/supabase/types.ts`; returns JSON.
 - **Atomicity:** **VERIFIED** as one database RPC.
-- **Idempotency:** **NOT VERIFIED** — no request key/unique retry contract was found.
-- **Concurrency:** **NOT VERIFIED** in this handoff; do not retry blindly.
-- **Authorization:** server-side workflow plus database grants; **VERIFIED** as not exposed to normal authenticated database callers.
+- **Idempotency:** **VERIFIED** — request UUID plus canonical payload fingerprint returns the original result on identical retry and rejects conflicting reuse.
+- **Concurrency:** **VERIFIED** — PO and affected PO item rows are locked before balance validation/mutation in the same posting transaction.
+- **Authorization:** `can_inward` is checked inside the protected contract.
 - **Numbering:** server-controlled; **VERIFIED**.
 
 ### Material issue / return / transfer / adjustment / RTV
 
-- **Material issue:** **BACKEND GAP** — no dedicated authoritative atomic posting contract was evidenced.
-- **Return, transfer, adjustment:** **BACKEND GAP** — no dedicated atomic posting contract was evidenced.
+- **Material issue:** `post_material_issue` — online-only, numbered, permission-checked, idempotent atomic posting.
+- **Return:** `post_material_return` — online-only, numbered, partial-return-aware, idempotent atomic posting.
+- **Transfer:** `post_stock_transfer` — online-only, balance-neutral, numbered, idempotent atomic posting.
+- **Adjustment:** `post_stock_adjustment` — online-only, reason-required, numbered, idempotent atomic posting.
 - **RTV:** `rtv_records` exists with a controlled review contract, but stock posting atomicity/idempotency/concurrency are **NOT VERIFIED**.
 
 ## Storage inventory
@@ -493,4 +495,4 @@
 
 ## Known backend gaps for mobile
 
-See `BACKEND_GAPS.md`. These are deliberate documentation findings; no remediation was performed in this checkpoint.
+See `BACKEND_GAPS.md`. Stage 5 stock posting and receiving-read gaps are remediated; legacy migration reconciliation, environment separation, outbound webhook delivery, and full live-session acceptance evidence remain documented gaps.
