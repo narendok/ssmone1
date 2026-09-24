@@ -55,6 +55,7 @@
 - Current migration history preserved; no migration was changed.
 - No privileged secret appears in this package.
 - No backend-gap remediation was executed.
+- Validation completed after export: type check passed, 77/77 tests passed, and the production build passed.
 
 ## Stop condition
 

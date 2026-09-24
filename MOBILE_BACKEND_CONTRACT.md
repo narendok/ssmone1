@@ -1,7 +1,7 @@
 # MOBILE BACKEND CONTRACT
 
 **Generated:** 2026-09-24 UTC  
-**Authority:** live managed backend inventory, current migration history, and `src/integrations/supabase/types.ts`. This contract does not create a mobile backend or mobile UI.
+**Authority:** live managed backend inventory, current migration history, and `src/integrations/supabase/types.ts`. This contract does not create a mobile backend or mobile UI. Object classifications below describe handoff suitability, not a blanket confirmation that every mobile user can read every object; RLS and purpose-specific permissions remain authoritative.
 
 ## Environment strategy
 
@@ -16,6 +16,8 @@
 - Authorization is enforced by RLS plus `has_role`, `has_permission`, `has_any_permission`, and domain helpers. Android must not store or decide a role locally.
 
 ## Authoritative domain object map
+
+`MOBILE_READ_SAFE` means an object may be evaluated for a mobile read surface only through a current-user session and its existing RLS policies. It does not imply unrestricted access, offline write support, or financial-data suitability.
 
 | Platform support | `access_role_permissions` | role_id + permission_id | — | — | MOBILE_READ_SAFE |
 | Identity & access | `access_roles` | id | — | — | MOBILE_READ_SAFE |
