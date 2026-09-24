@@ -2399,6 +2399,7 @@ export type Database = {
           preferred_language: string
           timezone: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           active?: boolean
@@ -2419,6 +2420,7 @@ export type Database = {
           preferred_language?: string
           timezone?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           active?: boolean
@@ -2439,6 +2441,7 @@ export type Database = {
           preferred_language?: string
           timezone?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2742,6 +2745,10 @@ export type Database = {
           expires_at: string | null
           external_contact_id: string
           id: string
+          invitation_accepted_at: string | null
+          invitation_revoked_at: string | null
+          invitation_sent_at: string | null
+          invitation_token: string
           invited_by: string | null
           is_active: boolean
           portal_type: string
@@ -2756,6 +2763,10 @@ export type Database = {
           expires_at?: string | null
           external_contact_id: string
           id?: string
+          invitation_accepted_at?: string | null
+          invitation_revoked_at?: string | null
+          invitation_sent_at?: string | null
+          invitation_token?: string
           invited_by?: string | null
           is_active?: boolean
           portal_type: string
@@ -2770,6 +2781,10 @@ export type Database = {
           expires_at?: string | null
           external_contact_id?: string
           id?: string
+          invitation_accepted_at?: string | null
+          invitation_revoked_at?: string | null
+          invitation_sent_at?: string | null
+          invitation_token?: string
           invited_by?: string | null
           is_active?: boolean
           portal_type?: string
@@ -10223,6 +10238,29 @@ export type Database = {
         Returns: undefined
       }
       ensure_phase5_project_access_catalog: { Args: never; Returns: undefined }
+      external_contact_has_access: {
+        Args: { _contact_id: string; _portal_type?: string }
+        Returns: boolean
+      }
+      external_current_contact_id: {
+        Args: { _user_id?: string }
+        Returns: string
+      }
+      external_current_party_id: { Args: never; Returns: string }
+      external_is_current_contact: {
+        Args: { _contact_id: string }
+        Returns: boolean
+      }
+      external_log_access: {
+        Args: {
+          _entity_id: string
+          _entity_type: string
+          _event_type: string
+          _metadata?: Json
+          _snapshot_id?: string
+        }
+        Returns: undefined
+      }
       get_drive_breadcrumbs: {
         Args: { p_node_id: string }
         Returns: {
