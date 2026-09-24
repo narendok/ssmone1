@@ -2337,6 +2337,8 @@ export type Database = {
           active: boolean
           client_key_hint: string
           client_name: string
+          client_secret_hash: string | null
+          client_secret_rotated_at: string | null
           created_at: string
           created_by: string | null
           external_party_id: string | null
@@ -2349,6 +2351,8 @@ export type Database = {
           active?: boolean
           client_key_hint: string
           client_name: string
+          client_secret_hash?: string | null
+          client_secret_rotated_at?: string | null
           created_at?: string
           created_by?: string | null
           external_party_id?: string | null
@@ -2361,6 +2365,8 @@ export type Database = {
           active?: boolean
           client_key_hint?: string
           client_name?: string
+          client_secret_hash?: string | null
+          client_secret_rotated_at?: string | null
           created_at?: string
           created_by?: string | null
           external_party_id?: string | null
@@ -3179,36 +3185,45 @@ export type Database = {
       }
       external_webhook_deliveries: {
         Row: {
+          attempt_count: number
           attempted_at: string | null
           completed_at: string | null
           created_at: string
           event_key: string
           id: string
           idempotency_key: string
+          next_retry_at: string | null
+          payload: Json
           response_status: number | null
           response_summary: string | null
           status: string
           subscription_id: string
         }
         Insert: {
+          attempt_count?: number
           attempted_at?: string | null
           completed_at?: string | null
           created_at?: string
           event_key: string
           id?: string
           idempotency_key: string
+          next_retry_at?: string | null
+          payload?: Json
           response_status?: number | null
           response_summary?: string | null
           status?: string
           subscription_id: string
         }
         Update: {
+          attempt_count?: number
           attempted_at?: string | null
           completed_at?: string | null
           created_at?: string
           event_key?: string
           id?: string
           idempotency_key?: string
+          next_retry_at?: string | null
+          payload?: Json
           response_status?: number | null
           response_summary?: string | null
           status?: string
@@ -3229,36 +3244,48 @@ export type Database = {
           active: boolean
           created_at: string
           created_by: string | null
+          disabled_at: string | null
           endpoint_url: string
           event_types: Json
           external_party_id: string | null
+          failure_count: number
           id: string
           last_delivery_at: string | null
+          signing_secret_hash: string | null
           signing_secret_hint: string | null
+          signing_secret_rotated_at: string | null
           updated_at: string
         }
         Insert: {
           active?: boolean
           created_at?: string
           created_by?: string | null
+          disabled_at?: string | null
           endpoint_url: string
           event_types?: Json
           external_party_id?: string | null
+          failure_count?: number
           id?: string
           last_delivery_at?: string | null
+          signing_secret_hash?: string | null
           signing_secret_hint?: string | null
+          signing_secret_rotated_at?: string | null
           updated_at?: string
         }
         Update: {
           active?: boolean
           created_at?: string
           created_by?: string | null
+          disabled_at?: string | null
           endpoint_url?: string
           event_types?: Json
           external_party_id?: string | null
+          failure_count?: number
           id?: string
           last_delivery_at?: string | null
+          signing_secret_hash?: string | null
           signing_secret_hint?: string | null
+          signing_secret_rotated_at?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -10251,6 +10278,7 @@ export type Database = {
         Args: { _contact_id: string }
         Returns: boolean
       }
+      external_is_staff_manager: { Args: never; Returns: boolean }
       external_log_access: {
         Args: {
           _entity_id: string
