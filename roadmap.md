@@ -64,4 +64,4 @@
 
 
 ## Phase 10 — External collaboration extensions
-- [x] Implement the approved external party, secure portals, controlled sharing, transmittals, upload staging, data rooms, customer/supplier/EMS/lab collaboration, and API/webhook foundation; stop before Phase 11.
+- [ ] Complete the Phase 10 security corrections: authenticated external identity, guarded portal access, frozen share enforcement, quarantined upload handling, controlled webhook execution, and isolation tests. Blocker: corrections are in progress; Phase 11 remains out of scope.
