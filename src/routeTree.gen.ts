@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ExternalPortalRouteImport } from './routes/external-portal'
 import { Route as CareersRouteImport } from './routes/careers'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ApplicationStatusRouteImport } from './routes/application-status'
@@ -17,6 +18,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
 import { Route as FileTokenRouteImport } from './routes/file.$token'
+import { Route as ExternalPortalTokenRouteImport } from './routes/external-portal.$token'
 import { Route as CareersSlugRouteImport } from './routes/careers.$slug'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
 import { Route as AuthenticatedRdTeamRouteImport } from './routes/_authenticated/rd-team'
@@ -97,7 +99,13 @@ import { Route as AuthenticatedCustomerServiceFieldFailuresRouteImport } from '.
 import { Route as AuthenticatedCustomerServiceComplaintsRouteImport } from './routes/_authenticated/customer-service.complaints'
 import { Route as AuthenticatedCategorySlugRouteImport } from './routes/_authenticated/category.$slug'
 import { Route as ApiPublicHooksRefreshSupplierDataRouteImport } from './routes/api/public/hooks/refresh-supplier-data'
+import { Route as ApiPublicExternalWebhookSubscriptionIdRouteImport } from './routes/api/public/external-webhook.$subscriptionId'
 
+const ExternalPortalRoute = ExternalPortalRouteImport.update({
+  id: '/external-portal',
+  path: '/external-portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CareersRoute = CareersRouteImport.update({
   id: '/careers',
   path: '/careers',
@@ -136,6 +144,11 @@ const FileTokenRoute = FileTokenRouteImport.update({
   id: '/file/$token',
   path: '/file/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ExternalPortalTokenRoute = ExternalPortalTokenRouteImport.update({
+  id: '/$token',
+  path: '/$token',
+  getParentRoute: () => ExternalPortalRoute,
 } as any)
 const CareersSlugRoute = CareersSlugRouteImport.update({
   id: '/$slug',
@@ -594,12 +607,19 @@ const ApiPublicHooksRefreshSupplierDataRoute =
     path: '/api/public/hooks/refresh-supplier-data',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicExternalWebhookSubscriptionIdRoute =
+  ApiPublicExternalWebhookSubscriptionIdRouteImport.update({
+    id: '/api/public/external-webhook/$subscriptionId',
+    path: '/api/public/external-webhook/$subscriptionId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/application-status': typeof ApplicationStatusRoute
   '/auth': typeof AuthRoute
   '/careers': typeof CareersRouteWithChildren
+  '/external-portal': typeof ExternalPortalRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
@@ -613,6 +633,7 @@ export interface FileRoutesByFullPath {
   '/rd-team': typeof AuthenticatedRdTeamRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
+  '/external-portal/$token': typeof ExternalPortalTokenRoute
   '/file/$token': typeof FileTokenRoute
   '/portal/$token': typeof PortalTokenRoute
   '/share/$token': typeof ShareTokenRoute
@@ -682,12 +703,14 @@ export interface FileRoutesByFullPath {
   '/security/': typeof AuthenticatedSecurityIndexRoute
   '/tasks/': typeof AuthenticatedTasksIndexRoute
   '/workplace/': typeof AuthenticatedWorkplaceIndexRoute
+  '/api/public/external-webhook/$subscriptionId': typeof ApiPublicExternalWebhookSubscriptionIdRoute
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
 }
 export interface FileRoutesByTo {
   '/application-status': typeof ApplicationStatusRoute
   '/auth': typeof AuthRoute
   '/careers': typeof CareersRouteWithChildren
+  '/external-portal': typeof ExternalPortalRouteWithChildren
   '/admin': typeof AuthenticatedAdminRoute
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
@@ -700,6 +723,7 @@ export interface FileRoutesByTo {
   '/rd-team': typeof AuthenticatedRdTeamRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
+  '/external-portal/$token': typeof ExternalPortalTokenRoute
   '/file/$token': typeof FileTokenRoute
   '/portal/$token': typeof PortalTokenRoute
   '/share/$token': typeof ShareTokenRoute
@@ -770,6 +794,7 @@ export interface FileRoutesByTo {
   '/security': typeof AuthenticatedSecurityIndexRoute
   '/tasks': typeof AuthenticatedTasksIndexRoute
   '/workplace': typeof AuthenticatedWorkplaceIndexRoute
+  '/api/public/external-webhook/$subscriptionId': typeof ApiPublicExternalWebhookSubscriptionIdRoute
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
 }
 export interface FileRoutesById {
@@ -778,6 +803,7 @@ export interface FileRoutesById {
   '/application-status': typeof ApplicationStatusRoute
   '/auth': typeof AuthRoute
   '/careers': typeof CareersRouteWithChildren
+  '/external-portal': typeof ExternalPortalRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/assignments': typeof AuthenticatedAssignmentsRoute
   '/_authenticated/bom': typeof AuthenticatedBomRoute
@@ -791,6 +817,7 @@ export interface FileRoutesById {
   '/_authenticated/rd-team': typeof AuthenticatedRdTeamRoute
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
+  '/external-portal/$token': typeof ExternalPortalTokenRoute
   '/file/$token': typeof FileTokenRoute
   '/portal/$token': typeof PortalTokenRoute
   '/share/$token': typeof ShareTokenRoute
@@ -861,6 +888,7 @@ export interface FileRoutesById {
   '/_authenticated/security/': typeof AuthenticatedSecurityIndexRoute
   '/_authenticated/tasks/': typeof AuthenticatedTasksIndexRoute
   '/_authenticated/workplace/': typeof AuthenticatedWorkplaceIndexRoute
+  '/api/public/external-webhook/$subscriptionId': typeof ApiPublicExternalWebhookSubscriptionIdRoute
   '/api/public/hooks/refresh-supplier-data': typeof ApiPublicHooksRefreshSupplierDataRoute
 }
 export interface FileRouteTypes {
@@ -870,6 +898,7 @@ export interface FileRouteTypes {
     | '/application-status'
     | '/auth'
     | '/careers'
+    | '/external-portal'
     | '/admin'
     | '/assignments'
     | '/bom'
@@ -883,6 +912,7 @@ export interface FileRouteTypes {
     | '/rd-team'
     | '/sales'
     | '/careers/$slug'
+    | '/external-portal/$token'
     | '/file/$token'
     | '/portal/$token'
     | '/share/$token'
@@ -952,12 +982,14 @@ export interface FileRouteTypes {
     | '/security/'
     | '/tasks/'
     | '/workplace/'
+    | '/api/public/external-webhook/$subscriptionId'
     | '/api/public/hooks/refresh-supplier-data'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/application-status'
     | '/auth'
     | '/careers'
+    | '/external-portal'
     | '/admin'
     | '/assignments'
     | '/bom'
@@ -970,6 +1002,7 @@ export interface FileRouteTypes {
     | '/rd-team'
     | '/sales'
     | '/careers/$slug'
+    | '/external-portal/$token'
     | '/file/$token'
     | '/portal/$token'
     | '/share/$token'
@@ -1040,6 +1073,7 @@ export interface FileRouteTypes {
     | '/security'
     | '/tasks'
     | '/workplace'
+    | '/api/public/external-webhook/$subscriptionId'
     | '/api/public/hooks/refresh-supplier-data'
   id:
     | '__root__'
@@ -1047,6 +1081,7 @@ export interface FileRouteTypes {
     | '/application-status'
     | '/auth'
     | '/careers'
+    | '/external-portal'
     | '/_authenticated/admin'
     | '/_authenticated/assignments'
     | '/_authenticated/bom'
@@ -1060,6 +1095,7 @@ export interface FileRouteTypes {
     | '/_authenticated/rd-team'
     | '/_authenticated/sales'
     | '/careers/$slug'
+    | '/external-portal/$token'
     | '/file/$token'
     | '/portal/$token'
     | '/share/$token'
@@ -1130,6 +1166,7 @@ export interface FileRouteTypes {
     | '/_authenticated/security/'
     | '/_authenticated/tasks/'
     | '/_authenticated/workplace/'
+    | '/api/public/external-webhook/$subscriptionId'
     | '/api/public/hooks/refresh-supplier-data'
   fileRoutesById: FileRoutesById
 }
@@ -1138,15 +1175,24 @@ export interface RootRouteChildren {
   ApplicationStatusRoute: typeof ApplicationStatusRoute
   AuthRoute: typeof AuthRoute
   CareersRoute: typeof CareersRouteWithChildren
+  ExternalPortalRoute: typeof ExternalPortalRouteWithChildren
   FileTokenRoute: typeof FileTokenRoute
   PortalTokenRoute: typeof PortalTokenRoute
   ShareTokenRoute: typeof ShareTokenRoute
   ApiPublicDatasheetProxyRoute: typeof ApiPublicDatasheetProxyRoute
+  ApiPublicExternalWebhookSubscriptionIdRoute: typeof ApiPublicExternalWebhookSubscriptionIdRoute
   ApiPublicHooksRefreshSupplierDataRoute: typeof ApiPublicHooksRefreshSupplierDataRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/external-portal': {
+      id: '/external-portal'
+      path: '/external-portal'
+      fullPath: '/external-portal'
+      preLoaderRoute: typeof ExternalPortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/careers': {
       id: '/careers'
       path: '/careers'
@@ -1202,6 +1248,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/file/$token'
       preLoaderRoute: typeof FileTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/external-portal/$token': {
+      id: '/external-portal/$token'
+      path: '/$token'
+      fullPath: '/external-portal/$token'
+      preLoaderRoute: typeof ExternalPortalTokenRouteImport
+      parentRoute: typeof ExternalPortalRoute
     }
     '/careers/$slug': {
       id: '/careers/$slug'
@@ -1763,6 +1816,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksRefreshSupplierDataRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/external-webhook/$subscriptionId': {
+      id: '/api/public/external-webhook/$subscriptionId'
+      path: '/api/public/external-webhook/$subscriptionId'
+      fullPath: '/api/public/external-webhook/$subscriptionId'
+      preLoaderRoute: typeof ApiPublicExternalWebhookSubscriptionIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1984,15 +2044,30 @@ const CareersRouteChildren: CareersRouteChildren = {
 const CareersRouteWithChildren =
   CareersRoute._addFileChildren(CareersRouteChildren)
 
+interface ExternalPortalRouteChildren {
+  ExternalPortalTokenRoute: typeof ExternalPortalTokenRoute
+}
+
+const ExternalPortalRouteChildren: ExternalPortalRouteChildren = {
+  ExternalPortalTokenRoute: ExternalPortalTokenRoute,
+}
+
+const ExternalPortalRouteWithChildren = ExternalPortalRoute._addFileChildren(
+  ExternalPortalRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   ApplicationStatusRoute: ApplicationStatusRoute,
   AuthRoute: AuthRoute,
   CareersRoute: CareersRouteWithChildren,
+  ExternalPortalRoute: ExternalPortalRouteWithChildren,
   FileTokenRoute: FileTokenRoute,
   PortalTokenRoute: PortalTokenRoute,
   ShareTokenRoute: ShareTokenRoute,
   ApiPublicDatasheetProxyRoute: ApiPublicDatasheetProxyRoute,
+  ApiPublicExternalWebhookSubscriptionIdRoute:
+    ApiPublicExternalWebhookSubscriptionIdRoute,
   ApiPublicHooksRefreshSupplierDataRoute:
     ApiPublicHooksRefreshSupplierDataRoute,
 }
