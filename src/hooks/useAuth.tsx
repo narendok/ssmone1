@@ -65,12 +65,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       if (s) {
-        window.setTimeout(() => { void loadIdentity(s.user); }, 0);
+        void loadIdentity(s.user).finally(() => setLoading(false));
       } else {
         setRole(null);
         setDisplayName(null);
         setEmployeeStatus(null);
         setPermissions([]);
+        setLoading(false);
       }
     });
 
