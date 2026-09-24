@@ -64,4 +64,4 @@
 
 
 ## Phase 10 — External collaboration extensions
-- [ ] Complete the Phase 10 security corrections: invitation acceptance, guarded portal access, immutable sharing, quarantined upload handling, controlled webhook execution, and isolation tests. Blocker: staged upload intake and delivery dispatch tests remain in progress; Phase 11 remains out of scope.
+- [ ] Complete the Phase 10 security corrections: invitation acceptance, guarded portal access, immutable sharing, quarantined upload handling, controlled webhook execution, and isolation tests. Blocker: final validation and security-isolation verification remain in progress; Phase 11 remains out of scope.
