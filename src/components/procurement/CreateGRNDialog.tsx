@@ -80,6 +80,7 @@ export function CreateGRNDialog({
   const [qaManufacturer, setQaManufacturer] = useState("");
   const [qaCategory, setQaCategory] = useState(NO_REASON);
   const [qaBusy, setQaBusy] = useState(false);
+  const [requestKey, setRequestKey] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -87,6 +88,7 @@ export function CreateGRNDialog({
       setInvoiceNo("");
       setInvoiceDate("");
       setRows({});
+      setRequestKey(crypto.randomUUID());
     }
   }, [open, poId]);
 
@@ -178,6 +180,7 @@ export function CreateGRNDialog({
         vendor_invoice_date: invoiceDate || null,
         storage_notes: storeNotes.trim() || null,
         items,
+        idempotency_key: requestKey || crypto.randomUUID(),
       });
       toast.success(
         `${res.grn_number} posted. ${res.total_quantity} units are on quality hold pending incoming inspection` +

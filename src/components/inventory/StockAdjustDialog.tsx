@@ -2,7 +2,6 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Plus, Minus, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +19,6 @@ interface Props {
 }
 
 export function StockAdjustDialog({ open, onOpenChange, component, onSaved }: Props) {
-  const { user } = useAuth();
   const [locationId, setLocationId] = useState(component.locations[0]?.id ?? "");
   const [direction, setDirection] = useState<"add" | "remove">("add");
   const [qty, setQty] = useState(1);
@@ -34,25 +32,21 @@ export function StockAdjustDialog({ open, onOpenChange, component, onSaved }: Pr
     if (qty <= 0) return toast.error("Quantity must be positive");
     setSaving(true);
     const delta = direction === "add" ? qty : -qty;
-    const newQty = loc.quantity + delta;
-    if (newQty < 0) { setSaving(false); return toast.error(`Only ${loc.quantity} available in ${loc.label}`); }
-
-    const { error } = await supabase.from("locations").update({ quantity: newQty }).eq("id", loc.id);
-    if (error) { setSaving(false); return toast.error(error.message); }
-    await supabase.from("stock_history").insert({
-      component_id: component.id,
-      location_id: loc.id,
-      delta,
-      action: direction === "add" ? "add" : "remove",
-      note: note || null,
-      user_id: user?.id,
-      user_email: user?.email,
+    if (!note.trim()) { setSaving(false); return toast.error("Provide a reason for this adjustment"); }
+    const { data, error } = await (supabase as any).rpc("post_stock_adjustment", {
+      _component_id: component.id,
+      _location_id: loc.id,
+      _delta: delta,
+      _reason: note.trim(),
+      _idempotency_key: crypto.randomUUID(),
     });
+    if (error) { setSaving(false); return toast.error(error.message); }
 
+    const newQty = loc.quantity + delta;
     const newTotal = component.total_quantity + delta;
     const status = stockStatus(newTotal, component.low_stock_threshold);
     toast.success("Stock updated", {
-      description: `${component.name} • ${loc.label}: ${loc.quantity} → ${newQty}`,
+      description: `${data.adjustment_number}: ${component.name} • ${loc.label}: ${loc.quantity} → ${newQty}`,
     });
     if (status !== "in_stock") {
       toast.warning(status === "out_of_stock" ? "Component is now out of stock" : "Component is now low on stock", {
@@ -100,7 +94,7 @@ export function StockAdjustDialog({ open, onOpenChange, component, onSaved }: Pr
           </RadioGroup>
 
           <div className="space-y-1.5"><Label className="text-xs">Quantity</Label><Input type="number" min={1} value={qty} onChange={(e) => setQty(Number(e.target.value))} /></div>
-          <div className="space-y-1.5"><Label className="text-xs">Note (optional)</Label><Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Reason, project, batch info…" /></div>
+          <div className="space-y-1.5"><Label className="text-xs">Reason *</Label><Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Reason, project, batch info…" /></div>
         </div>
 
         <DialogFooter>
