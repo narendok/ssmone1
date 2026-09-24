@@ -353,6 +353,13 @@ export type Database = {
             foreignKeyName: "assets_purchase_order_id_fkey"
             columns: ["purchase_order_id"]
             isOneToOne: false
+            referencedRelation: "operational_receiving_purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
             referencedRelation: "purchase_orders"
             referencedColumns: ["id"]
           },
@@ -3467,6 +3474,13 @@ export type Database = {
             foreignKeyName: "goods_receipt_items_po_item_id_fkey"
             columns: ["po_item_id"]
             isOneToOne: false
+            referencedRelation: "operational_receiving_purchase_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "goods_receipt_items_po_item_id_fkey"
+            columns: ["po_item_id"]
+            isOneToOne: false
             referencedRelation: "purchase_order_items"
             referencedColumns: ["id"]
           },
@@ -3510,6 +3524,13 @@ export type Database = {
           vendor_invoice_number?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "goods_receipt_notes_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "operational_receiving_purchase_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "goods_receipt_notes_po_id_fkey"
             columns: ["po_id"]
@@ -4857,6 +4878,39 @@ export type Database = {
           },
         ]
       }
+      inventory_transaction_requests: {
+        Row: {
+          completed_at: string
+          created_at: string
+          payload_hash: string
+          request_key: string
+          requested_by: string
+          result: Json
+          status: string
+          transaction_type: string
+        }
+        Insert: {
+          completed_at?: string
+          created_at?: string
+          payload_hash: string
+          request_key: string
+          requested_by: string
+          result: Json
+          status?: string
+          transaction_type: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          payload_hash?: string
+          request_key?: string
+          requested_by?: string
+          result?: Json
+          status?: string
+          transaction_type?: string
+        }
+        Relationships: []
+      }
       locations: {
         Row: {
           component_id: string
@@ -5088,6 +5142,119 @@ export type Database = {
           },
         ]
       }
+      material_issues: {
+        Row: {
+          assignee_id: string
+          assignment_batch_id: string | null
+          id: string
+          issue_number: string
+          issued_at: string
+          issued_by: string
+          notes: string | null
+          project_id: string | null
+          project_name: string | null
+          request_key: string
+        }
+        Insert: {
+          assignee_id: string
+          assignment_batch_id?: string | null
+          id?: string
+          issue_number: string
+          issued_at?: string
+          issued_by: string
+          notes?: string | null
+          project_id?: string | null
+          project_name?: string | null
+          request_key: string
+        }
+        Update: {
+          assignee_id?: string
+          assignment_batch_id?: string | null
+          id?: string
+          issue_number?: string
+          issued_at?: string
+          issued_by?: string
+          notes?: string | null
+          project_id?: string | null
+          project_name?: string | null
+          request_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_issues_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "rd_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_issues_assignment_batch_id_fkey"
+            columns: ["assignment_batch_id"]
+            isOneToOne: false
+            referencedRelation: "assignment_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_issues_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_issues_request_key_fkey"
+            columns: ["request_key"]
+            isOneToOne: true
+            referencedRelation: "inventory_transaction_requests"
+            referencedColumns: ["request_key"]
+          },
+        ]
+      }
+      material_returns: {
+        Row: {
+          assignment_id: string
+          id: string
+          quantity: number
+          request_key: string
+          return_number: string
+          returned_at: string
+          returned_by: string
+        }
+        Insert: {
+          assignment_id: string
+          id?: string
+          quantity: number
+          request_key: string
+          return_number: string
+          returned_at?: string
+          returned_by: string
+        }
+        Update: {
+          assignment_id?: string
+          id?: string
+          quantity?: number
+          request_key?: string
+          return_number?: string
+          returned_at?: string
+          returned_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_returns_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "material_returns_request_key_fkey"
+            columns: ["request_key"]
+            isOneToOne: true
+            referencedRelation: "inventory_transaction_requests"
+            referencedColumns: ["request_key"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
@@ -5252,6 +5419,13 @@ export type Database = {
           vendor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payment_milestones_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "operational_receiving_purchase_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payment_milestones_po_id_fkey"
             columns: ["po_id"]
@@ -5515,6 +5689,13 @@ export type Database = {
             foreignKeyName: "po_delivery_revisions_po_id_fkey"
             columns: ["po_id"]
             isOneToOne: false
+            referencedRelation: "operational_receiving_purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_delivery_revisions_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
             referencedRelation: "purchase_orders"
             referencedColumns: ["id"]
           },
@@ -5567,6 +5748,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "po_shipments_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "operational_receiving_purchase_orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "po_shipments_po_id_fkey"
             columns: ["po_id"]
@@ -7299,6 +7487,13 @@ export type Database = {
             columns: ["component_id"]
             isOneToOne: false
             referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "operational_receiving_purchase_orders"
             referencedColumns: ["id"]
           },
           {
@@ -9524,6 +9719,64 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_adjustments: {
+        Row: {
+          adjusted_at: string
+          adjusted_by: string
+          adjustment_number: string
+          component_id: string
+          delta: number
+          id: string
+          location_id: string
+          reason: string
+          request_key: string
+        }
+        Insert: {
+          adjusted_at?: string
+          adjusted_by: string
+          adjustment_number: string
+          component_id: string
+          delta: number
+          id?: string
+          location_id: string
+          reason: string
+          request_key: string
+        }
+        Update: {
+          adjusted_at?: string
+          adjusted_by?: string
+          adjustment_number?: string
+          component_id?: string
+          delta?: number
+          id?: string
+          location_id?: string
+          reason?: string
+          request_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_adjustments_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_request_key_fkey"
+            columns: ["request_key"]
+            isOneToOne: true
+            referencedRelation: "inventory_transaction_requests"
+            referencedColumns: ["request_key"]
+          },
+        ]
+      }
       stock_history: {
         Row: {
           action: string
@@ -9569,6 +9822,74 @@ export type Database = {
           {
             foreignKeyName: "stock_history_location_id_fkey"
             columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_transfers: {
+        Row: {
+          component_id: string
+          from_location_id: string
+          id: string
+          notes: string | null
+          quantity: number
+          request_key: string
+          to_location_id: string
+          transfer_number: string
+          transferred_at: string
+          transferred_by: string
+        }
+        Insert: {
+          component_id: string
+          from_location_id: string
+          id?: string
+          notes?: string | null
+          quantity: number
+          request_key: string
+          to_location_id: string
+          transfer_number: string
+          transferred_at?: string
+          transferred_by: string
+        }
+        Update: {
+          component_id?: string
+          from_location_id?: string
+          id?: string
+          notes?: string | null
+          quantity?: number
+          request_key?: string
+          to_location_id?: string
+          transfer_number?: string
+          transferred_at?: string
+          transferred_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_transfers_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_from_location_id_fkey"
+            columns: ["from_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_transfers_request_key_fkey"
+            columns: ["request_key"]
+            isOneToOne: true
+            referencedRelation: "inventory_transaction_requests"
+            referencedColumns: ["request_key"]
+          },
+          {
+            foreignKeyName: "stock_transfers_to_location_id_fkey"
+            columns: ["to_location_id"]
             isOneToOne: false
             referencedRelation: "locations"
             referencedColumns: ["id"]
@@ -10149,7 +10470,96 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      operational_receiving_purchase_order_items: {
+        Row: {
+          component_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          mpn: string | null
+          po_id: string | null
+          quantity_ordered: number | null
+          quantity_received: number | null
+          quantity_rejected: number | null
+          short_close_reason: string | null
+          short_closed: boolean | null
+        }
+        Insert: {
+          component_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          mpn?: string | null
+          po_id?: string | null
+          quantity_ordered?: number | null
+          quantity_received?: number | null
+          quantity_rejected?: number | null
+          short_close_reason?: string | null
+          short_closed?: boolean | null
+        }
+        Update: {
+          component_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          mpn?: string | null
+          po_id?: string | null
+          quantity_ordered?: number | null
+          quantity_received?: number | null
+          quantity_rejected?: number | null
+          short_close_reason?: string | null
+          short_closed?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_items_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "operational_receiving_purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_items_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operational_receiving_purchase_orders: {
+        Row: {
+          created_at: string | null
+          expected_delivery_date: string | null
+          id: string | null
+          notes: string | null
+          po_number: string | null
+          status: string | null
+          updated_at: string | null
+          vendor_address: string | null
+          vendor_contact_person: string | null
+          vendor_email: string | null
+          vendor_id: string | null
+          vendor_name: string | null
+          vendor_phone: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_inward: { Args: { _uid: string }; Returns: boolean }
@@ -10162,16 +10572,28 @@ export type Database = {
         Args: { _error?: string; _job_key: string; _pause?: boolean }
         Returns: undefined
       }
-      create_grn: {
-        Args: {
-          _items: Json
-          _po_id: string
-          _storage_notes: string
-          _vendor_invoice_date: string
-          _vendor_invoice_number: string
-        }
-        Returns: Json
-      }
+      create_grn:
+        | {
+            Args: {
+              _items: Json
+              _po_id: string
+              _storage_notes: string
+              _vendor_invoice_date: string
+              _vendor_invoice_number: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _idempotency_key?: string
+              _items: Json
+              _po_id: string
+              _storage_notes: string
+              _vendor_invoice_date: string
+              _vendor_invoice_number: string
+            }
+            Returns: Json
+          }
       create_phase6_quotation: {
         Args: {
           _items: Json
@@ -10323,6 +10745,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      inventory_payload_hash: { Args: { _payload: Json }; Returns: string }
+      inventory_request_result: {
+        Args: {
+          _payload: Json
+          _request_key: string
+          _transaction_type: string
+        }
+        Returns: Json
+      }
       is_employee_manager: {
         Args: { _employee_id: string; _user_id: string }
         Returns: boolean
@@ -10361,6 +10792,46 @@ export type Database = {
       phase8_can: {
         Args: { _permission: string; _user_id: string }
         Returns: boolean
+      }
+      post_material_issue: {
+        Args: {
+          _assignee_id: string
+          _idempotency_key: string
+          _items: Json
+          _notes: string
+          _project_id: string
+          _project_name: string
+        }
+        Returns: Json
+      }
+      post_material_return: {
+        Args: {
+          _assignment_id: string
+          _idempotency_key: string
+          _quantity: number
+        }
+        Returns: Json
+      }
+      post_stock_adjustment: {
+        Args: {
+          _component_id: string
+          _delta: number
+          _idempotency_key: string
+          _location_id: string
+          _reason: string
+        }
+        Returns: Json
+      }
+      post_stock_transfer: {
+        Args: {
+          _component_id: string
+          _from_location_id: string
+          _idempotency_key: string
+          _notes: string
+          _quantity: number
+          _to_location_id: string
+        }
+        Returns: Json
       }
       provision_drive_for_project: {
         Args: { p_project_id: string }
