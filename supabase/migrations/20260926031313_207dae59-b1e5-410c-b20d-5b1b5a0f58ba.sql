@@ -1,0 +1,1 @@
+DROP FUNCTION public.next_project_bom_number(uuid);

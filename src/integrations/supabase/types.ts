@@ -11119,10 +11119,6 @@ export type Database = {
         Returns: string
       }
       next_document_number: { Args: { _kind: string }; Returns: string }
-      next_project_bom_number: {
-        Args: { _project_id: string }
-        Returns: string
-      }
       phase6_can_finance: { Args: { _uid: string }; Returns: boolean }
       phase6_can_quality: { Args: { _uid: string }; Returns: boolean }
       phase6_shortage_snapshot: {
