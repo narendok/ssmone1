@@ -3,7 +3,7 @@ import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Upload, FileSpreadsheet, Download, Link2, Search, RotateCcw, Copy, Share2, ShoppingCart, Sparkles, FolderPlus, Save, Loader2 } from "lucide-react";
+import { Upload, FileSpreadsheet, Download, Link2, Search, RotateCcw, Copy, Share2, ShoppingCart, Sparkles, FolderPlus, Save, Loader2, ClipboardCheck } from "lucide-react";
 import { saveProjectBom, loadProjectBom } from "@/lib/project-bom.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ import { shareRows, rowsToMarkdown, type ShareRow } from "@/lib/bom-share";
 import { ShareLinkDialog } from "@/components/inventory/ShareLinkDialog";
 import { CreatePODialog, type PoDraftLine } from "@/components/procurement/CreatePODialog";
 import { InvoiceImportDialog } from "@/components/inventory/InvoiceImportDialog";
+import { InventoryCsvReviewDialog } from "@/components/inventory/InventoryCsvReviewDialog";
 import { fetchProjects } from "@/lib/projects";
 
 
@@ -89,6 +90,7 @@ function BomPage() {
   const [poLines, setPoLines] = useState<PoDraftLine[] | undefined>(undefined);
   const [projectId, setProjectId] = useState<string>("__none");
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [inventoryCsvOpen, setInventoryCsvOpen] = useState(false);
   const [linkingProject, setLinkingProject] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
@@ -392,6 +394,9 @@ function BomPage() {
           <Button onClick={() => setInvoiceOpen(true)}>
             <Sparkles className="h-4 w-4" /> Smart purchase import
           </Button>
+          <Button variant="outline" onClick={() => setInventoryCsvOpen(true)}>
+            <ClipboardCheck className="h-4 w-4" /> Review inventory CSV
+          </Button>
           <Button variant="outline" onClick={() => downloadCsv(inventoryRows(parts, substituteMap), "inventory.csv")}>
             <Download className="h-4 w-4" /> Inventory CSV
           </Button>
@@ -640,6 +645,12 @@ function BomPage() {
         categories={categoryOptions}
         projects={projects}
         defaultProjectId={projectId === "__none" ? null : projectId}
+      />
+      <InventoryCsvReviewDialog
+        open={inventoryCsvOpen}
+        onOpenChange={setInventoryCsvOpen}
+        parts={parts}
+        categories={categoryOptions}
       />
 
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
