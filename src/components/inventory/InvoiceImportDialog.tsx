@@ -102,6 +102,7 @@ export function InvoiceImportDialog({
           const hit = byExact.get(normalizeMpn(l.mpn)) ?? byExact.get(baseMpn(l.mpn)) ?? null;
           return {
             key: i,
+            idempotency_key: crypto.randomUUID(),
             component_id: hit?.id ?? null,
             mpn: l.mpn,
             name: hit?.name ?? l.description ?? l.mpn,
@@ -130,9 +131,9 @@ export function InvoiceImportDialog({
 
   async function submit() {
     if (!lines?.length) return;
-    const uncategorizedNewLines = lines.filter((line) => !line.component_id && !line.category_id);
-    if (uncategorizedNewLines.length) {
-      toast.error("Choose a category for every new part before adding stock");
+    const uncategorizedLines = lines.filter((line) => !line.category_id);
+    if (uncategorizedLines.length) {
+      toast.error("Choose a category for every part before adding stock");
       return;
     }
     setSaving(true);
@@ -147,6 +148,7 @@ export function InvoiceImportDialog({
           enrich,
           lines: lines.map((l) => ({
             component_id: l.component_id,
+            idempotency_key: l.idempotency_key,
             mpn: l.mpn,
             name: l.name,
             manufacturer: l.manufacturer,
@@ -350,7 +352,7 @@ export function InvoiceImportDialog({
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={reset} disabled={saving}>Start over</Button>
-              <Button onClick={submit} disabled={saving || !lines.length || !locationLabel.trim() || lines.some((line) => !line.component_id && !line.category_id)}>
+              <Button onClick={submit} disabled={saving || !lines.length || !locationLabel.trim() || lines.some((line) => !line.category_id)}>
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 Add {lines.reduce((s, l) => s + (l.quantity || 0), 0)} units to stock
               </Button>
