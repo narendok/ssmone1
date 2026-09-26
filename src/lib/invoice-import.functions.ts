@@ -1,10 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { InvoiceExtractResult } from "@/lib/invoice-import.server";
 
 export type { InvoiceExtractLine, InvoiceExtractResult } from "@/lib/invoice-import.server";
 
 export interface ApplyInvoiceLine {
+  idempotency_key: string;
   component_id: string | null;
   mpn: string;
   name: string;
@@ -38,151 +40,59 @@ export const extractInvoiceFile = createServerFn({ method: "POST" })
 export const applyInvoiceImport = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (input: {
-      vendor_name: string | null;
-      invoice_number: string | null;
-      invoice_date: string | null;
-      currency: string | null;
-      project_id: string | null;
-      enrich: boolean;
-      lines: ApplyInvoiceLine[];
-    }) => {
-      if (!Array.isArray(input?.lines) || !input.lines.length) throw new Error("No lines to import");
-      return input;
-    },
+    (input) => z.object({
+      vendor_name: z.string().trim().max(200).nullable(),
+      invoice_number: z.string().trim().max(200).nullable(),
+      invoice_date: z.string().trim().max(30).nullable(),
+      currency: z.string().trim().max(8).nullable(),
+      project_id: z.string().uuid().nullable(),
+      enrich: z.boolean(),
+      lines: z.array(z.object({
+        idempotency_key: z.string().uuid(),
+        component_id: z.string().uuid().nullable(),
+        mpn: z.string().trim().min(1).max(200),
+        name: z.string().trim().min(1).max(200),
+        manufacturer: z.string().trim().max(200).nullable(),
+        category_id: z.string().uuid().nullable(),
+        package: z.string().trim().max(200).nullable(),
+        quantity: z.number().int().positive(),
+        unit_price: z.number().nonnegative().nullable(),
+        location_type: z.string().trim().min(1).max(50),
+        location_label: z.string().trim().min(1).max(200),
+      })).min(1).max(200),
+    }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const sb = context.supabase as any;
-    const email = (context.claims as any)?.email ?? null;
-
-    // Vendor (optional)
-    let vendorId: string | null = null;
-    if (data.vendor_name?.trim()) {
-      const name = data.vendor_name.trim();
-      const { data: found } = await sb.from("vendors").select("id").ilike("name", name).limit(1);
-      if (found?.length) vendorId = found[0].id;
-      else {
-        const { data: created } = await sb.from("vendors").insert({ name }).select("id").single();
-        vendorId = created?.id ?? null;
-      }
-    }
-
-    // Fallback category
-    const { data: cats } = await sb.from("categories").select("id, name");
-    const fallbackCategory =
-      (cats ?? []).find((c: any) => /^uncategorized$/i.test(c.name))?.id ?? (cats ?? [])[0]?.id ?? null;
-
-    const noteBase = [data.invoice_number ? `Invoice ${data.invoice_number}` : "Invoice import", data.vendor_name]
-      .filter(Boolean)
-      .join(" · ");
-
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const errors: string[] = [];
     let created = 0;
     let updated = 0;
     let unitsAdded = 0;
-    const errors: string[] = [];
 
     for (const line of data.lines) {
-      try {
-        const qty = Math.max(1, Math.round(line.quantity || 0));
-        let componentId = line.component_id;
-
-        if (!componentId) {
-          const categoryId = line.category_id ?? fallbackCategory;
-          if (!categoryId) {
-            throw new Error("Choose a category before adding a new part to stock");
-          }
-          let extra: Record<string, unknown> = {};
-          if (data.enrich) {
-            try {
-              const { nexarLookup } = await import("@/lib/nexar.server");
-              const part = await nexarLookup(line.mpn);
-              if (part) {
-                extra = {
-                  manufacturer: line.manufacturer ?? part.manufacturer ?? null,
-                  datasheet_url: part.datasheet_url ?? null,
-                  image_url: part.image_url ?? null,
-                  short_description: part.description ?? null,
-                  package_case: line.package ?? part.package ?? null,
-                  footprint: line.package ?? part.package ?? null,
-                  specs: part.specs ?? null,
-                };
-              }
-            } catch {
-              /* enrichment is best-effort */
-            }
-          }
-          const insertRow = {
-            category_id: categoryId,
-            name: (line.name || line.mpn).slice(0, 200),
-            part_number: line.mpn,
-            manufacturer: line.manufacturer,
-            value: (line.name || line.mpn).slice(0, 200),
-            package_case: line.package,
-            footprint: line.package,
-            cost: line.unit_price,
-            supplier: data.vendor_name,
-            low_stock_threshold: 0,
-            ...extra,
-          };
-          const { data: comp, error } = await sb.from("components").insert(insertRow).select("id").single();
-          if (error) throw error;
-          componentId = comp.id as string;
-          created++;
-        } else {
-          updated++;
-          if (line.unit_price != null) {
-            await sb.from("components").update({ cost: line.unit_price }).eq("id", componentId);
-          }
-        }
-
-        // Location: reuse an existing bin with the same type+label, else create it
-        const { data: locs } = await sb
-          .from("locations")
-          .select("id, quantity")
-          .eq("component_id", componentId)
-          .eq("location_type", line.location_type)
-          .eq("label", line.location_label)
-          .limit(1);
-        let locationId: string;
-        if (locs?.length) {
-          locationId = locs[0].id;
-          await sb.from("locations").update({ quantity: (locs[0].quantity ?? 0) + qty }).eq("id", locationId);
-        } else {
-          const { data: loc, error } = await sb
-            .from("locations")
-            .insert({
-              component_id: componentId,
-              location_type: line.location_type,
-              label: line.location_label,
-              quantity: qty,
-            })
-            .select("id")
-            .single();
-          if (error) throw error;
-          locationId = loc.id as string;
-        }
-
-        await sb.from("stock_history").insert({
-          component_id: componentId,
-          location_id: locationId,
-          delta: qty,
-          action: "inward_purchase",
-          note: noteBase,
-          user_id: context.userId,
-          user_email: email,
-        });
-
-        if (data.project_id) {
-          await sb
-            .from("component_projects")
-            .upsert({ component_id: componentId, project_id: data.project_id }, { onConflict: "component_id,project_id" });
-        }
-
-        unitsAdded += qty;
-      } catch (e: any) {
-        errors.push(`${line.mpn}: ${e?.message ?? "failed"}`);
+      const { data: result, error } = await (supabaseAdmin as any).rpc("approve_inventory_csv_row", {
+        _approved_by: context.userId,
+        _mpn: line.mpn,
+        _name: line.name,
+        _manufacturer: line.manufacturer,
+        _category_id: line.category_id,
+        _footprint: line.package,
+        _quantity: line.quantity,
+        _location_type: line.location_type,
+        _location_label: line.location_label,
+        _low_stock_threshold: 0,
+        _supplier_url: null,
+        _datasheet_url: null,
+        _idempotency_key: line.idempotency_key,
+      });
+      if (error) {
+        errors.push(`${line.mpn}: ${error.message}`);
+        continue;
       }
+      unitsAdded += result?.quantity_added ?? line.quantity;
+      if (result?.created_component) created++;
+      else updated++;
     }
 
-    return { created, updated, unitsAdded, vendorId, errors };
+    return { created, updated, unitsAdded, vendorId: null, errors };
   });
