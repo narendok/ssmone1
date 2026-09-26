@@ -43,4 +43,17 @@ describe("purchase stock approval", () => {
       quantity: 10, unit_price: null, location_type: "basement", location_label: "Store 11",
     }).mpn).toBe("KG200ZABTB");
   });
+
+  it("requires persisted location and audit identifiers in an approval result", () => {
+    const result = {
+      component_id: "204fa42a-b463-4e30-8bd1-55f6f837211a",
+      location_id: "0c2d1db7-d6b3-4677-a21e-b94bca0e1a2d",
+      inventory_lot_id: "5efabc09-3b9b-45b5-a96b-88705a468b1f",
+      stock_event_id: "d4ed2548-3a65-4a9e-b40e-4fc5d787519d",
+      quantity_added: 10,
+      location_quantity: 10,
+    };
+    expect(result.location_quantity).toBeGreaterThan(0);
+    expect(result.stock_event_id).toBeTruthy();
+  });
 });

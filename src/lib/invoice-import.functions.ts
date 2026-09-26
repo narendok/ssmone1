@@ -19,6 +19,18 @@ export interface ApplyInvoiceLine {
   location_label: string;
 }
 
+export interface InvoicePostingResult {
+  mpn: string;
+  componentId: string;
+  locationId: string;
+  locationLabel: string;
+  quantityAdded: number;
+  locationQuantity: number;
+  inventoryLotId: string;
+  stockEventId: string;
+  createdComponent: boolean;
+}
+
 /** Read a purchase invoice (PDF or image) and return structured lines. */
 export const extractInvoiceFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -68,6 +80,7 @@ export const applyInvoiceImport = createServerFn({ method: "POST" })
     let created = 0;
     let updated = 0;
     let unitsAdded = 0;
+    const postings: InvoicePostingResult[] = [];
 
     for (const line of data.lines) {
       const { data: result, error } = await (supabaseAdmin as any).rpc("approve_inventory_csv_row", {
@@ -89,10 +102,25 @@ export const applyInvoiceImport = createServerFn({ method: "POST" })
         errors.push(`${line.mpn}: ${error.message}`);
         continue;
       }
+      if (!result?.component_id || !result?.location_id || !result?.stock_event_id || !result?.inventory_lot_id) {
+        errors.push(`${line.mpn}: Stock posting did not return a persisted location, audit event, and inventory lot`);
+        continue;
+      }
       unitsAdded += result?.quantity_added ?? line.quantity;
       if (result?.created_component) created++;
       else updated++;
+      postings.push({
+        mpn: line.mpn,
+        componentId: result.component_id,
+        locationId: result.location_id,
+        locationLabel: result.location_label ?? line.location_label,
+        quantityAdded: result.quantity_added ?? line.quantity,
+        locationQuantity: result.location_quantity ?? line.quantity,
+        inventoryLotId: result.inventory_lot_id,
+        stockEventId: result.stock_event_id,
+        createdComponent: result.created_component ?? false,
+      });
     }
 
-    return { created, updated, unitsAdded, vendorId: null, errors };
+    return { created, updated, unitsAdded, vendorId: null, errors, postings };
   });
