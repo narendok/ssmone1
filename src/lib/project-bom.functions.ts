@@ -95,7 +95,8 @@ export const saveProjectBom = createServerFn({ method: "POST" })
         .eq("id", bom_id);
       if (error) throw new Error(error.message);
     } else {
-      const { data: numRow, error: numErr } = await sb.rpc("next_document_number", { _kind: "BOM" });
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: numRow, error: numErr } = await supabaseAdmin.rpc("next_document_number", { _kind: "BOM" });
       if (numErr || !numRow) throw new Error(numErr?.message ?? "Could not generate BOM number");
       bom_number = numRow as string;
       const { data: inserted, error: insErr } = await sb
