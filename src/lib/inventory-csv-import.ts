@@ -135,7 +135,7 @@ export function toInventoryDraftRows(
     if (partNumber) seen.add(normalized);
     if (matches.length > 1) warnings.push("More than one existing component matches this part number");
     if (category.ambiguous) warnings.push("Category mapping is ambiguous; choose one");
-    if (read("category") && !category.id && !category.ambiguous) warnings.push("Category was not found; an uncategorized fallback will be used");
+    if (!category.id && !category.ambiguous) warnings.push(read("category") ? "Category was not found; choose a category" : "Category is required");
     return {
       key: index,
       partNumber,
@@ -159,7 +159,7 @@ export function toInventoryDraftRows(
 }
 
 export function isInventoryDraftValid(row: InventoryDraftRow) {
-  return Boolean(row.partNumber.trim() && row.name.trim() && row.quantity > 0 && row.locationType.trim() && row.locationLabel.trim() && row.lowStockThreshold >= 0 && row.warnings.length === 0);
+  return Boolean(row.partNumber.trim() && row.name.trim() && row.categoryId && row.quantity > 0 && row.locationType.trim() && row.locationLabel.trim() && row.lowStockThreshold >= 0 && row.warnings.length === 0);
 }
 
 export function refreshInventoryDraftWarnings(rows: InventoryDraftRow[]) {
@@ -170,10 +170,11 @@ export function refreshInventoryDraftWarnings(rows: InventoryDraftRow[]) {
   });
   return rows.map((row) => {
     const retained = row.warnings.filter((warning) => ![
-      "Part number is required", "Name or description is required", "A positive on-hand quantity is required", "Location or bin is required", "Duplicate part number in this file",
+      "Part number is required", "Name or description is required", "Category is required", "A positive on-hand quantity is required", "Location or bin is required", "Duplicate part number in this file",
     ].includes(warning));
     if (!row.partNumber.trim()) retained.push("Part number is required");
     if (!row.name.trim()) retained.push("Name or description is required");
+    if (!row.categoryId) retained.push("Category is required");
     if (row.quantity <= 0) retained.push("A positive on-hand quantity is required");
     if (!row.locationLabel.trim()) retained.push("Location or bin is required");
     if (row.partNumber.trim() && (occurrences.get(normalizeMpn(row.partNumber)) ?? 0) > 1) retained.push("Duplicate part number in this file");

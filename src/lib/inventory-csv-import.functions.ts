@@ -7,7 +7,7 @@ const rowSchema = z.object({
   partNumber: z.string().trim().min(1).max(200),
   name: z.string().trim().min(1).max(200),
   manufacturer: z.string().trim().max(200).nullable(),
-  categoryId: z.string().uuid().nullable(),
+  categoryId: z.string().uuid(),
   footprint: z.string().trim().max(200).nullable(),
   quantity: z.number().int().positive(),
   locationType: z.string().trim().min(1).max(50),
