@@ -19,6 +19,7 @@ import { fetchProjects, fetchComponentProjectIds, syncComponentProjects } from "
 import { fetchComponentSubstitutes, syncComponentSubstitutes } from "@/lib/substitutes";
 import { SubstitutePicker, type SubstituteLink } from "./SubstitutePicker";
 import { ProjectMultiSelect } from "./ProjectMultiSelect";
+import { saveComponentWithStock } from "@/lib/component-save.functions";
 
 interface Props {
   open: boolean;
@@ -63,6 +64,7 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
   const lookup = useServerFn(supplierLookup);
   const classify = useServerFn(classifyCategory);
   const recordSource = useServerFn(recordProvenance);
+  const saveWithStock = useServerFn(saveComponentWithStock);
   const [supplierSuggested, setSupplierSuggested] = useState(false);
   const [categorySuggested, setCategorySuggested] = useState(false);
 
@@ -210,29 +212,37 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
       return;
     }
     setSaving(true);
-    const costNum = form.cost.trim() === "" ? null : Number(form.cost);
-    const payload = { ...form, value: form.name, package_case: form.footprint, cost: Number.isFinite(costNum) ? costNum : null };
-    let componentId = component?.id;
-    if (isEdit && componentId) {
-      const { error } = await supabase.from("components").update(payload).eq("id", componentId);
-      if (error) { toast.error(error.message); setSaving(false); return; }
-    } else {
-      const { data, error } = await supabase.from("components").insert(payload).select("id").single();
-      if (error) { toast.error(error.message); setSaving(false); return; }
-      componentId = data.id;
-    }
-
-    // Sync locations
-    for (const l of locs) {
-      if (l._delete && l.id) {
-        await supabase.from("locations").delete().eq("id", l.id);
-      } else if (l.id) {
-        await supabase.from("locations").update({ location_type: l.location_type, label: l.label, quantity: l.quantity }).eq("id", l.id);
-      } else if (l.label.trim()) {
-        await supabase.from("locations").insert({ component_id: componentId, location_type: l.location_type, label: l.label, quantity: l.quantity });
-      }
-    }
-    if (componentId) {
+    try {
+      const costNum = form.cost.trim() === "" ? null : Number(form.cost);
+      const result = await saveWithStock({
+        data: {
+          id: component?.id,
+          categoryId: form.category_id,
+          name: form.name,
+          partNumber: form.part_number,
+          manufacturer: form.manufacturer.trim() || null,
+          footprint: form.footprint.trim() || null,
+          bomCompatibility: form.bom_compatibility.trim() || null,
+          voltageRating: form.voltage_rating.trim() || null,
+          currentRating: form.current_rating.trim() || null,
+          temperatureRating: form.temperature_rating.trim() || null,
+          cost: Number.isFinite(costNum) ? costNum : null,
+          supplier: form.supplier.trim() || null,
+          supplierUrl: form.supplier_url.trim() || null,
+          datasheetUrl: form.datasheet_url.trim() || null,
+          notes: form.notes.trim() || null,
+          lowStockThreshold: form.low_stock_threshold,
+          stockReason: "Component form stock update",
+          locations: locs.filter((location) => location._delete || location.label.trim()).map((location) => ({
+            id: location.id,
+            locationType: location.location_type,
+            label: location.label,
+            quantity: location.quantity,
+            delete: location._delete,
+          })),
+        },
+      });
+      const componentId = result.componentId;
       await syncComponentProjects(componentId, projectIds);
       try {
         await syncComponentSubstitutes(componentId, substitutes.map((s) => ({ id: s.id, note: s.note })));
@@ -246,10 +256,13 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
           ...(categorySuggested ? [recordSource({ data: { entityType: "component", entityId: componentId, fieldKey: "category_id", sourceKind: "ai", provider: "Lovable AI", sourceIdentifier: fetchedPart.mpn, sourceUrl: null, valueSnapshot: { categoryId: form.category_id }, confidence: 0.6, state: "needs_review" } })] : []),
         ]);
       }
+      toast.success(isEdit ? "Component updated" : "Component added");
+      onSaved(componentId);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Component could not be saved.");
+    } finally {
+      setSaving(false);
     }
-    toast.success(isEdit ? "Component updated" : "Component added");
-    setSaving(false);
-    onSaved(componentId!);
   }
 
   async function handleDelete() {
