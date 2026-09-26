@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { Component, Location } from "@/lib/inventory";
 import { stockStatus } from "@/lib/inventory";
+import { adjustStock } from "@/lib/inventory-adjustment.functions";
 
 interface Props {
   open: boolean;
@@ -25,6 +26,7 @@ export function StockAdjustDialog({ open, onOpenChange, component, onSaved }: Pr
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [requestKey, setRequestKey] = useState("");
+  const postAdjustment = useServerFn(adjustStock);
 
   const loc = component.locations.find((l) => l.id === locationId);
 
@@ -36,20 +38,25 @@ export function StockAdjustDialog({ open, onOpenChange, component, onSaved }: Pr
     if (!note.trim()) { setSaving(false); return toast.error("Provide a reason for this adjustment"); }
     const key = requestKey || crypto.randomUUID();
     if (!requestKey) setRequestKey(key);
-    const { data, error } = await (supabase as any).rpc("post_stock_adjustment", {
-      _component_id: component.id,
-      _location_id: loc.id,
-      _delta: delta,
-      _reason: note.trim(),
-      _idempotency_key: key,
-    });
-    if (error) { setSaving(false); return toast.error(error.message); }
+    let data: { adjustmentNumber: string };
+    try {
+      data = await postAdjustment({ data: {
+        componentId: component.id,
+        locationId: loc.id,
+        delta,
+        reason: note.trim(),
+        idempotencyKey: key,
+      } });
+    } catch (error) {
+      setSaving(false);
+      return toast.error(error instanceof Error ? error.message : "Stock could not be updated.");
+    }
 
     const newQty = loc.quantity + delta;
     const newTotal = component.total_quantity + delta;
     const status = stockStatus(newTotal, component.low_stock_threshold);
     toast.success("Stock updated", {
-      description: `${data.adjustment_number}: ${component.name} • ${loc.label}: ${loc.quantity} → ${newQty}`,
+      description: `${data.adjustmentNumber}: ${component.name} • ${loc.label}: ${loc.quantity} → ${newQty}`,
     });
     if (status !== "in_stock") {
       toast.warning(status === "out_of_stock" ? "Component is now out of stock" : "Component is now low on stock", {
