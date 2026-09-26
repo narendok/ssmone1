@@ -73,6 +73,7 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
     let componentId = data.id;
 
     if (componentId) {
+      if (!componentId) throw new Error("Component could not be created.");
       const { error } = await context.supabase.from("components").update(payload).eq("id", componentId);
       if (error) throw new Error(error.message);
     } else {
