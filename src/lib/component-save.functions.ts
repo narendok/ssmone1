@@ -121,7 +121,14 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
       if (location.delete && location.id) {
         const existing = savedById.get(location.id);
         if (existing && Number(existing.quantity) > 0) throw new Error("Remove stock through Stock adjustment before removing a storage location.");
-        const { error } = await context.supabase.from("locations").delete().eq("id", location.id).eq("component_id", componentId);
+        const { error } = await context.supabase.rpc("manage_component_location", {
+          _approved_by: context.userId,
+          _component_id: componentId,
+          _location_id: location.id,
+          _location_type: location.locationType,
+          _location_label: location.label,
+          _delete: true,
+        });
         if (error) throw new Error(error.message);
         continue;
       }
@@ -131,10 +138,14 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
         const existing = savedById.get(location.id);
         if (!existing) throw new Error("The selected storage location no longer exists. Refresh and try again.");
         const delta = location.quantity - Number(existing.quantity);
-        const { error: detailsError } = await context.supabase.from("locations")
-          .update({ location_type: location.locationType, label: location.label })
-          .eq("id", location.id)
-          .eq("component_id", componentId);
+        const { error: detailsError } = await context.supabase.rpc("manage_component_location", {
+          _approved_by: context.userId,
+          _component_id: componentId,
+          _location_id: location.id,
+          _location_type: location.locationType,
+          _location_label: location.label,
+          _delete: false,
+        });
         if (detailsError) throw new Error(detailsError.message);
         if (delta !== 0) {
           const { error } = await context.supabase.rpc("post_stock_adjustment", {
@@ -170,11 +181,12 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
           throw new Error(error?.message ?? "Stock was not posted successfully.");
         }
       } else {
-        const { error } = await context.supabase.from("locations").insert({
-          component_id: componentId,
-          location_type: location.locationType,
-          label: location.label,
-          quantity: 0,
+        const { error } = await context.supabase.rpc("manage_component_location", {
+          _approved_by: context.userId,
+          _component_id: componentId,
+          _location_type: location.locationType,
+          _location_label: location.label,
+          _delete: false,
         });
         if (error) throw new Error(error.message);
       }

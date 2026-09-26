@@ -11129,9 +11129,9 @@ export type Database = {
           _approved_by: string
           _component_id: string
           _delete?: boolean
-          _location_id: string
-          _location_label: string
-          _location_type: string
+          _location_id?: string
+          _location_label?: string
+          _location_type?: string
         }
         Returns: Json
       }
