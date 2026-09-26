@@ -8,5 +8,5 @@
 - Historical zero-stock recovery is Administrator-only and requires an explicit verified quantity, bin, and source note before it can reuse the protected inventory posting transaction.
 - Regular component Add/Edit saves use the protected server save action for every non-zero stock change, so bin quantities cannot bypass stock audits or authorization.
 - Regular component Add/Edit saves manage empty-location creation, renaming, and removal only through the protected `manage_component_location` action; direct authenticated writes to locations remain revoked.
-- Component-form stock changes carry a per-location request key across retries and invoke protected inventory actions through the server-only privileged client, so a repeated save cannot post stock twice.
+- Component-form stock changes reuse per-location request keys; all manual adjustments verify the actor in server actions before service-only posting.
 - Reuse the R&D member dialog for R&D-specific contacts; project membership remains employee-based so no workflow creates duplicate identities.
