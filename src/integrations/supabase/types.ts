@@ -11189,16 +11189,28 @@ export type Database = {
         }
         Returns: Json
       }
-      post_stock_adjustment: {
-        Args: {
-          _component_id: string
-          _delta: number
-          _idempotency_key: string
-          _location_id: string
-          _reason: string
-        }
-        Returns: Json
-      }
+      post_stock_adjustment:
+        | {
+            Args: {
+              _approved_by: string
+              _component_id: string
+              _delta: number
+              _idempotency_key: string
+              _location_id: string
+              _reason: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _component_id: string
+              _delta: number
+              _idempotency_key: string
+              _location_id: string
+              _reason: string
+            }
+            Returns: Json
+          }
       post_stock_transfer: {
         Args: {
           _component_id: string
