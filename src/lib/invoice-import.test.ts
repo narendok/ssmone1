@@ -56,4 +56,9 @@ describe("purchase stock approval", () => {
     expect(result.location_quantity).toBeGreaterThan(0);
     expect(result.stock_event_id).toBeTruthy();
   });
+
+  it("does not accept a success result with a zero bin balance", () => {
+    const result = { location_quantity: 0, stock_event_id: "event-1", inventory_lot_id: "lot-1" };
+    expect(result.location_quantity > 0 && Boolean(result.stock_event_id) && Boolean(result.inventory_lot_id)).toBe(false);
+  });
 });

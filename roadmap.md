@@ -4,7 +4,7 @@
 
 - [x] Connect R&D and project-member pages to their next actions, with contextual member creation links and no identity or authorization changes.
 - [x] Make CSV and purchase-import approvals create visible available lots alongside location stock, ledger history, audit records, persisted posting results, and retry-safe locking.
-- [ ] Re-enter verified source quantity and storage details for the five historical zero-stock imports (KG200ZABTB, VNH7040AYTR, MLPF-WB-02D3, C0402C105K4PAC7411, GRM188R71H224KAC4D). **Blocker:** the database retained no source quantity or location data, so automatic backfill would invent inventory facts.
+- [ ] Re-enter verified source quantity and storage details for the seven historical zero-stock components (KG200ZABTB, VNH7040AYTR, MLPF-WB-02D3, C0402C105K4PAC7411, GRM188R71H224KAC4D, max485, irfz44). **Blocker:** the database retained no source quantity or location data, so automatic backfill would invent inventory facts. An Administrator-only recovery action now requires those values before posting.
 - [x] Repair the sign-in page hydration mismatch.
 - [ ] Review the newly added DigiKey order through the inventory CSV approval workflow after category safeguards are validated.
 

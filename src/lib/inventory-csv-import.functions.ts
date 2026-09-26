@@ -15,6 +15,26 @@ export interface InventoryPostingResult {
   createdLocation: boolean;
 }
 
+function persistedPosting(result: any, fallback: { quantity: number; locationType: string; locationLabel: string }): InventoryPostingResult | null {
+  const locationQuantity = Number(result?.location_quantity);
+  if (
+    !result?.component_id || !result?.location_id || !result?.stock_event_id || !result?.inventory_lot_id
+    || !Number.isFinite(locationQuantity) || locationQuantity <= 0
+  ) return null;
+  return {
+    componentId: result.component_id,
+    locationId: result.location_id,
+    locationType: result.location_type ?? fallback.locationType,
+    locationLabel: result.location_label ?? fallback.locationLabel,
+    quantityAdded: Number(result.quantity_added ?? fallback.quantity),
+    locationQuantity,
+    inventoryLotId: result.inventory_lot_id,
+    stockEventId: result.stock_event_id,
+    createdComponent: result.created_component ?? false,
+    createdLocation: result.created_location ?? false,
+  };
+}
+
 const rowSchema = z.object({
   idempotencyKey: z.string().uuid(),
   partNumber: z.string().trim().min(1).max(200),
@@ -52,23 +72,15 @@ export const approveInventoryCsvRows = createServerFn({ method: "POST" })
         _datasheet_url: row.datasheetUrl,
         _idempotency_key: row.idempotencyKey,
       });
-      if (error || !result?.component_id || !result?.location_id || !result?.stock_event_id || !result?.inventory_lot_id) {
+      const posting = persistedPosting(result, row);
+      if (error || !posting) {
         results.push({ partNumber: row.partNumber, ok: false, error: error?.message ?? "Stock posting did not return a persisted location, audit event, and inventory lot" });
         continue;
       }
       results.push({
         partNumber: row.partNumber,
         ok: true,
-        componentId: result.component_id,
-        locationId: result.location_id,
-        locationType: result.location_type ?? row.locationType,
-        locationLabel: result.location_label ?? row.locationLabel,
-        quantityAdded: result.quantity_added ?? row.quantity,
-        locationQuantity: result.location_quantity ?? row.quantity,
-        inventoryLotId: result.inventory_lot_id,
-        stockEventId: result.stock_event_id,
-        createdComponent: result.created_component ?? false,
-        createdLocation: result.created_location ?? false,
+        ...posting,
       });
     }
     return { results };
