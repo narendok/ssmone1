@@ -1,0 +1,2 @@
+GRANT EXECUTE ON FUNCTION public.manage_component_location(uuid, uuid, uuid, text, text, boolean) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.manage_component_location(uuid, uuid, uuid, text, text, boolean) TO service_role;
