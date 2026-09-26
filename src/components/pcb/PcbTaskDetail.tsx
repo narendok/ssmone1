@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Download, FileText, Image as ImageIcon, Loader2, Trash2, Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -233,6 +234,7 @@ export function PcbTaskDetail({ task, projects, members, onClose, onChanged }: P
                   {members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {members.length === 0 && <Button asChild variant="link" size="sm" className="h-auto p-0"><Link to="/rd-team">Create an R&amp;D member</Link></Button>}
             </div>
             <div>
               <Label className="text-xs">Project</Label>

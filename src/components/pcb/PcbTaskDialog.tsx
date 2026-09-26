@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,7 @@ export function PcbTaskDialog({ open, onOpenChange, projects, members, onSaved }
                   {members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {members.length === 0 && <Button asChild variant="link" size="sm" className="h-auto p-0"><Link to="/rd-team">Create an R&amp;D member</Link></Button>}
             </div>
             <div>
               <Label>Project</Label>

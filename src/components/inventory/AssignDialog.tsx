@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Trash2, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -134,7 +135,7 @@ export function AssignDialog({ open, onOpenChange, components, onSaved }: Props)
               <Select value={assigneeId} onValueChange={setAssigneeId}>
                 <SelectTrigger><SelectValue placeholder="Choose team member" /></SelectTrigger>
                 <SelectContent>
-                  {members.length === 0 && <div className="p-2 text-xs text-muted-foreground">Add members in the R&amp;D Team page first.</div>}
+                  {members.length === 0 && <div className="p-2 text-xs text-muted-foreground">No active R&amp;D members yet.</div>}
                   {members.map((m) => <SelectItem key={m.id} value={m.id}>{m.name} {m.role ? `— ${m.role}` : ""}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -150,6 +151,13 @@ export function AssignDialog({ open, onOpenChange, components, onSaved }: Props)
               </Select>
             </div>
           </div>
+
+          {members.length === 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed p-3 text-sm">
+              <span className="text-muted-foreground">Create the responsible R&amp;D member before assigning this kit.</span>
+              <Button asChild size="sm" variant="outline"><Link to="/rd-team">Create member</Link></Button>
+            </div>
+          )}
 
           <div className="space-y-2 rounded-md border p-3">
             <div className="flex items-center justify-between">
