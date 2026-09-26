@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { FileSpreadsheet, FolderInput, ChevronRight, ArrowLeft } from "lucide-react";
+import { FileSpreadsheet, FolderInput, ChevronRight, ArrowLeft, Upload } from "lucide-react";
 import { fetchProjectBoms, fetchProjectBomItems, type ProjectBomSummary, type ProjectBomItemRow } from "@/lib/project-bom.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -122,12 +122,15 @@ export function ProjectBomsTab({ projectId }: { projectId: string }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">Saved BOMs for this project. Open one to review its lines, or load it back into the BOM tool to re-match against current stock.</p>
+        <Button size="sm" onClick={() => navigate({ to: "/bom", search: { projectId } as any })}>
+          <Upload className="h-4 w-4" /> Upload BOM
+        </Button>
       </div>
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : boms.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground text-sm">
-          No saved BOMs yet. Import a BOM on the <Button asChild variant="link" className="h-auto p-0 align-baseline"><Link to="/bom">BOM page</Link></Button> and click “Save BOM to project”.
+          No saved BOMs yet. <Button variant="link" className="h-auto p-0 align-baseline" onClick={() => navigate({ to: "/bom", search: { projectId } as any })}>Upload a BOM</Button> for this project.
         </Card>
       ) : (
         <Card className="divide-y">

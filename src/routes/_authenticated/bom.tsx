@@ -46,7 +46,8 @@ export const Route = createFileRoute("/_authenticated/bom")({
   component: BomPage,
   validateSearch: (search: Record<string, unknown>) => {
     const v = typeof search?.loadBom === "string" ? search.loadBom : undefined;
-    return v ? { loadBom: v } : {};
+    const projectId = typeof search?.projectId === "string" ? search.projectId : undefined;
+    return { ...(v ? { loadBom: v } : {}), ...(projectId ? { projectId } : {}) };
   },
   head: () => ({
     meta: [
@@ -96,6 +97,7 @@ function BomPage() {
   const [savedLink, setSavedLink] = useState<{ bom_number: string; project_id: string } | null>(null);
 
   const loadBomId = (useSearch({ strict: false }) as any)?.loadBom as string | undefined;
+  const projectFromSearch = (useSearch({ strict: false }) as any)?.projectId as string | undefined;
   const loadFn = useServerFn(loadProjectBom);
   const saveFn = useServerFn(saveProjectBom);
 
@@ -133,6 +135,10 @@ function BomPage() {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadBomId]);
+
+  useEffect(() => {
+    if (projectFromSearch && !loadBomId) setProjectId(projectFromSearch);
+  }, [projectFromSearch, loadBomId]);
 
   async function confirmSaveBom() {
     if (!activeProject) return toast.error("Pick a project first");
