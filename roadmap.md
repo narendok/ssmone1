@@ -3,6 +3,7 @@
 ## Maintenance
 
 - [x] Repair the sign-in page hydration mismatch.
+- [ ] Review the newly added DigiKey order through the inventory CSV approval workflow after category safeguards are validated.
 
 ## Mobile Stage 5 backend remediation
 

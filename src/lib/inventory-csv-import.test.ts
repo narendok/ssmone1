@@ -43,4 +43,11 @@ describe("inventory CSV review", () => {
     const revised = refreshInventoryDraftWarnings(rows.map((row) => row.key === 1 ? { ...row, partNumber: "A-1" } : row));
     expect(revised.every((row) => !isInventoryDraftValid(row))).toBe(true);
   });
+
+  it("requires a category before a new component can be approved", () => {
+    const { mapping } = guessInventoryMapping(["Part number", "Name", "Qty", "Bin"]);
+    const [row] = toInventoryDraftRows([{ "Part number": "NEW-2", Name: "New part", Qty: "3", Bin: "A1" }], mapping, [], categories);
+    expect(row.warnings).toContain("Category is required");
+    expect(isInventoryDraftValid(row)).toBe(false);
+  });
 });
