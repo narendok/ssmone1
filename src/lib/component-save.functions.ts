@@ -184,7 +184,6 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
         const { error } = await context.supabase.rpc("manage_component_location", {
           _approved_by: context.userId,
           _component_id: componentId,
-          _location_id: undefined,
           _location_type: location.locationType,
           _location_label: location.label,
           _delete: false,
