@@ -42,7 +42,7 @@ function DepartmentsPage() {
             <Users className="h-6 w-6" /> Departments
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            Workload and people per department. Set someone's department on the R&amp;D team page.
+            Workload and responsible people by department.
           </p>
         </div>
         <Button asChild variant="outline"><Link to="/rd-team">Manage team</Link></Button>
@@ -72,7 +72,7 @@ function DepartmentsPage() {
               </div>
               <div className="text-sm">
                 <span className="text-muted-foreground">Team: </span>
-                {people.length ? people.map((p) => p.name).join(", ") : "nobody assigned yet"}
+                {people.length ? people.map((p) => p.name).join(", ") : <Link className="text-primary hover:underline" to="/rd-team">Create a responsible member</Link>}
               </div>
             </Card>
           );
