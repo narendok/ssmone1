@@ -24,6 +24,16 @@ describe("purchase stock approval", () => {
     })).toThrow();
   });
 
+  it("uses the approved quantity as the visible received-lot quantity", () => {
+    const line = invoiceLineSchema.parse({
+      idempotency_key: "3c701f4e-4ca2-418d-9735-3d5e6b2bd21c",
+      component_id: null, mpn: "KG200ZABTB", name: "KG200Z", manufacturer: null,
+      category_id: "b41f59bf-6a54-40c2-a4f2-290492cc8a07", package: null,
+      quantity: 10, unit_price: null, location_type: "basement", location_label: "Store 11",
+    });
+    expect(line.quantity).toBe(10);
+  });
+
   it("accepts a complete, idempotent stock approval line", () => {
     expect(invoiceLineSchema.parse({
       idempotency_key: "3c701f4e-4ca2-418d-9735-3d5e6b2bd21c",
