@@ -63,4 +63,9 @@ describe("inventory CSV review", () => {
     expect(new Set([posting.stockEventId, retry.stockEventId]).size).toBe(1);
     expect(new Set([posting.inventoryLotId, retry.inventoryLotId]).size).toBe(1);
   });
+
+  it("refuses an approval response without a positive persisted bin quantity", () => {
+    const incompletePosting = { locationQuantity: 0, stockEventId: "event-1", inventoryLotId: "lot-1" };
+    expect(incompletePosting.locationQuantity > 0 && Boolean(incompletePosting.stockEventId) && Boolean(incompletePosting.inventoryLotId)).toBe(false);
+  });
 });

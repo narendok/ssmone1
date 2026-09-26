@@ -164,11 +164,13 @@ export function InvoiceImportDialog({
       qc.invalidateQueries();
       if (res.errors.length) toast.error(`${res.errors.length} line(s) failed: ${res.errors[0]}`);
       const lastPosting = res.postings.at(-1);
-      toast.success(lastPosting
-        ? `${res.unitsAdded} units posted · ${lastPosting.locationLabel} now has ${lastPosting.locationQuantity} units`
-        : `${res.unitsAdded} units added to ${locationLabel} · ${res.created} new part(s), ${res.updated} restocked`);
-      reset();
-      onOpenChange(false);
+      if (lastPosting) {
+        toast.success(`${res.unitsAdded} units posted · ${lastPosting.locationLabel} now has ${lastPosting.locationQuantity} units`);
+        reset();
+        onOpenChange(false);
+      } else if (!res.errors.length) {
+        toast.error("No lines were posted because a positive bin quantity and stock-history event were not confirmed.");
+      }
     } catch (e: any) {
       toast.error(e?.message ?? "Could not import that invoice");
     } finally {

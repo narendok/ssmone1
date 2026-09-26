@@ -18,8 +18,10 @@ import { shareRows } from "@/lib/bom-share";
 import { ShareSelectionBar } from "./ShareSelectionBar";
 import { ProjectChips } from "./ProjectMultiSelect";
 import { ComponentFormDialog } from "./ComponentFormDialog";
+import { HistoricalStockRecoveryDialog } from "./HistoricalStockRecoveryDialog";
 import { StockAdjustDialog } from "./StockAdjustDialog";
 import { AssignDialog } from "./AssignDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 
 interface Props {
@@ -36,6 +38,7 @@ interface Row extends Component {
 
 export function InventoryView({ categorySlug, title, subtitle }: Props) {
   const qc = useQueryClient();
+  const { role } = useAuth();
   const [search, setSearch] = useState("");
   const [pkgFilter, setPkgFilter] = useState<string>("all");
   const [mfrFilter, setMfrFilter] = useState<string>("all");
@@ -47,6 +50,7 @@ export function InventoryView({ categorySlug, title, subtitle }: Props) {
   const [editing, setEditing] = useState<Row | null>(null);
   const [creating, setCreating] = useState(false);
   const [adjusting, setAdjusting] = useState<Row | null>(null);
+  const [recovering, setRecovering] = useState<Row | null>(null);
   const [assigning, setAssigning] = useState<Row[] | null>(null);
   const [flashId, setFlashId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -447,6 +451,9 @@ export function InventoryView({ categorySlug, title, subtitle }: Props) {
                     <TableCell><StatusBadge status={status} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
+                        {role === "admin" && r.total_quantity === 0 && r.locations.length === 0 && (
+                          <Button variant="ghost" size="sm" onClick={() => setRecovering(r)}>Recover</Button>
+                        )}
                         <Button variant="ghost" size="sm" onClick={() => setAdjusting(r)}>Adjust</Button>
                         <Button variant="ghost" size="sm" onClick={() => setAssigning([r])}>Assign</Button>
                       </div>
@@ -484,6 +491,14 @@ export function InventoryView({ categorySlug, title, subtitle }: Props) {
             onOpenChange={(o) => { if (!o) setAdjusting(null); }}
             component={adjusting}
             onSaved={(id) => { refresh(id); setAdjusting(null); }}
+          />
+        )}
+        {recovering && (
+          <HistoricalStockRecoveryDialog
+            open
+            onOpenChange={(open) => { if (!open) setRecovering(null); }}
+            component={recovering}
+            onSaved={() => { qc.invalidateQueries(); setRecovering(null); }}
           />
         )}
         {assigning && (
