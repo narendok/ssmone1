@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { guessInventoryMapping, isInventoryDraftValid, toInventoryDraftRows } from "./inventory-csv-import";
+import { guessInventoryMapping, isInventoryDraftValid, refreshInventoryDraftWarnings, toInventoryDraftRows } from "./inventory-csv-import";
 
 const categories = [{ id: "category-resistors", label: "Passive > Resistors" }];
 const parts = [{
@@ -32,5 +32,15 @@ describe("inventory CSV review", () => {
     expect(isInventoryDraftValid(rows[0])).toBe(false);
     expect(rows[1].warnings).toContain("Duplicate part number in this file");
     expect(isInventoryDraftValid(rows[1])).toBe(false);
+  });
+
+  it("keeps duplicate protection when a reviewer edits a row", () => {
+    const { mapping } = guessInventoryMapping(["Part number", "Name", "Qty", "Bin"]);
+    const rows = toInventoryDraftRows([
+      { "Part number": "A-1", Name: "Part A", Qty: "2", Bin: "A1" },
+      { "Part number": "B-1", Name: "Part B", Qty: "2", Bin: "A1" },
+    ], mapping, [], categories);
+    const revised = refreshInventoryDraftWarnings(rows.map((row) => row.key === 1 ? { ...row, partNumber: "A-1" } : row));
+    expect(revised.every((row) => !isInventoryDraftValid(row))).toBe(true);
   });
 });

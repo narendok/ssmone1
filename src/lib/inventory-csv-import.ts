@@ -120,7 +120,7 @@ export function toInventoryDraftRows(
     if (base && base !== key) partMap.set(base, [...(partMap.get(base) ?? []), part]);
   });
   const seen = new Set<string>();
-  return rows.map((row, index) => {
+  return refreshInventoryDraftWarnings(rows.map((row, index) => {
     const read = (field: keyof InventoryCsvMapping) => (mapping[field] ? row[mapping[field]] ?? "" : "").trim();
     const partNumber = read("partNumber");
     const name = read("name");
@@ -131,10 +131,6 @@ export function toInventoryDraftRows(
     const normalized = normalizeMpn(partNumber);
     const matches = normalized ? (partMap.get(normalized) ?? partMap.get(baseMpn(partNumber)) ?? []) : [];
     const warnings: string[] = [];
-    if (!partNumber) warnings.push("Part number is required");
-    if (!name) warnings.push("Name or description is required");
-    if (quantity == null) warnings.push("A positive on-hand quantity is required");
-    if (!location.label) warnings.push("Location or bin is required");
     if (partNumber && seen.has(normalized)) warnings.push("Duplicate part number in this file");
     if (partNumber) seen.add(normalized);
     if (matches.length > 1) warnings.push("More than one existing component matches this part number");
@@ -159,9 +155,28 @@ export function toInventoryDraftRows(
       matchLabel: matches.length === 1 ? matches[0].part_number : null,
       warnings,
     };
-  }).filter((row) => Object.values(row).some((value) => typeof value === "string" && value.trim()));
+  }).filter((row) => Object.values(row).some((value) => typeof value === "string" && value.trim())));
 }
 
 export function isInventoryDraftValid(row: InventoryDraftRow) {
   return Boolean(row.partNumber.trim() && row.name.trim() && row.quantity > 0 && row.locationType.trim() && row.locationLabel.trim() && row.lowStockThreshold >= 0 && row.warnings.length === 0);
+}
+
+export function refreshInventoryDraftWarnings(rows: InventoryDraftRow[]) {
+  const occurrences = new Map<string, number>();
+  rows.forEach((row) => {
+    const partNumber = normalizeMpn(row.partNumber);
+    if (partNumber) occurrences.set(partNumber, (occurrences.get(partNumber) ?? 0) + 1);
+  });
+  return rows.map((row) => {
+    const retained = row.warnings.filter((warning) => ![
+      "Part number is required", "Name or description is required", "A positive on-hand quantity is required", "Location or bin is required", "Duplicate part number in this file",
+    ].includes(warning));
+    if (!row.partNumber.trim()) retained.push("Part number is required");
+    if (!row.name.trim()) retained.push("Name or description is required");
+    if (row.quantity <= 0) retained.push("A positive on-hand quantity is required");
+    if (!row.locationLabel.trim()) retained.push("Location or bin is required");
+    if (row.partNumber.trim() && (occurrences.get(normalizeMpn(row.partNumber)) ?? 0) > 1) retained.push("Duplicate part number in this file");
+    return { ...row, warnings: retained };
+  });
 }

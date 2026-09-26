@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, CheckCircle2, FileUp, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { approveInventoryCsvRows } from "@/lib/inventory-csv-import.functions";
-import { guessInventoryMapping, isInventoryDraftValid, toInventoryDraftRows, type CategoryChoice, type InventoryCsvMapping, type InventoryDraftRow, type MappingConfidence } from "@/lib/inventory-csv-import";
+import { guessInventoryMapping, isInventoryDraftValid, refreshInventoryDraftWarnings, toInventoryDraftRows, type CategoryChoice, type InventoryCsvMapping, type InventoryDraftRow, type MappingConfidence } from "@/lib/inventory-csv-import";
 import { parseBomFile, parseCsvText, type ParsedSheet, type StockPart } from "@/lib/bom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,10 +39,11 @@ export function InventoryCsvReviewDialog({ open, onOpenChange, parts, categories
   const [confidence, setConfidence] = useState<Record<keyof InventoryCsvMapping, MappingConfidence> | null>(null);
   const [rows, setRows] = useState<InventoryDraftRow[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [requestKeys, setRequestKeys] = useState<Record<number, string>>({});
   const [pasted, setPasted] = useState("");
   const [saving, setSaving] = useState(false);
 
-  function reset() { setSheet(null); setMapping(null); setConfidence(null); setRows([]); setSelected(new Set()); setPasted(""); }
+  function reset() { setSheet(null); setMapping(null); setConfidence(null); setRows([]); setSelected(new Set()); setRequestKeys({}); setPasted(""); }
   function load(parsed: ParsedSheet) {
     const guessed = guessInventoryMapping(parsed.headers);
     setSheet(parsed); setMapping(guessed.mapping); setConfidence(guessed.confidence); setRows([]); setSelected(new Set());
@@ -53,14 +54,19 @@ export function InventoryCsvReviewDialog({ open, onOpenChange, parts, categories
     const drafts = toInventoryDraftRows(sheet.rows, mapping, parts, categories);
     setRows(drafts); setSelected(new Set(drafts.filter(isInventoryDraftValid).map((row) => row.key)));
   }
-  function patch(key: number, value: Partial<InventoryDraftRow>) { setRows((current) => current.map((row) => row.key === key ? { ...row, ...value, warnings: [] } : row)); }
+  function patch(key: number, value: Partial<InventoryDraftRow>) {
+    setRows((current) => refreshInventoryDraftWarnings(current.map((row) => row.key === key ? { ...row, ...value } : row)));
+  }
   const validRows = rows.filter(isInventoryDraftValid);
   const selectedRows = validRows.filter((row) => selected.has(row.key));
   async function submit() {
     if (!selectedRows.length) return;
     setSaving(true);
     try {
-      const result = await approve({ data: { rows: selectedRows.map((row) => ({ idempotencyKey: crypto.randomUUID(), partNumber: row.partNumber, name: row.name, manufacturer: row.manufacturer || null, categoryId: row.categoryId, footprint: row.footprint || null, quantity: row.quantity, locationType: row.locationType, locationLabel: row.locationLabel, lowStockThreshold: row.lowStockThreshold, supplierUrl: row.supplierUrl || null, datasheetUrl: row.datasheetUrl || null })) } });
+      const keys = { ...requestKeys };
+      selectedRows.forEach((row) => { if (!keys[row.key]) keys[row.key] = crypto.randomUUID(); });
+      setRequestKeys(keys);
+      const result = await approve({ data: { rows: selectedRows.map((row) => ({ idempotencyKey: keys[row.key], partNumber: row.partNumber, name: row.name, manufacturer: row.manufacturer || null, categoryId: row.categoryId, footprint: row.footprint || null, quantity: row.quantity, locationType: row.locationType, locationLabel: row.locationLabel, lowStockThreshold: row.lowStockThreshold, supplierUrl: row.supplierUrl || null, datasheetUrl: row.datasheetUrl || null })) } });
       const failed = result.results.filter((item) => !item.ok);
       const succeeded = result.results.length - failed.length;
       queryClient.invalidateQueries();
