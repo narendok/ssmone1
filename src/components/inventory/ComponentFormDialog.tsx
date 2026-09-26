@@ -57,6 +57,7 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
   const [projectIds, setProjectIds] = useState<string[]>([]);
   const [substitutes, setSubstitutes] = useState<SubstituteLink[]>([]);
   const [saving, setSaving] = useState(false);
+  const [stockRequestKeys, setStockRequestKeys] = useState<Record<string, string>>({});
   const [looking, setLooking] = useState(false);
   const [fetchedPart, setFetchedPart] = useState<SupplierPart | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -161,6 +162,7 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
         low_stock_threshold: component.low_stock_threshold,
       });
       setLocs(component.locations.map((l) => ({ id: l.id, location_type: l.location_type, label: l.label, quantity: l.quantity })));
+      setStockRequestKeys({});
       fetchComponentProjectIds(component.id).then(setProjectIds).catch(() => setProjectIds([]));
       fetchComponentSubstitutes(component.id)
         .then((subs) =>
@@ -176,6 +178,7 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
       setForm((f) => ({ ...f, category_id: preferred ?? categories[0]?.id ?? "" }));
       setProjectIds([]);
       setSubstitutes([]);
+      setStockRequestKeys({});
     }
   }, [component, categories, defaultCategorySlug]);
 
@@ -213,6 +216,16 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
     }
     setSaving(true);
     try {
+      const nextStockRequestKeys = { ...stockRequestKeys };
+      if (component) {
+        for (const location of locs) {
+          const original = component.locations.find((saved) => saved.id === location.id);
+          if (location.id && original && original.quantity !== location.quantity && !nextStockRequestKeys[location.id]) {
+            nextStockRequestKeys[location.id] = crypto.randomUUID();
+          }
+        }
+      }
+      setStockRequestKeys(nextStockRequestKeys);
       const costNum = form.cost.trim() === "" ? null : Number(form.cost);
       const result = await saveWithStock({
         data: {
@@ -233,6 +246,7 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
           notes: form.notes.trim() || null,
           lowStockThreshold: form.low_stock_threshold,
           stockReason: "Component form stock update",
+          stockRequestKeys: nextStockRequestKeys,
           locations: locs.filter((location) => location._delete || location.label.trim()).map((location) => ({
             id: location.id,
             locationType: location.location_type,
@@ -257,6 +271,7 @@ export function ComponentFormDialog({ open, onOpenChange, component, onSaved, de
         ]);
       }
       toast.success(isEdit ? "Component updated" : "Component added");
+      setStockRequestKeys({});
       onSaved(componentId);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Component could not be saved.");

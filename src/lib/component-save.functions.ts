@@ -28,6 +28,7 @@ const componentSchema = z.object({
   notes: z.string().trim().max(5000).nullable(),
   lowStockThreshold: z.number().int().nonnegative(),
   stockReason: z.string().trim().min(3).max(1000),
+  stockRequestKeys: z.record(z.string().uuid()).default({}),
   locations: z.array(locationSchema).max(30),
 });
 
@@ -110,6 +111,7 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
     }
 
     if (!componentId) throw new Error("Component could not be saved.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: savedLocations, error: locationReadError } = await context.supabase
       .from("locations")
       .select("id, quantity")
@@ -121,7 +123,7 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
       if (location.delete && location.id) {
         const existing = savedById.get(location.id);
         if (existing && Number(existing.quantity) > 0) throw new Error("Remove stock through Stock adjustment before removing a storage location.");
-        const { error } = await context.supabase.rpc("manage_component_location", {
+        const { error } = await (supabaseAdmin as any).rpc("manage_component_location", {
           _approved_by: context.userId,
           _component_id: componentId,
           _location_id: location.id,
@@ -138,7 +140,7 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
         const existing = savedById.get(location.id);
         if (!existing) throw new Error("The selected storage location no longer exists. Refresh and try again.");
         const delta = location.quantity - Number(existing.quantity);
-        const { error: detailsError } = await context.supabase.rpc("manage_component_location", {
+        const { error: detailsError } = await (supabaseAdmin as any).rpc("manage_component_location", {
           _approved_by: context.userId,
           _component_id: componentId,
           _location_id: location.id,
@@ -148,12 +150,14 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
         });
         if (detailsError) throw new Error(detailsError.message);
         if (delta !== 0) {
-          const { error } = await context.supabase.rpc("post_stock_adjustment", {
+          const requestKey = data.stockRequestKeys[location.id];
+          if (!requestKey) throw new Error("Stock save request expired. Refresh and try again.");
+          const { error } = await (supabaseAdmin as any).rpc("post_stock_adjustment", {
             _component_id: componentId,
             _location_id: location.id,
             _delta: delta,
             _reason: data.stockReason,
-            _idempotency_key: crypto.randomUUID(),
+            _idempotency_key: requestKey,
           });
           if (error) throw new Error(error.message);
         }
@@ -161,7 +165,6 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
       }
 
       if (location.quantity > 0) {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { data: posted, error } = await (supabaseAdmin as any).rpc("approve_inventory_csv_row", {
           _approved_by: context.userId,
           _mpn: data.partNumber,
@@ -181,7 +184,7 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
           throw new Error(error?.message ?? "Stock was not posted successfully.");
         }
       } else {
-        const { error } = await context.supabase.rpc("manage_component_location", {
+        const { error } = await (supabaseAdmin as any).rpc("manage_component_location", {
           _approved_by: context.userId,
           _component_id: componentId,
           _location_type: location.locationType,
