@@ -10,6 +10,7 @@ import { DEPARTMENTS } from "@/lib/tasks";
 import type { RDMember } from "@/lib/inventory";
 
 const NONE = "__none";
+type DepartmentValue = (typeof DEPARTMENTS)[number]["value"];
 
 export function RdMemberDialog({
   open,
@@ -38,11 +39,11 @@ export function RdMemberDialog({
   async function save() {
     if (!form.name.trim() || !form.email.trim()) return toast.error("Name and email are required");
     setSaving(true);
-    const payload = {
+    const payload: { name: string; email: string; role: string | null; department: DepartmentValue | null } = {
       name: form.name.trim(),
       email: form.email.trim(),
       role: form.role.trim() || null,
-      department: form.department === NONE ? null : form.department,
+      department: form.department === NONE ? null : form.department as DepartmentValue,
     };
     const request = member
       ? supabase.from("rd_members").update(payload).eq("id", member.id).select().single()
