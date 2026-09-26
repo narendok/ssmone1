@@ -10912,6 +10912,7 @@ export type Database = {
     Functions: {
       approve_inventory_csv_row: {
         Args: {
+          _approved_by: string
           _category_id: string
           _datasheet_url: string
           _footprint: string
