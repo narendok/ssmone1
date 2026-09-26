@@ -10910,6 +10910,24 @@ export type Database = {
       }
     }
     Functions: {
+      approve_inventory_csv_row: {
+        Args: {
+          _approved_by: string
+          _category_id: string
+          _datasheet_url: string
+          _footprint: string
+          _idempotency_key: string
+          _location_label: string
+          _location_type: string
+          _low_stock_threshold: number
+          _manufacturer: string
+          _mpn: string
+          _name: string
+          _quantity: number
+          _supplier_url: string
+        }
+        Returns: Json
+      }
       can_inward: { Args: { _uid: string }; Returns: boolean }
       can_manage_leave: { Args: { _uid: string }; Returns: boolean }
       can_manage_onboarding: { Args: { _uid: string }; Returns: boolean }
