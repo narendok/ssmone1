@@ -72,6 +72,7 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
 
     const payload = componentPayload(data);
     let componentId = data.id;
+    let initiallyPostedLocation: SaveInput["locations"][number] | undefined;
 
     if (componentId) {
       if (!componentId) throw new Error("Component could not be created.");
@@ -100,6 +101,7 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
           throw new Error(error?.message ?? "Initial stock was not posted successfully.");
         }
         componentId = posted.component_id;
+        initiallyPostedLocation = firstStockedLocation;
       } else {
         const { data: created, error } = await context.supabase.from("components").insert(payload).select("id").single();
         if (error || !created) throw new Error(error?.message ?? "Component could not be created.");
@@ -120,6 +122,7 @@ export const saveComponentWithStock = createServerFn({ method: "POST" })
     const savedById = new Map((savedLocations ?? []).map((location) => [location.id, location]));
 
     for (const location of data.locations) {
+      if (!data.id && location === initiallyPostedLocation) continue;
       if (location.delete && location.id) {
         const existing = savedById.get(location.id);
         if (existing && Number(existing.quantity) > 0) throw new Error("Remove stock through Stock adjustment before removing a storage location.");
