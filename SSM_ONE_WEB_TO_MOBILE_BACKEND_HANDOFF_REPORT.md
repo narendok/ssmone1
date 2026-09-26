@@ -1,6 +1,6 @@
 # SSM ONE WEB → MOBILE BACKEND HANDOFF REPORT
 
-**Date:** 2026-09-24 UTC  
+**Date:** 2026-09-26 UTC  
 **Scope:** additive Mobile Stage 5 backend-gap remediation and handoff refresh. No new business module, mobile UI, separate mobile backend, Web Phase 11, or Android implementation was performed.
 
 ## Integration safety check
@@ -20,7 +20,7 @@
 | 3 | VERIFIED | HR recruitment, onboarding, leave, policy, training, and employee records are present. |
 | 4 | VERIFIED | Customer, sales, requirements, customer portal, and handover records are present. |
 | 5 | VERIFIED | Project, team, engineering register, issue/change, BOM, Drive, and PCB contracts are present. |
-| 6 | VERIFIED WITH REMAINING GAPS | Procurement now has idempotent GRN and atomic issue/return/transfer/adjustment posting contracts plus operational commercial-safe projections. Legacy migration/storage reconciliation and session-scoped acceptance evidence remain incomplete. |
+| 6 | VERIFIED WITH REMAINING GAPS | Procurement now has idempotent GRN and atomic issue/return/transfer/adjustment posting contracts plus safe receiving and PR/RFQ/shipment/vendor projections. An Administrator-only, idempotent test seed is available for controlled acceptance preparation. Legacy migration/storage reconciliation and session-scoped acceptance evidence remain incomplete. |
 | 7 | VERIFIED | Work order, routes, units, execution, inspection, test, NCR, release, PPAP, and dispatch contracts are present. |
 | 8 | VERIFIED | Facility, asset, maintenance, calibration, workplace, visitor, vehicle, gate pass, and security contracts are present. |
 | 9 | VERIFIED | QMS, KPI, risk, audit, CAPA, improvement, management review, and customer quality contracts are present. |
@@ -47,7 +47,7 @@
 | 5C | READY | Material return supports partial return and prevents over-return atomically. |
 | 5D | READY | Stock transfer is balance-neutral, server-numbered, locked, and idempotent. |
 | 5E | READY | Stock adjustment requires a reason and rejects negative resulting stock. |
-| 5F | READY | Store/Receiving operational projections omit commercial and finance-only fields while using caller RLS. |
+| 5F | READY | Stores/Receiving/Procurement operational projections omit commercial, contact, banking, invoice-path, tracking-payload and finance-only fields while using caller RLS; a controlled Administrator-only test seed is available. |
 | 5G | BLOCKED | Full session-scoped RLS and concurrent transaction acceptance evidence still requires a dedicated backend test environment and authorized test identities. |
 | 6 | PARTIAL | Production server contracts exist; mobile-specific authorization and offline acceptance coverage is not evidenced. |
 | 7 | PARTIAL | Facility/asset contracts exist; offline and device/QR mobile acceptance coverage is not evidenced. |

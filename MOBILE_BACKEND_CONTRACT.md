@@ -1,6 +1,6 @@
 # MOBILE BACKEND CONTRACT
 
-**Generated:** 2026-09-24 UTC; refreshed after Mobile Stage 5 remediation.  
+**Generated:** 2026-09-26 UTC; refreshed after Mobile Stage 5 safe projection and controlled test-seed addition.  
 **Authority:** live managed backend inventory, current migration history, and `src/integrations/supabase/types.ts`. This contract does not create a mobile backend or mobile UI. Object classifications below describe handoff suitability, not a blanket confirmation that every mobile user can read every object; RLS and purpose-specific permissions remain authoritative.
 
 ## Environment strategy
@@ -493,6 +493,12 @@
 - **Online only:** all approvals, releases, inventory effects, GRN, production execution decisions, external access changes, and any controlled business identifier.
 - Do not generate official numbers on-device; server numbering functions and triggers are the authority.
 
+## Controlled Stage 5 test seed and extended safe projections
+
+- `seed_mobile_stage5_test_data()` is an idempotent, Administrator-only, security-invoker helper for approved shared-environment acceptance preparation. It creates only clearly labelled `TEST-MOB-*` vendor, purchase-request, RFQ and, when the matching existing test PO is available, shipment data. It preserves all existing records and audit trails.
+- Safe signed-in operational projections are available for PR/RFQ/shipment/vendor reads: `operational_purchase_requests`, `operational_purchase_request_items`, `operational_rfqs`, `operational_rfq_vendors`, `operational_po_shipments`, and `operational_vendors`.
+- These views apply the caller’s existing RLS and deliberately exclude commercial or sensitive vendor data: unit price, totals, tax, payment terms, bank details, contact details, tracking payloads, and invoice paths.
+
 ## Known backend gaps for mobile
 
-See `BACKEND_GAPS.md`. Stage 5 stock posting and receiving-read gaps are remediated; legacy migration reconciliation, environment separation, outbound webhook delivery, and full live-session acceptance evidence remain documented gaps.
+See `BACKEND_GAPS.md`. Stage 5 stock posting and procurement/stores safe-read gaps are remediated; legacy migration reconciliation, environment separation, outbound webhook delivery, and full live-session acceptance evidence remain documented gaps.
