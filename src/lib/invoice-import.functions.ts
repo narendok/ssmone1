@@ -87,6 +87,10 @@ export const applyInvoiceImport = createServerFn({ method: "POST" })
         let componentId = line.component_id;
 
         if (!componentId) {
+          const categoryId = line.category_id ?? fallbackCategory;
+          if (!categoryId) {
+            throw new Error("Choose a category before adding a new part to stock");
+          }
           let extra: Record<string, unknown> = {};
           if (data.enrich) {
             try {
@@ -108,7 +112,7 @@ export const applyInvoiceImport = createServerFn({ method: "POST" })
             }
           }
           const insertRow = {
-            category_id: line.category_id ?? fallbackCategory,
+            category_id: categoryId,
             name: (line.name || line.mpn).slice(0, 200),
             part_number: line.mpn,
             manufacturer: line.manufacturer,

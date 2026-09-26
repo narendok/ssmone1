@@ -130,6 +130,11 @@ export function InvoiceImportDialog({
 
   async function submit() {
     if (!lines?.length) return;
+    const uncategorizedNewLines = lines.filter((line) => !line.component_id && !line.category_id);
+    if (uncategorizedNewLines.length) {
+      toast.error("Choose a category for every new part before adding stock");
+      return;
+    }
     setSaving(true);
     try {
       const res = await apply({
@@ -296,9 +301,9 @@ export function InvoiceImportDialog({
                           value={l.category_id ?? "__none"}
                           onValueChange={(v) => patch(l.key, { category_id: v === "__none" ? null : v })}
                         >
-                          <SelectTrigger className="h-8"><SelectValue placeholder="Uncategorized" /></SelectTrigger>
+                          <SelectTrigger className="h-8"><SelectValue placeholder="Choose category" /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="__none">Uncategorized</SelectItem>
+                            <SelectItem value="__none">Choose category</SelectItem>
                             {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
                           </SelectContent>
                         </Select>
@@ -345,7 +350,7 @@ export function InvoiceImportDialog({
 
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={reset} disabled={saving}>Start over</Button>
-              <Button onClick={submit} disabled={saving || !lines.length || !locationLabel.trim()}>
+              <Button onClick={submit} disabled={saving || !lines.length || !locationLabel.trim() || lines.some((line) => !line.component_id && !line.category_id)}>
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 Add {lines.reduce((s, l) => s + (l.quantity || 0), 0)} units to stock
               </Button>
