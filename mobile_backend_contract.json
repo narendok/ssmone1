@@ -4668,6 +4668,37 @@
     "session_acceptance_tests": {
       "status": "BLOCKED",
       "reason": "Dedicated live-session RLS and concurrency acceptance evidence is not yet available."
+    },
+    "operational_procurement_reads": {
+      "status": "READY",
+      "views": [
+        "operational_purchase_requests",
+        "operational_purchase_request_items",
+        "operational_rfqs",
+        "operational_rfq_vendors",
+        "operational_po_shipments",
+        "operational_vendors"
+      ],
+      "excludes": [
+        "unit prices",
+        "totals",
+        "tax",
+        "payment terms",
+        "vendor bank details",
+        "vendor contact details",
+        "invoice paths",
+        "tracking payloads",
+        "margins",
+        "finance-only information"
+      ],
+      "access": "signed-in current-user session with existing RLS"
+    },
+    "controlled_acceptance_seed": {
+      "status": "READY",
+      "function": "seed_mobile_stage5_test_data",
+      "access": "Administrator only; security invoker",
+      "behavior": "Idempotently creates clearly labelled TEST-MOB-* vendor, purchase request and RFQ; adds shipment only when matching existing TEST-MOB-PO-001 exists.",
+      "mobile_rule": "Not for ordinary mobile workflows; use only for approved acceptance preparation."
     }
   }
 }

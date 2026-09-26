@@ -26,6 +26,8 @@ A single existing managed backend is evidenced by the current project configurat
 - Android posts Final GRN only through `create_grn` with a UUID generated once per submission and persisted across retries. The same UUID and unchanged payload return the original result; a changed payload is rejected.
 - Material issue, return, transfer, and adjustment use their respective protected posting contracts. They are online-only, server-numbered, and never composed from client-side table writes.
 - Use only `operational_receiving_purchase_orders` and `operational_receiving_purchase_order_items` for receiving screens. These operational projections deliberately omit unit prices, totals, tax, margins, payment terms, vendor banking, and finance-only data.
+- For procurement/stores list screens, use only the safe read projections: `operational_purchase_requests`, `operational_purchase_request_items`, `operational_rfqs`, `operational_rfq_vendors`, `operational_po_shipments`, and `operational_vendors`. They remain subject to caller RLS and omit commercial, contact, bank, invoice, and tracking-payload fields.
+- Only an Administrator may call `seed_mobile_stage5_test_data()` to prepare clearly marked `TEST-MOB-*` acceptance data. Never call it from a normal mobile workflow.
 
 ## RLS assumptions
 
