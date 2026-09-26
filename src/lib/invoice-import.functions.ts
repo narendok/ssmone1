@@ -31,6 +31,25 @@ export interface InvoicePostingResult {
   createdComponent: boolean;
 }
 
+function persistedInvoicePosting(result: any, line: ApplyInvoiceLine): InvoicePostingResult | null {
+  const locationQuantity = Number(result?.location_quantity);
+  if (
+    !result?.component_id || !result?.location_id || !result?.stock_event_id || !result?.inventory_lot_id
+    || !Number.isFinite(locationQuantity) || locationQuantity <= 0
+  ) return null;
+  return {
+    mpn: line.mpn,
+    componentId: result.component_id,
+    locationId: result.location_id,
+    locationLabel: result.location_label ?? line.location_label,
+    quantityAdded: Number(result.quantity_added ?? line.quantity),
+    locationQuantity,
+    inventoryLotId: result.inventory_lot_id,
+    stockEventId: result.stock_event_id,
+    createdComponent: result.created_component ?? false,
+  };
+}
+
 /** Read a purchase invoice (PDF or image) and return structured lines. */
 export const extractInvoiceFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -102,24 +121,15 @@ export const applyInvoiceImport = createServerFn({ method: "POST" })
         errors.push(`${line.mpn}: ${error.message}`);
         continue;
       }
-      if (!result?.component_id || !result?.location_id || !result?.stock_event_id || !result?.inventory_lot_id) {
-        errors.push(`${line.mpn}: Stock posting did not return a persisted location, audit event, and inventory lot`);
+      const posting = persistedInvoicePosting(result, line);
+      if (!posting) {
+        errors.push(`${line.mpn}: Stock posting did not return a positive bin quantity and stock-history event`);
         continue;
       }
-      unitsAdded += result?.quantity_added ?? line.quantity;
-      if (result?.created_component) created++;
+      unitsAdded += posting.quantityAdded;
+      if (posting.createdComponent) created++;
       else updated++;
-      postings.push({
-        mpn: line.mpn,
-        componentId: result.component_id,
-        locationId: result.location_id,
-        locationLabel: result.location_label ?? line.location_label,
-        quantityAdded: result.quantity_added ?? line.quantity,
-        locationQuantity: result.location_quantity ?? line.quantity,
-        inventoryLotId: result.inventory_lot_id,
-        stockEventId: result.stock_event_id,
-        createdComponent: result.created_component ?? false,
-      });
+      postings.push(posting);
     }
 
     return { created, updated, unitsAdded, vendorId: null, errors, postings };
