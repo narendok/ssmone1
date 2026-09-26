@@ -70,7 +70,10 @@ export function InventoryCsvReviewDialog({ open, onOpenChange, parts, categories
       const failed = result.results.filter((item) => !item.ok);
       const succeeded = result.results.length - failed.length;
       queryClient.invalidateQueries();
-      if (succeeded) toast.success(`${succeeded} inventory row${succeeded === 1 ? "" : "s"} approved`);
+       const latestPosting = result.results.find((item) => item.ok);
+       if (succeeded) toast.success(latestPosting?.ok
+         ? `${succeeded} inventory row${succeeded === 1 ? "" : "s"} approved · ${latestPosting.locationLabel} now has ${latestPosting.locationQuantity} units`
+         : `${succeeded} inventory row${succeeded === 1 ? "" : "s"} approved`);
       if (failed.length) toast.error(`${failed.length} row${failed.length === 1 ? "" : "s"} failed: ${failed[0].error}`);
       setSelected(new Set(failed.map((item) => rows.find((row) => row.partNumber === item.partNumber)?.key).filter((key): key is number => key != null)));
     } catch (error: any) { toast.error(error?.message ?? "Could not approve the selected rows"); } finally { setSaving(false); }

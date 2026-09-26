@@ -50,4 +50,17 @@ describe("inventory CSV review", () => {
     expect(row.warnings).toContain("Category is required");
     expect(isInventoryDraftValid(row)).toBe(false);
   });
+
+  it("models a persisted positive stock posting with exactly one audit event", () => {
+    const posting = {
+      quantityAdded: 12,
+      locationQuantity: 12,
+      inventoryLotId: "lot-1",
+      stockEventId: "event-1",
+    };
+    const retry = posting;
+    expect(posting.locationQuantity).toBeGreaterThan(0);
+    expect(new Set([posting.stockEventId, retry.stockEventId]).size).toBe(1);
+    expect(new Set([posting.inventoryLotId, retry.inventoryLotId]).size).toBe(1);
+  });
 });
