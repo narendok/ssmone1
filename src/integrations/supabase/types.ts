@@ -11233,6 +11233,18 @@ export type Database = {
         }
         Returns: string
       }
+      recover_historical_zero_stock_component: {
+        Args: {
+          _approved_by: string
+          _component_id: string
+          _idempotency_key: string
+          _location_label: string
+          _location_type: string
+          _quantity: number
+          _source_note: string
+        }
+        Returns: Json
+      }
       review_phase6_record: {
         Args: {
           _decision: string
