@@ -367,6 +367,13 @@ export type Database = {
             foreignKeyName: "assets_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
+            referencedRelation: "operational_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assets_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
@@ -2743,6 +2750,13 @@ export type Database = {
             foreignKeyName: "external_parties_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
+            referencedRelation: "operational_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_parties_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
@@ -4742,6 +4756,13 @@ export type Database = {
             foreignKeyName: "incoming_inspections_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
+            referencedRelation: "operational_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incoming_inspections_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
@@ -5438,6 +5459,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_milestones_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "operational_vendors"
             referencedColumns: ["id"]
           },
           {
@@ -7587,6 +7615,13 @@ export type Database = {
             foreignKeyName: "purchase_orders_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
+            referencedRelation: "operational_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
@@ -7638,6 +7673,13 @@ export type Database = {
             columns: ["component_id"]
             isOneToOne: false
             referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_request_items_purchase_request_id_fkey"
+            columns: ["purchase_request_id"]
+            isOneToOne: false
+            referencedRelation: "operational_purchase_requests"
             referencedColumns: ["id"]
           },
           {
@@ -8848,7 +8890,21 @@ export type Database = {
             foreignKeyName: "quotations_rfq_id_fkey"
             columns: ["rfq_id"]
             isOneToOne: false
+            referencedRelation: "operational_rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
             referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "operational_vendors"
             referencedColumns: ["id"]
           },
           {
@@ -9098,7 +9154,21 @@ export type Database = {
             foreignKeyName: "rfq_vendors_rfq_id_fkey"
             columns: ["rfq_id"]
             isOneToOne: false
+            referencedRelation: "operational_rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_vendors_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
             referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_vendors_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "operational_vendors"
             referencedColumns: ["id"]
           },
           {
@@ -9153,6 +9223,13 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfqs_purchase_request_id_fkey"
+            columns: ["purchase_request_id"]
+            isOneToOne: false
+            referencedRelation: "operational_purchase_requests"
             referencedColumns: ["id"]
           },
           {
@@ -9232,6 +9309,13 @@ export type Database = {
             columns: ["ncr_id"]
             isOneToOne: false
             referencedRelation: "supplier_ncrs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rtv_records_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "operational_vendors"
             referencedColumns: ["id"]
           },
           {
@@ -9967,6 +10051,13 @@ export type Database = {
             foreignKeyName: "supplier_ncrs_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
+            referencedRelation: "operational_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_ncrs_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
@@ -10470,6 +10561,132 @@ export type Database = {
       }
     }
     Views: {
+      operational_po_shipments: {
+        Row: {
+          awb_number: string | null
+          courier: string | null
+          created_at: string | null
+          dispatch_date: string | null
+          expected_arrival_date: string | null
+          id: string | null
+          po_id: string | null
+          po_number: string | null
+          status: string | null
+          tracking_provider: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "po_shipments_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "operational_receiving_purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_shipments_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operational_purchase_request_items: {
+        Row: {
+          component_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          mpn: string | null
+          notes: string | null
+          purchase_request_id: string | null
+          required_quantity: number | null
+          shortage_quantity: number | null
+          unit: string | null
+        }
+        Insert: {
+          component_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          mpn?: string | null
+          notes?: string | null
+          purchase_request_id?: string | null
+          required_quantity?: number | null
+          shortage_quantity?: number | null
+          unit?: string | null
+        }
+        Update: {
+          component_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          mpn?: string | null
+          notes?: string | null
+          purchase_request_id?: string | null
+          required_quantity?: number | null
+          shortage_quantity?: number | null
+          unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_request_items_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_request_items_purchase_request_id_fkey"
+            columns: ["purchase_request_id"]
+            isOneToOne: false
+            referencedRelation: "operational_purchase_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_request_items_purchase_request_id_fkey"
+            columns: ["purchase_request_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operational_purchase_requests: {
+        Row: {
+          created_at: string | null
+          department_id: string | null
+          id: string | null
+          line_count: number | null
+          project_id: string | null
+          request_number: string | null
+          requested_quantity: number | null
+          requester_id: string | null
+          required_date: string | null
+          source_type: string | null
+          status: string | null
+          submitted_at: string | null
+          updated_at: string | null
+          urgency: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_requests_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operational_receiving_purchase_order_items: {
         Row: {
           component_id: string | null
@@ -10555,10 +10772,141 @@ export type Database = {
             foreignKeyName: "purchase_orders_vendor_id_fkey"
             columns: ["vendor_id"]
             isOneToOne: false
+            referencedRelation: "operational_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
             referencedRelation: "vendors"
             referencedColumns: ["id"]
           },
         ]
+      }
+      operational_rfq_vendors: {
+        Row: {
+          acknowledged_at: string | null
+          id: string | null
+          quality_risk: string | null
+          rfq_id: string | null
+          sent_at: string | null
+          status: string | null
+          supplier_status: string | null
+          vendor_code: string | null
+          vendor_id: string | null
+          vendor_name: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfq_vendors_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "operational_rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_vendors_rfq_id_fkey"
+            columns: ["rfq_id"]
+            isOneToOne: false
+            referencedRelation: "rfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_vendors_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "operational_vendors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfq_vendors_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operational_rfqs: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          invited_vendor_count: number | null
+          project_id: string | null
+          purchase_request_id: string | null
+          responded_vendor_count: number | null
+          response_due_date: string | null
+          rfq_number: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rfqs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfqs_purchase_request_id_fkey"
+            columns: ["purchase_request_id"]
+            isOneToOne: false
+            referencedRelation: "operational_purchase_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rfqs_purchase_request_id_fkey"
+            columns: ["purchase_request_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operational_vendors: {
+        Row: {
+          approved_categories: Json | null
+          created_at: string | null
+          customer_nominated: boolean | null
+          gstin: string | null
+          id: string | null
+          is_active: boolean | null
+          name: string | null
+          quality_risk: string | null
+          supplier_status: string | null
+          updated_at: string | null
+          vendor_code: string | null
+        }
+        Insert: {
+          approved_categories?: Json | null
+          created_at?: string | null
+          customer_nominated?: boolean | null
+          gstin?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          quality_risk?: string | null
+          supplier_status?: string | null
+          updated_at?: string | null
+          vendor_code?: string | null
+        }
+        Update: {
+          approved_categories?: Json | null
+          created_at?: string | null
+          customer_nominated?: boolean | null
+          gstin?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          name?: string | null
+          quality_risk?: string | null
+          supplier_status?: string | null
+          updated_at?: string | null
+          vendor_code?: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -10876,6 +11224,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      seed_mobile_stage5_test_data: { Args: never; Returns: Json }
       short_close_po_item: {
         Args: { _item_id: string; _reason: string; _undo?: boolean }
         Returns: Json
