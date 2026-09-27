@@ -25,6 +25,18 @@ export type DepartmentDashboardData = {
   workload: { label: string; open: number; blocked: number; overdue: number }[];
 };
 
+export type DepartmentTaskFocus = "today" | "overdue" | "pending";
+
+export type DepartmentTaskItem = {
+  id: string;
+  title: string;
+  priority: ProjectTask["priority"];
+  status: ProjectTask["status"];
+  dueDate: string | null;
+  assigneeName: string | null;
+  projectCode: string | null;
+};
+
 const departmentTaskMap: Record<DashboardDepartment, string[]> = {
   engineering: ["hardware", "firmware", "mechanical"],
   operations: ["procurement"],
@@ -45,6 +57,41 @@ function taskPulse(tasks: ProjectTask[]) {
   };
 }
 
+export function tasksForDepartment(tasks: ProjectTask[], department: DashboardDepartment) {
+  const taskDepartments = departmentTaskMap[department];
+  return taskDepartments.length ? tasks.filter((task) => taskDepartments.includes(task.department)) : tasks;
+}
+
+export function departmentTaskFocus(tasks: ProjectTask[], focus: DepartmentTaskFocus, today = new Date().toISOString().slice(0, 10)): DepartmentTaskItem[] {
+  const openTasks = tasks.filter((task) => OPEN_TASK_STATUSES.includes(task.status));
+  const filtered = openTasks.filter((task) => {
+    if (focus === "today") return task.priority === "urgent" || task.priority === "high" || task.due_date === today || task.status === "blocked";
+    if (focus === "overdue") return Boolean(task.due_date && task.due_date < today);
+    return true;
+  });
+  const priorityRank = { urgent: 0, high: 1, medium: 2, low: 3 };
+  return filtered
+    .sort((a, b) => {
+      const overdueA = Boolean(a.due_date && a.due_date < today);
+      const overdueB = Boolean(b.due_date && b.due_date < today);
+      if (overdueA !== overdueB) return overdueA ? -1 : 1;
+      if (a.status === "blocked" && b.status !== "blocked") return -1;
+      if (b.status === "blocked" && a.status !== "blocked") return 1;
+      const priorityDifference = priorityRank[a.priority] - priorityRank[b.priority];
+      if (priorityDifference !== 0) return priorityDifference;
+      return (a.due_date ?? "9999-12-31").localeCompare(b.due_date ?? "9999-12-31");
+    })
+    .map((task) => ({
+      id: task.id,
+      title: task.title,
+      priority: task.priority,
+      status: task.status,
+      dueDate: task.due_date,
+      assigneeName: task.assignee?.name ?? null,
+      projectCode: task.project?.code ?? null,
+    }));
+}
+
 async function count(table: string, apply?: (query: any) => any) {
   let query = sb.from(table).select("id", { count: "exact", head: true });
   if (apply) query = apply(query);
@@ -55,8 +102,7 @@ async function count(table: string, apply?: (query: any) => any) {
 
 export async function fetchDepartmentDashboard(department: DashboardDepartment): Promise<DepartmentDashboardData> {
   const allTasks = await fetchTasks();
-  const taskDepartments = departmentTaskMap[department];
-  const scopedTasks = taskDepartments.length ? allTasks.filter((task) => taskDepartments.includes(task.department)) : allTasks;
+  const scopedTasks = tasksForDepartment(allTasks, department);
   const pulse = taskPulse(scopedTasks);
   const sharedWorkload = [{ label: "Work queue", open: pulse.open.length, blocked: pulse.blocked.length, overdue: pulse.overdue.length }];
 
