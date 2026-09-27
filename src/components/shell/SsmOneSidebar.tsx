@@ -12,7 +12,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 
 type NavItem = { label: string; to: string; icon: LucideIcon; permission?: string };
-type NavGroup = { label: string; items: NavItem[]; collapsible?: boolean };
+type NavGroup = { label: string; items: NavItem[]; collapsible?: boolean; department?: string };
 
 const groups: NavGroup[] = [
   { label: "Department center", collapsible: true, items: [{ label: "Department dashboard", to: "/dashboards", icon: ChartColumnIncreasing }] },
@@ -20,12 +20,11 @@ const groups: NavGroup[] = [
     { label: "Projects", to: "/projects", icon: FolderKanban, permission: "projects.view" },
     { label: "Task board", to: "/tasks", icon: ListChecks, permission: "my_work.view" },
   ] },
-  { label: "Sales", collapsible: true, items: [
+  { label: "Sales", collapsible: true, department: "sales", items: [
     { label: "Sales overview", to: "/sales", icon: BriefcaseBusiness, permission: "sales.view" },
     { label: "Customers", to: "/customers", icon: Building2, permission: "sales.view" },
   ] },
-  { label: "Engineering", collapsible: true, items: [
-    { label: "Engineering overview", to: "/dashboards", icon: ChartColumnIncreasing, permission: "engineering.view" },
+  { label: "Engineering", collapsible: true, department: "engineering", items: [
     { label: "R&D / PartsBench", to: "/", icon: CircuitBoard, permission: "engineering.view" },
     { label: "Inventory", to: "/locations", icon: MapPin, permission: "engineering.view" },
     { label: "BOM import", to: "/bom", icon: FileSpreadsheet, permission: "engineering.edit" },
@@ -34,8 +33,7 @@ const groups: NavGroup[] = [
     { label: "Assignments", to: "/assignments", icon: ClipboardList, permission: "engineering.view" },
     { label: "R&D team", to: "/rd-team", icon: Users, permission: "engineering.view" },
   ] },
-  { label: "Operations", collapsible: true, items: [
-    { label: "Operations overview", to: "/dashboards", icon: ChartColumnIncreasing, permission: "procurement.view" },
+  { label: "Operations", collapsible: true, department: "operations", items: [
     { label: "Purchase requests", to: "/procurement/requests", icon: ClipboardList, permission: "procurement.view" },
     { label: "RFQs & quotations", to: "/procurement/rfqs", icon: FileText, permission: "procurement.view" },
     { label: "Purchase orders", to: "/procurement/orders", icon: ShoppingCart, permission: "procurement.view" },
@@ -68,8 +66,7 @@ const groups: NavGroup[] = [
         { label: "External actions", to: "/external-collaboration/actions", icon: ClipboardList, permission: "external_collaboration.view" },
         { label: "Upload requests", to: "/external-collaboration/uploads", icon: FileText, permission: "external_collaboration.view" },
   ] },
-   { label: "People & HR", collapsible: true, items: [
-     { label: "People overview", to: "/dashboards", icon: ChartColumnIncreasing, permission: "hr.view" },
+   { label: "People & HR", collapsible: true, department: "hr", items: [
     { label: "HR overview", to: "/hr", icon: Users, permission: "hr.view" },
     { label: "Recruitment", to: "/hr/recruitment", icon: ClipboardList, permission: "recruitment.manage" },
     { label: "Leave desk", to: "/hr/leave", icon: PlaneTakeoff, permission: "hr.view" },
@@ -113,9 +110,9 @@ export function SsmOneSidebar() {
           const isGroupActive = visibleItems.some((item) => item.to === "/" ? pathname === "/" : pathname === item.to || pathname.startsWith(`${item.to}/`));
           return (
             <SidebarGroup key={group.label}>
-              {group.collapsible ? <SidebarMenu><SidebarMenuItem><SidebarMenuButton isActive={isGroupActive} tooltip={group.label} onClick={() => toggleGroup(group.label)}>
-                <ChartColumnIncreasing /><span>{group.label}</span><ChevronDown className={`ml-auto size-4 transition-transform ${groupCollapsed ? "-rotate-90" : ""}`} />
-              </SidebarMenuButton></SidebarMenuItem></SidebarMenu> : <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
+              {group.collapsible ? <SidebarMenu><SidebarMenuItem><div className="flex items-center"><SidebarMenuButton asChild isActive={isGroupActive} tooltip={group.label} className="flex-1">
+                <Link to="/dashboards" search={{ department: group.department }}><ChartColumnIncreasing /><span>{group.label}</span></Link>
+              </SidebarMenuButton><button type="button" aria-label={`Toggle ${group.label} menu`} aria-expanded={!groupCollapsed} onClick={() => toggleGroup(group.label)} className="mr-1 flex size-7 shrink-0 items-center justify-center rounded-sm text-sidebar-foreground outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"><ChevronDown className={`size-4 transition-transform ${groupCollapsed ? "-rotate-90" : ""}`} /></button></div></SidebarMenuItem></SidebarMenu> : <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
               {!groupCollapsed && <SidebarGroupContent><SidebarMenu>
                 {group.collapsible ? <SidebarMenuSub>{visibleItems.map((item) => {
                   const active = item.to === "/" ? pathname === "/" : pathname === item.to || pathname.startsWith(`${item.to}/`);
