@@ -10,3 +10,4 @@
 - Regular component Add/Edit saves manage empty-location creation, renaming, and removal only through the protected `manage_component_location` action; direct authenticated writes to locations remain revoked.
 - Component-form stock changes reuse per-location request keys; all manual adjustments verify the actor in server actions before service-only posting.
 - Reuse the R&D member dialog for R&D-specific contacts; project membership remains employee-based so no workflow creates duplicate identities.
+- Keep department workspaces read-only aggregations of existing RLS-protected queues; approval actions always open their established workflow.
