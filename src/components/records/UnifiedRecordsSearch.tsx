@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { Building2, ClipboardCheck, FileText, FolderKanban, Search, SlidersHorizontal } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bookmark, BookmarkPlus, Building2, ClipboardCheck, FileText, FolderKanban, Search, SlidersHorizontal, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -22,6 +25,14 @@ type UnifiedRecord = {
   status: string | null;
   updatedAt: string;
   to: "/customers" | "/projects" | "/qms/audits" | "/drive";
+};
+
+type SavedSearch = {
+  id: string;
+  name: string;
+  query_text: string;
+  record_kind: RecordKind;
+  status_filter: string;
 };
 
 const recordKinds: Array<{ value: RecordKind; label: string }> = [
@@ -101,11 +112,25 @@ async function fetchUnifiedRecords(): Promise<UnifiedRecord[]> {
   ];
 }
 
+async function fetchSavedSearches(): Promise<SavedSearch[]> {
+  const { data, error } = await sb
+    .from("user_saved_record_searches")
+    .select("id,name,query_text,record_kind,status_filter")
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as SavedSearch[];
+}
+
 export function UnifiedRecordsSearch() {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<RecordKind>("all");
   const [status, setStatus] = useState("all");
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [savedSearchName, setSavedSearchName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
   const { data = [], isLoading, isError } = useQuery({ queryKey: ["unified_records"], queryFn: fetchUnifiedRecords });
+  const { data: savedSearches = [] } = useQuery({ queryKey: ["user_saved_record_searches"], queryFn: fetchSavedSearches });
 
   const statuses = useMemo(() => [...new Set(data.map((record) => record.status).filter(Boolean) as string[])].sort(), [data]);
   const visible = useMemo(() => {
@@ -116,6 +141,42 @@ export function UnifiedRecordsSearch() {
       return !needle || [record.title, record.reference, record.detail, record.status].some((value) => value?.toLowerCase().includes(needle));
     });
   }, [data, kind, query, status]);
+
+  const hasFilters = Boolean(query || kind !== "all" || status !== "all");
+  const applySavedSearch = (savedSearch: SavedSearch) => {
+    setQuery(savedSearch.query_text);
+    setKind(savedSearch.record_kind);
+    setStatus(savedSearch.status_filter);
+  };
+
+  const saveSearch = async () => {
+    const name = savedSearchName.trim();
+    if (!name) {
+      toast.error("Give this search a name.");
+      return;
+    }
+    setSaving(true);
+    const { error } = await sb.from("user_saved_record_searches").insert({ name, query_text: query, record_kind: kind, status_filter: status });
+    setSaving(false);
+    if (error) {
+      toast.error(error.code === "23505" ? "You already have a saved search with this name." : error.message);
+      return;
+    }
+    setSavedSearchName("");
+    setSaveOpen(false);
+    await queryClient.invalidateQueries({ queryKey: ["user_saved_record_searches"] });
+    toast.success("Search saved.");
+  };
+
+  const removeSavedSearch = async (id: string) => {
+    const { error } = await sb.from("user_saved_record_searches").delete().eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["user_saved_record_searches"] });
+    toast.success("Saved search removed.");
+  };
 
   return (
     <section className="space-y-5">
@@ -139,10 +200,15 @@ export function UnifiedRecordsSearch() {
             </Tabs>
             <div className="flex items-center gap-2 md:w-52"><SlidersHorizontal className="size-4 text-muted-foreground" /><Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue placeholder="Any status" /></SelectTrigger><SelectContent><SelectItem value="all">Any status</SelectItem>{statuses.map((item) => <SelectItem key={item} value={item}>{normalize(item)}</SelectItem>)}</SelectContent></Select></div>
           </div>
+          <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+            <span className="flex items-center gap-1.5 text-sm font-medium"><Bookmark className="size-4 text-muted-foreground" />Saved searches</span>
+            {savedSearches.map((savedSearch) => <div key={savedSearch.id} className="flex items-center overflow-hidden rounded-md border"><Button variant="ghost" size="sm" onClick={() => applySavedSearch(savedSearch)}>{savedSearch.name}</Button><Button variant="ghost" size="icon" className="size-8 rounded-none border-l" aria-label={`Remove ${savedSearch.name}`} title={`Remove ${savedSearch.name}`} onClick={() => void removeSavedSearch(savedSearch.id)}><Trash2 className="size-3.5" /></Button></div>)}
+            <Button variant="outline" size="sm" onClick={() => setSaveOpen(true)}><BookmarkPlus className="size-4" />Save current search</Button>
+          </div>
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground"><span>{isLoading ? "Loading records…" : `${visible.length} matching record${visible.length === 1 ? "" : "s"}`}</span>{(query || kind !== "all" || status !== "all") && <Button variant="ghost" size="sm" onClick={() => { setQuery(""); setKind("all"); setStatus("all"); }}>Clear filters</Button>}</div>
+      <div className="flex items-center justify-between text-sm text-muted-foreground"><span>{isLoading ? "Loading records…" : `${visible.length} matching record${visible.length === 1 ? "" : "s"}`}</span>{hasFilters && <Button variant="ghost" size="sm" onClick={() => { setQuery(""); setKind("all"); setStatus("all"); }}>Clear filters</Button>}</div>
 
       {isError ? <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Records could not be loaded with your current access.</CardContent></Card> : isLoading ? <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">Loading records…</CardContent></Card> : visible.length === 0 ? <Card><CardContent className="p-8 text-center text-sm text-muted-foreground">No records match these filters.</CardContent></Card> : <div className="space-y-2">
         {visible.map((record) => {
@@ -150,6 +216,14 @@ export function UnifiedRecordsSearch() {
           return <Link key={`${record.kind}-${record.id}`} to={record.to} className="block"><Card className="transition-colors hover:border-primary/50"><CardContent className="flex items-start gap-3 p-4"><span className="mt-0.5 text-primary"><Icon className="size-5" /></span><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{record.title}</p><Badge variant="outline">{recordKinds.find((item) => item.value === record.kind)?.label.slice(0, -1) ?? record.kind}</Badge>{record.status && <Badge variant="secondary">{normalize(record.status)}</Badge>}</div><p className="mt-1 text-sm text-muted-foreground">{record.reference} · {record.detail || "—"}</p></div><span className="hidden shrink-0 text-xs text-muted-foreground sm:block">Updated {new Date(record.updatedAt).toLocaleDateString()}</span></CardContent></Card></Link>;
         })}
       </div>}
+
+      <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Save search</DialogTitle><DialogDescription>Save the current text, record type, and status filters for later.</DialogDescription></DialogHeader>
+          <div className="space-y-2"><Label htmlFor="saved-search-name">Search name</Label><Input id="saved-search-name" value={savedSearchName} onChange={(event) => setSavedSearchName(event.target.value)} maxLength={80} placeholder="e.g. Open engineering projects" onKeyDown={(event) => { if (event.key === "Enter") void saveSearch(); }} /></div>
+          <DialogFooter><Button variant="outline" onClick={() => setSaveOpen(false)}>Cancel</Button><Button onClick={() => void saveSearch()} disabled={saving}>{saving ? "Saving…" : "Save search"}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
