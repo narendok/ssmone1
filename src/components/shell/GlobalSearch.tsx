@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 
 const targets = [
-  { name: "Command Center", hint: "Daily work", to: "/command-center", permission: "my_work.view" },
-  { name: "Department Center", hint: "Daily work", to: "/dashboards", permission: "my_work.view" },
+  { name: "My day", hint: "Today and later tasks", to: "/command-center", permission: "my_work.view" },
+  { name: "Department workspace", hint: "Lead priorities and approvals", to: "/dashboards", permission: "my_work.view" },
   { name: "PartsBench inventory", hint: "Engineering", to: "/", permission: "engineering.view" },
   { name: "Projects", hint: "Work", to: "/projects", permission: "projects.view" },
   { name: "Unified records search", hint: "Clients, projects, audits & documents", to: "/records", permission: "documents.view" },

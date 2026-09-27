@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardCheck, ExternalLink, FileText, FolderOpen, ListChecks, Loader2, ShoppingCart } from "lucide-react";
+import { AlertTriangle, CalendarClock, ClipboardCheck, ExternalLink, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -87,8 +87,8 @@ export function DepartmentWorkspaceQueues({ department }: { department: Dashboar
   const { tasks, todayPriorities, overdueTasks, approvals, isLoading } = useDepartmentQueues(department);
 
   return (
-    <div className="grid gap-4 xl:grid-cols-3">
-      <Card className="xl:col-span-2">
+    <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><CalendarClock className="size-5 text-primary" /> Today’s lead priorities</CardTitle>
           <CardDescription>Urgent, high-priority, blocked, and due-today work visible to this department.</CardDescription>
@@ -100,7 +100,7 @@ export function DepartmentWorkspaceQueues({ department }: { department: Dashboar
               <div className="flex shrink-0 flex-wrap gap-1"><PriorityBadge priority={task.priority} />{task.status === "blocked" && <Badge variant="destructive">Blocked</Badge>}</div>
             </Link>
           ))}
-          <Button asChild variant="outline" className="w-full"><Link to="/tasks">Open department work board <ExternalLink className="size-4" /></Link></Button>
+          <Button asChild variant="outline" className="w-full"><Link to="/tasks">Open all tasks <ExternalLink className="size-4" /></Link></Button>
         </CardContent>
       </Card>
 
@@ -117,23 +117,7 @@ export function DepartmentWorkspaceQueues({ department }: { department: Dashboar
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><ListChecks className="size-5 text-primary" /> Department tasks</CardTitle>
-          <CardDescription>Open work already visible to you in the task board.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {isLoading ? <Loading /> : tasks.length === 0 ? <Empty label="No open tasks visible for this department." /> : tasks.slice(0, 4).map((task) => (
-            <div key={task.id} className="border-b pb-3 last:border-0 last:pb-0">
-              <p className="text-sm font-medium">{task.title}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{task.status.replaceAll("_", " ")} · {task.assignee?.name ?? "Unassigned"}</p>
-            </div>
-          ))}
-          <Button asChild variant="outline" className="w-full"><Link to="/tasks">Open task board <ExternalLink className="size-4" /></Link></Button>
-        </CardContent>
-      </Card>
-
-      <Card>
+      <Card className="xl:col-span-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><ClipboardCheck className="size-5 text-primary" /> Approval queue</CardTitle>
           <CardDescription>Review each item in its established controlled workflow.</CardDescription>
@@ -149,18 +133,6 @@ export function DepartmentWorkspaceQueues({ department }: { department: Dashboar
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><FolderOpen className="size-5 text-primary" /> Documents</CardTitle>
-          <CardDescription>References to existing SSM One project documents and secure file links.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex items-start gap-3 text-sm text-muted-foreground"><FileText className="mt-0.5 size-4 shrink-0" /><span>Open project files, controlled revisions, and share links from the existing document area.</span></div>
-          <div className="flex items-start gap-3 text-sm text-muted-foreground"><CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" /><span>Google Drive is not connected. No Google account, token, or external file permission is stored here.</span></div>
-          <Button asChild variant="outline" className="w-full"><Link to="/drive">Open SSM One documents <ExternalLink className="size-4" /></Link></Button>
-          {department === "operations" && <Button asChild variant="ghost" className="w-full"><Link to="/procurement/requests"><ShoppingCart className="size-4" /> Purchase request records</Link></Button>}
-        </CardContent>
-      </Card>
     </div>
   );
 }
