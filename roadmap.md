@@ -2,7 +2,7 @@
 
 ## Maintenance
 
-- [ ] Refine daily-work navigation: remove repeated Command Center, Department Center, and task-board controls while preserving all existing task, approval, project, and document access.
+- [x] Refine daily-work navigation: remove repeated Command Center, Department Center, and task-board controls while preserving all existing task, approval, project, and document access.
 - [x] Deliver Zoho-style department workspaces: each lead gets unified request, task, approval/gate, and SSM One document-reference controls without replacing established operational workflows. Google Drive linking remains blocked until an App User Connector is available.
 - [x] Add an all-department lead command center with role-aware operational queues, workload pulse, and direct actions into each existing workspace.
 - [x] Add department-specific Today’s priorities and past-due task focus to the command center, with administrator oversight across every department.

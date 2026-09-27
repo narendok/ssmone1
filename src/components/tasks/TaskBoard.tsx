@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarDays, ChevronDown, LayoutGrid, List, Plus, SlidersHorizontal, User } from "lucide-react";
+import { CalendarDays, ChevronDown, FileText, LayoutGrid, List, Plus, SlidersHorizontal, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -175,6 +175,7 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
                 <TableHead>Department</TableHead>
                 <TableHead>Project</TableHead>
                 <TableHead>Assignee</TableHead>
+                <TableHead>Document</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Due</TableHead>
                 <TableHead>Status</TableHead>
@@ -189,6 +190,7 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
                     <TableCell>{dep && <Badge variant="outline" className={dep.pill}>{dep.label}</Badge>}</TableCell>
                     <TableCell className="font-mono text-xs">{t.project?.code ?? "—"}</TableCell>
                     <TableCell>{t.assignee?.name ?? "—"}</TableCell>
+                    <TableCell>{t.drive_node_id ? <span className="inline-flex items-center gap-1 text-muted-foreground"><FileText className="size-3.5" /> Linked</span> : "—"}</TableCell>
                     <TableCell className={TASK_PRIORITIES.find((p) => p.value === t.priority)?.color}>
                       {TASK_PRIORITIES.find((p) => p.value === t.priority)?.label}
                     </TableCell>
@@ -198,7 +200,7 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
                 );
               })}
               {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No tasks match.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No tasks match.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

@@ -5,10 +5,10 @@ import { TaskBoard } from "@/components/tasks/TaskBoard";
 export const Route = createFileRoute("/_authenticated/tasks/")({
   head: () => ({
     meta: [
-      { title: "Task board — PartsBench" },
-      { name: "description", content: "Company-wide engineering task board with departments, priorities and status tracking." },
-      { property: "og:title", content: "Task board — PartsBench" },
-      { property: "og:description", content: "Company-wide engineering task board with departments, priorities and status tracking." },
+      { title: "Task board — SSM One" },
+      { name: "description", content: "Cross-department task planning with due dates, status, projects, owners, and document references." },
+      { property: "og:title", content: "Task board — SSM One" },
+      { property: "og:description", content: "Cross-department task planning with due dates, status, projects, owners, and document references." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
