@@ -5,6 +5,23 @@ const sb = supabase as any;
 
 export type DashboardDepartment = "engineering" | "operations" | "production" | "hr" | "sales" | "quality";
 
+export const departmentDefinitions: { id: DashboardDepartment; label: string; permission: string }[] = [
+  { id: "engineering", label: "Engineering", permission: "engineering.view" },
+  { id: "operations", label: "Operations", permission: "procurement.view" },
+  { id: "production", label: "Production", permission: "production.view" },
+  { id: "hr", label: "People", permission: "hr.view" },
+  { id: "sales", label: "Sales", permission: "sales.view" },
+  { id: "quality", label: "Quality", permission: "quality.view" },
+];
+
+export function getPermittedDepartments(role: string | null, permissions: string[]) {
+  return departmentDefinitions.filter((department) => role === "admin" || permissions.includes(department.permission));
+}
+
+export function departmentAccessLabel(label: string) {
+  return `${label} department`;
+}
+
 export type DashboardMetric = {
   label: string;
   value: number;
