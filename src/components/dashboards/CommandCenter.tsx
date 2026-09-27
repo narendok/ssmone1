@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { fetchTasks, OPEN_TASK_STATUSES, updateTask, type ProjectTask } from "@/lib/tasks";
-import { DEMO_PROGRESS, DEMO_WORK_ITEMS, type DemoPriority } from "@/lib/portal-demo";
+import { DEMO_WORK_ITEMS, type DemoPriority } from "@/lib/portal-demo";
 import { departmentDefinitions, getPermittedDepartments, type DashboardDepartment } from "@/lib/department-dashboard";
 import { groupWorkspaceTasks, taskDueLabel } from "@/lib/task-workspace";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,7 +29,7 @@ export function CommandCenter() {
   const activeDepartment = selectedDepartment === "all" ? null : departmentDefinitions.find((department) => department.id === selectedDepartment);
   const departmentTaskKeys = activeDepartment ? {
     engineering: ["hardware", "firmware", "mechanical"], operations: ["procurement"], production: ["production"], hr: [], sales: ["executive"], quality: ["qa"],
-  }[activeDepartment.id] : [];
+  }[activeDepartment.id] : ["__all_departments__"];
   const liveTasks = (tasks.data ?? []).filter((task) => OPEN_TASK_STATUSES.includes(task.status));
   const useDemo = !tasks.isLoading && liveTasks.length === 0;
   const groupedTasks = groupWorkspaceTasks(liveTasks, departmentTaskKeys);
