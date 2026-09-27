@@ -41,6 +41,7 @@ import { Route as AuthenticatedProductionIndexRouteImport } from './routes/_auth
 import { Route as AuthenticatedMaintenanceIndexRouteImport } from './routes/_authenticated/maintenance.index'
 import { Route as AuthenticatedFacilityIndexRouteImport } from './routes/_authenticated/facility.index'
 import { Route as AuthenticatedExternalCollaborationIndexRouteImport } from './routes/_authenticated/external-collaboration.index'
+import { Route as AuthenticatedDashboardsIndexRouteImport } from './routes/_authenticated/dashboards.index'
 import { Route as AuthenticatedCustomerServiceIndexRouteImport } from './routes/_authenticated/customer-service.index'
 import { Route as AuthenticatedCalibrationIndexRouteImport } from './routes/_authenticated/calibration.index'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets.index'
@@ -266,6 +267,12 @@ const AuthenticatedExternalCollaborationIndexRoute =
   AuthenticatedExternalCollaborationIndexRouteImport.update({
     id: '/external-collaboration/',
     path: '/external-collaboration/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDashboardsIndexRoute =
+  AuthenticatedDashboardsIndexRouteImport.update({
+    id: '/dashboards/',
+    path: '/dashboards/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCustomerServiceIndexRoute =
@@ -694,6 +701,7 @@ export interface FileRoutesByFullPath {
   '/assets/': typeof AuthenticatedAssetsIndexRoute
   '/calibration/': typeof AuthenticatedCalibrationIndexRoute
   '/customer-service/': typeof AuthenticatedCustomerServiceIndexRoute
+  '/dashboards/': typeof AuthenticatedDashboardsIndexRoute
   '/external-collaboration/': typeof AuthenticatedExternalCollaborationIndexRoute
   '/facility/': typeof AuthenticatedFacilityIndexRoute
   '/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
@@ -785,6 +793,7 @@ export interface FileRoutesByTo {
   '/assets': typeof AuthenticatedAssetsIndexRoute
   '/calibration': typeof AuthenticatedCalibrationIndexRoute
   '/customer-service': typeof AuthenticatedCustomerServiceIndexRoute
+  '/dashboards': typeof AuthenticatedDashboardsIndexRoute
   '/external-collaboration': typeof AuthenticatedExternalCollaborationIndexRoute
   '/facility': typeof AuthenticatedFacilityIndexRoute
   '/maintenance': typeof AuthenticatedMaintenanceIndexRoute
@@ -879,6 +888,7 @@ export interface FileRoutesById {
   '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
   '/_authenticated/calibration/': typeof AuthenticatedCalibrationIndexRoute
   '/_authenticated/customer-service/': typeof AuthenticatedCustomerServiceIndexRoute
+  '/_authenticated/dashboards/': typeof AuthenticatedDashboardsIndexRoute
   '/_authenticated/external-collaboration/': typeof AuthenticatedExternalCollaborationIndexRoute
   '/_authenticated/facility/': typeof AuthenticatedFacilityIndexRoute
   '/_authenticated/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
@@ -973,6 +983,7 @@ export interface FileRouteTypes {
     | '/assets/'
     | '/calibration/'
     | '/customer-service/'
+    | '/dashboards/'
     | '/external-collaboration/'
     | '/facility/'
     | '/maintenance/'
@@ -1064,6 +1075,7 @@ export interface FileRouteTypes {
     | '/assets'
     | '/calibration'
     | '/customer-service'
+    | '/dashboards'
     | '/external-collaboration'
     | '/facility'
     | '/maintenance'
@@ -1157,6 +1169,7 @@ export interface FileRouteTypes {
     | '/_authenticated/assets/'
     | '/_authenticated/calibration/'
     | '/_authenticated/customer-service/'
+    | '/_authenticated/dashboards/'
     | '/_authenticated/external-collaboration/'
     | '/_authenticated/facility/'
     | '/_authenticated/maintenance/'
@@ -1408,6 +1421,13 @@ declare module '@tanstack/react-router' {
       path: '/external-collaboration'
       fullPath: '/external-collaboration/'
       preLoaderRoute: typeof AuthenticatedExternalCollaborationIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboards/': {
+      id: '/_authenticated/dashboards/'
+      path: '/dashboards'
+      fullPath: '/dashboards/'
+      preLoaderRoute: typeof AuthenticatedDashboardsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/customer-service/': {
@@ -1930,6 +1950,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
   AuthenticatedCalibrationIndexRoute: typeof AuthenticatedCalibrationIndexRoute
   AuthenticatedCustomerServiceIndexRoute: typeof AuthenticatedCustomerServiceIndexRoute
+  AuthenticatedDashboardsIndexRoute: typeof AuthenticatedDashboardsIndexRoute
   AuthenticatedExternalCollaborationIndexRoute: typeof AuthenticatedExternalCollaborationIndexRoute
   AuthenticatedFacilityIndexRoute: typeof AuthenticatedFacilityIndexRoute
   AuthenticatedMaintenanceIndexRoute: typeof AuthenticatedMaintenanceIndexRoute
@@ -2019,6 +2040,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCalibrationIndexRoute: AuthenticatedCalibrationIndexRoute,
   AuthenticatedCustomerServiceIndexRoute:
     AuthenticatedCustomerServiceIndexRoute,
+  AuthenticatedDashboardsIndexRoute: AuthenticatedDashboardsIndexRoute,
   AuthenticatedExternalCollaborationIndexRoute:
     AuthenticatedExternalCollaborationIndexRoute,
   AuthenticatedFacilityIndexRoute: AuthenticatedFacilityIndexRoute,
