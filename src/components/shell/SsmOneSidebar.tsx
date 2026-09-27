@@ -111,7 +111,7 @@ export function SsmOneSidebar() {
           return (
             <SidebarGroup key={group.label}>
               {group.collapsible ? <SidebarMenu><SidebarMenuItem><div className="flex items-center"><SidebarMenuButton asChild isActive={isGroupActive} tooltip={group.label} className="flex-1">
-                <Link to="/dashboards" search={group.department ? { department: group.department } : undefined}><ChartColumnIncreasing /><span>{group.label}</span></Link>
+                {group.department ? <Link to="/dashboards" search={{ department: group.department }}><ChartColumnIncreasing /><span>{group.label}</span></Link> : <Link to="/dashboards"><ChartColumnIncreasing /><span>{group.label}</span></Link>}
               </SidebarMenuButton><button type="button" aria-label={`Toggle ${group.label} menu`} aria-expanded={!groupCollapsed} onClick={() => toggleGroup(group.label)} className="mr-1 flex size-7 shrink-0 items-center justify-center rounded-sm text-sidebar-foreground outline-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"><ChevronDown className={`size-4 transition-transform ${groupCollapsed ? "-rotate-90" : ""}`} /></button></div></SidebarMenuItem></SidebarMenu> : <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
               {!groupCollapsed && <SidebarGroupContent><SidebarMenu>
                 {group.collapsible ? <SidebarMenuSub>{visibleItems.map((item) => {
