@@ -22,7 +22,7 @@ export function DepartmentLeadDashboard() {
   const activeSelection = requestedDepartment && availableDepartments.some((department) => department.id === requestedDepartment) ? requestedDepartment : selectedDepartment;
   const activeDepartment = availableDepartments.find((department) => department.id === activeSelection) ?? availableDepartments[0];
   const dashboard = useQuery({ queryKey: ["department_dashboard", activeDepartment?.id], queryFn: () => fetchDepartmentDashboard(activeDepartment?.id ?? "engineering"), enabled: Boolean(activeDepartment) });
-  const administratorTasks = useQuery({ queryKey: ["administrator_department_quick_views"], queryFn: fetchTasks, enabled: role === "admin" });
+  const administratorTasks = useQuery({ queryKey: ["administrator_department_quick_views"], queryFn: () => fetchTasks(), enabled: role === "admin" });
 
   if (!availableDepartments.length) return <section className="mx-auto max-w-lg py-20 text-center"><h1 className="text-xl font-semibold">Department access required</h1><p className="mt-2 text-sm text-muted-foreground">Your account does not currently have access to a department workspace.</p></section>;
 
