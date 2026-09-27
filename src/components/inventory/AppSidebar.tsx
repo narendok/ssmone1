@@ -103,7 +103,7 @@ export function AppSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/drive")}>
-                  <Link to="/drive"><FolderOpen className="h-4 w-4" /><span>Drive</span></Link>
+                  <Link to="/drive" search={{ node: undefined }}><FolderOpen className="h-4 w-4" /><span>Drive</span></Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
@@ -215,7 +215,7 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={isActive("/tasks")}>
-                  <Link to="/tasks">
+                  <Link to="/tasks" search={{ assignee: undefined, task: undefined }}>
                     <ListChecks className="h-4 w-4" />
                     <span className="flex-1">Task board</span>
                     {openTaskCount > 0 && !collapsed && (

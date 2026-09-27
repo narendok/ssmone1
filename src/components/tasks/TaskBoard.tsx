@@ -115,7 +115,7 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
           </Button>
         </div>
         <span className="text-xs text-muted-foreground">{filtered.length} task{filtered.length === 1 ? "" : "s"}{routeSearch.assignee ? " for selected assignee" : ""}</span>
-        {routeSearch.assignee && <Button variant="ghost" size="sm" onClick={() => void navigate({ search: { task: routeSearch.task } })}>Clear assignee</Button>}
+        {routeSearch.assignee && <Button variant="ghost" size="sm" onClick={() => void navigate({ search: { assignee: undefined, task: routeSearch.task } })}>Clear assignee</Button>}
         <Button className="ml-auto" onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> New task</Button>
       </div>
 
@@ -221,7 +221,7 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
       />
       <TaskDrawer
         task={openTask}
-        onOpenChange={(v) => { if (!v) { setOpenId(null); void navigate({ search: { assignee: routeSearch.assignee } }); } }}
+        onOpenChange={(v) => { if (!v) { setOpenId(null); void navigate({ search: { assignee: routeSearch.assignee, task: undefined } }); } }}
         onEdit={(t) => { setOpenId(null); setEditing(t); }}
       />
     </div>

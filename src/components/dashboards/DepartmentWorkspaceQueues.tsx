@@ -95,12 +95,12 @@ export function DepartmentWorkspaceQueues({ department }: { department: Dashboar
         </CardHeader>
         <CardContent className="space-y-3">
           {isLoading ? <Loading /> : todayPriorities.length === 0 ? <Empty label="No urgent, blocked, high-priority, or due-today tasks are visible." /> : todayPriorities.slice(0, 5).map((task) => (
-            <Link key={task.id} to="/tasks" className="flex flex-col gap-2 border-b pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between hover:text-primary">
+            <Link key={task.id} to="/tasks" search={{ assignee: undefined, task: task.id }} className="flex flex-col gap-2 border-b pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between hover:text-primary">
               <div className="min-w-0"><p className="truncate text-sm font-medium">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.assigneeName ?? "Unassigned"}{task.projectCode ? ` · ${task.projectCode}` : ""}{task.dueDate ? ` · Due ${task.dueDate}` : " · No due date"}</p></div>
               <div className="flex shrink-0 flex-wrap gap-1"><PriorityBadge priority={task.priority} />{task.status === "blocked" && <Badge variant="destructive">Blocked</Badge>}</div>
             </Link>
           ))}
-          <Button asChild variant="outline" className="w-full"><Link to="/tasks">Open all tasks <ExternalLink className="size-4" /></Link></Button>
+          <Button asChild variant="outline" className="w-full"><Link to="/tasks" search={{ assignee: undefined, task: undefined }}>Open all tasks <ExternalLink className="size-4" /></Link></Button>
         </CardContent>
       </Card>
 
@@ -111,9 +111,9 @@ export function DepartmentWorkspaceQueues({ department }: { department: Dashboar
         </CardHeader>
         <CardContent className="space-y-3">
           {isLoading ? <Loading /> : overdueTasks.length === 0 ? <Empty label="No past-due tasks are visible." /> : overdueTasks.slice(0, 4).map((task) => (
-            <Link key={task.id} to="/tasks" className="block border-b pb-3 last:border-0 last:pb-0 hover:text-primary"><p className="text-sm font-medium">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">Due {task.dueDate} · {task.assigneeName ?? "Unassigned"}</p></Link>
+            <Link key={task.id} to="/tasks" search={{ assignee: undefined, task: task.id }} className="block border-b pb-3 last:border-0 last:pb-0 hover:text-primary"><p className="text-sm font-medium">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">Due {task.dueDate} · {task.assigneeName ?? "Unassigned"}</p></Link>
           ))}
-          <Button asChild variant="outline" className="w-full"><Link to="/tasks">Review pending tasks <ExternalLink className="size-4" /></Link></Button>
+          <Button asChild variant="outline" className="w-full"><Link to="/tasks" search={{ assignee: undefined, task: undefined }}>Review pending tasks <ExternalLink className="size-4" /></Link></Button>
         </CardContent>
       </Card>
 
