@@ -29,6 +29,7 @@ import { Route as AuthenticatedHrRouteImport } from './routes/_authenticated/hr'
 import { Route as AuthenticatedHistoryRouteImport } from './routes/_authenticated/history'
 import { Route as AuthenticatedDriveRouteImport } from './routes/_authenticated/drive'
 import { Route as AuthenticatedCustomersRouteImport } from './routes/_authenticated/customers'
+import { Route as AuthenticatedCommandCenterRouteImport } from './routes/_authenticated/command-center'
 import { Route as AuthenticatedBomRouteImport } from './routes/_authenticated/bom'
 import { Route as AuthenticatedAssignmentsRouteImport } from './routes/_authenticated/assignments'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -201,6 +202,12 @@ const AuthenticatedCustomersRoute = AuthenticatedCustomersRouteImport.update({
   path: '/customers',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedCommandCenterRoute =
+  AuthenticatedCommandCenterRouteImport.update({
+    id: '/command-center',
+    path: '/command-center',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedBomRoute = AuthenticatedBomRouteImport.update({
   id: '/bom',
   path: '/bom',
@@ -630,6 +637,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
+  '/command-center': typeof AuthenticatedCommandCenterRoute
   '/customers': typeof AuthenticatedCustomersRoute
   '/drive': typeof AuthenticatedDriveRoute
   '/history': typeof AuthenticatedHistoryRoute
@@ -722,6 +730,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminRoute
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
+  '/command-center': typeof AuthenticatedCommandCenterRoute
   '/customers': typeof AuthenticatedCustomersRoute
   '/drive': typeof AuthenticatedDriveRoute
   '/history': typeof AuthenticatedHistoryRoute
@@ -816,6 +825,7 @@ export interface FileRoutesById {
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/assignments': typeof AuthenticatedAssignmentsRoute
   '/_authenticated/bom': typeof AuthenticatedBomRoute
+  '/_authenticated/command-center': typeof AuthenticatedCommandCenterRoute
   '/_authenticated/customers': typeof AuthenticatedCustomersRoute
   '/_authenticated/drive': typeof AuthenticatedDriveRoute
   '/_authenticated/history': typeof AuthenticatedHistoryRoute
@@ -912,6 +922,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/assignments'
     | '/bom'
+    | '/command-center'
     | '/customers'
     | '/drive'
     | '/history'
@@ -1004,6 +1015,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/assignments'
     | '/bom'
+    | '/command-center'
     | '/customers'
     | '/drive'
     | '/history'
@@ -1097,6 +1109,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/assignments'
     | '/_authenticated/bom'
+    | '/_authenticated/command-center'
     | '/_authenticated/customers'
     | '/_authenticated/drive'
     | '/_authenticated/history'
@@ -1337,6 +1350,13 @@ declare module '@tanstack/react-router' {
       path: '/customers'
       fullPath: '/customers'
       preLoaderRoute: typeof AuthenticatedCustomersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/command-center': {
+      id: '/_authenticated/command-center'
+      path: '/command-center'
+      fullPath: '/command-center'
+      preLoaderRoute: typeof AuthenticatedCommandCenterRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/bom': {
@@ -1893,6 +1913,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedAssignmentsRoute: typeof AuthenticatedAssignmentsRoute
   AuthenticatedBomRoute: typeof AuthenticatedBomRoute
+  AuthenticatedCommandCenterRoute: typeof AuthenticatedCommandCenterRoute
   AuthenticatedCustomersRoute: typeof AuthenticatedCustomersRoute
   AuthenticatedDriveRoute: typeof AuthenticatedDriveRoute
   AuthenticatedHistoryRoute: typeof AuthenticatedHistoryRoute
@@ -1965,6 +1986,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedAssignmentsRoute: AuthenticatedAssignmentsRoute,
   AuthenticatedBomRoute: AuthenticatedBomRoute,
+  AuthenticatedCommandCenterRoute: AuthenticatedCommandCenterRoute,
   AuthenticatedCustomersRoute: AuthenticatedCustomersRoute,
   AuthenticatedDriveRoute: AuthenticatedDriveRoute,
   AuthenticatedHistoryRoute: AuthenticatedHistoryRoute,

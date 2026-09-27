@@ -83,3 +83,5 @@
 
 ## Phase 10 — External collaboration extensions
 - [x] Complete the Phase 10 security corrections: authenticated invitations, guarded portal access, immutable sharing, quarantined upload handling, signed webhook intake, workflow guards, and focused validation tests. Phase 11 remains out of scope.
+
+- [ ] Implement the approved lean portal foundation with clearly labeled demo data, preserving protected workflows and existing operational records.
