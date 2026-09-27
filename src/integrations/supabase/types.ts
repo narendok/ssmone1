@@ -10127,6 +10127,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_saved_record_searches: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          query_text: string
+          record_kind: string
+          status_filter: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          query_text?: string
+          record_kind?: string
+          status_filter?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          query_text?: string
+          record_kind?: string
+          status_filter?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       vehicle_entries: {
         Row: {
           created_at: string
