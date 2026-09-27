@@ -30,7 +30,7 @@ export function CommandCenter() {
         <p className="mt-2 max-w-3xl text-sm text-muted-foreground">A focused daily view of work that needs a decision, owner, or follow-up.</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button asChild><Link to="/dashboards">Open department center <ArrowRight className="size-4" /></Link></Button>
+        <Button asChild><Link to="/dashboards" search={{ department: undefined }}>Open department center <ArrowRight className="size-4" /></Link></Button>
         <Button asChild variant="outline"><Link to="/tasks">Open work board</Link></Button>
       </div>
     </section>
