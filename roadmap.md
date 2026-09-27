@@ -2,7 +2,7 @@
 
 ## Maintenance
 
-- [ ] Deliver Zoho-style department workspaces: each lead gets unified request, task, approval/gate, and Google Drive link-and-reference controls without replacing established operational workflows.
+- [x] Deliver Zoho-style department workspaces: each lead gets unified request, task, approval/gate, and SSM One document-reference controls without replacing established operational workflows. Google Drive linking remains blocked until an App User Connector is available.
 - [x] Add an all-department lead command center with role-aware operational queues, workload pulse, and direct actions into each existing workspace.
 - [x] Group the department navigation under expandable department headings, expanded by default for administrators, with a direct Department Center entry point.
 - [x] Connect R&D and project-member pages to their next actions, with contextual member creation links and no identity or authorization changes.
