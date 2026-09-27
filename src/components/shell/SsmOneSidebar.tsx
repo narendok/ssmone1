@@ -1,29 +1,31 @@
+import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BriefcaseBusiness, Building2, CircuitBoard, ClipboardList, FileSpreadsheet, FolderKanban, FolderOpen,
   GraduationCap, History, LayoutGrid, ListChecks, MapPin, PackageCheck, PlaneTakeoff, Settings2, ShoppingCart,
-    Truck, Users, Wrench, WalletCards, ShieldCheck, Boxes, FileText, Factory, ClipboardCheck, Send, Gauge, Armchair, ChartNoAxesCombined, Headset, Handshake, ChartColumnIncreasing, type LucideIcon,
+    Truck, Users, Wrench, WalletCards, ShieldCheck, Boxes, FileText, Factory, ClipboardCheck, Send, Gauge, Armchair, ChartNoAxesCombined, Headset, Handshake, ChartColumnIncreasing, ChevronDown, type LucideIcon,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
-  SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
+  SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
 
 type NavItem = { label: string; to: string; icon: LucideIcon; permission?: string };
-type NavGroup = { label: string; items: NavItem[] };
+type NavGroup = { label: string; items: NavItem[]; collapsible?: boolean };
 
 const groups: NavGroup[] = [
-  { label: "Home", items: [{ label: "PartsBench overview", to: "/", icon: LayoutGrid, permission: "engineering.view" }, { label: "Department center", to: "/dashboards", icon: ChartColumnIncreasing }] },
+  { label: "Department center", collapsible: true, items: [{ label: "Department dashboard", to: "/dashboards", icon: ChartColumnIncreasing }] },
   { label: "Work", items: [
     { label: "Projects", to: "/projects", icon: FolderKanban, permission: "projects.view" },
     { label: "Task board", to: "/tasks", icon: ListChecks, permission: "my_work.view" },
   ] },
-  { label: "Sales", items: [
+  { label: "Sales", collapsible: true, items: [
     { label: "Sales overview", to: "/sales", icon: BriefcaseBusiness, permission: "sales.view" },
     { label: "Customers", to: "/customers", icon: Building2, permission: "sales.view" },
   ] },
-  { label: "Engineering", items: [
+  { label: "Engineering", collapsible: true, items: [
+    { label: "Engineering overview", to: "/dashboards", icon: ChartColumnIncreasing, permission: "engineering.view" },
     { label: "R&D / PartsBench", to: "/", icon: CircuitBoard, permission: "engineering.view" },
     { label: "Inventory", to: "/locations", icon: MapPin, permission: "engineering.view" },
     { label: "BOM import", to: "/bom", icon: FileSpreadsheet, permission: "engineering.edit" },
@@ -32,7 +34,8 @@ const groups: NavGroup[] = [
     { label: "Assignments", to: "/assignments", icon: ClipboardList, permission: "engineering.view" },
     { label: "R&D team", to: "/rd-team", icon: Users, permission: "engineering.view" },
   ] },
-  { label: "Operations", items: [
+  { label: "Operations", collapsible: true, items: [
+    { label: "Operations overview", to: "/dashboards", icon: ChartColumnIncreasing, permission: "procurement.view" },
     { label: "Purchase requests", to: "/procurement/requests", icon: ClipboardList, permission: "procurement.view" },
     { label: "RFQs & quotations", to: "/procurement/rfqs", icon: FileText, permission: "procurement.view" },
     { label: "Purchase orders", to: "/procurement/orders", icon: ShoppingCart, permission: "procurement.view" },
@@ -65,7 +68,8 @@ const groups: NavGroup[] = [
         { label: "External actions", to: "/external-collaboration/actions", icon: ClipboardList, permission: "external_collaboration.view" },
         { label: "Upload requests", to: "/external-collaboration/uploads", icon: FileText, permission: "external_collaboration.view" },
   ] },
-  { label: "HR", items: [
+   { label: "People & HR", collapsible: true, items: [
+     { label: "People overview", to: "/dashboards", icon: ChartColumnIncreasing, permission: "hr.view" },
     { label: "HR overview", to: "/hr", icon: Users, permission: "hr.view" },
     { label: "Recruitment", to: "/hr/recruitment", icon: ClipboardList, permission: "recruitment.manage" },
     { label: "Leave desk", to: "/hr/leave", icon: PlaneTakeoff, permission: "hr.view" },
@@ -73,7 +77,7 @@ const groups: NavGroup[] = [
     { label: "Onboarding", to: "/hr/onboarding", icon: ClipboardList, permission: "training.manage" },
     { label: "Policies", to: "/hr/policies", icon: FileSpreadsheet, permission: "hr.view" },
   ] },
-  { label: "System", items: [
+   { label: "System", collapsible: true, items: [
     { label: "PartsBench history", to: "/history", icon: History, permission: "engineering.view" },
     { label: "Administration", to: "/admin", icon: Settings2, permission: "admin.view" },
   ] },
@@ -83,8 +87,15 @@ export function SsmOneSidebar() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { state } = useSidebar();
   const { role, permissions, employeeStatus } = useAuth();
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const collapsed = state === "collapsed";
   const can = (permission?: string) => employeeStatus !== "SUSPENDED" && employeeStatus !== "EXITED" && (role === "admin" || !permission || permissions.includes(permission));
+  const toggleGroup = (label: string) => setCollapsedGroups((previous) => {
+    const next = new Set(previous);
+    if (next.has(label)) next.delete(label);
+    else next.add(label);
+    return next;
+  });
 
   return (
     <Sidebar collapsible="icon">
@@ -98,11 +109,20 @@ export function SsmOneSidebar() {
         {groups.map((group) => {
           const visibleItems = group.items.filter((item) => can(item.permission));
           if (!visibleItems.length) return null;
+          const groupCollapsed = group.collapsible && collapsedGroups.has(group.label);
+          const isGroupActive = visibleItems.some((item) => item.to === "/" ? pathname === "/" : pathname === item.to || pathname.startsWith(`${item.to}/`));
           return (
             <SidebarGroup key={group.label}>
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-              <SidebarGroupContent><SidebarMenu>
-                {visibleItems.map((item) => {
+              {group.collapsible ? <SidebarMenu><SidebarMenuItem><SidebarMenuButton isActive={isGroupActive} tooltip={group.label} onClick={() => toggleGroup(group.label)}>
+                <ChartColumnIncreasing /><span>{group.label}</span><ChevronDown className={`ml-auto size-4 transition-transform ${groupCollapsed ? "-rotate-90" : ""}`} />
+              </SidebarMenuButton></SidebarMenuItem></SidebarMenu> : <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
+              {!groupCollapsed && <SidebarGroupContent><SidebarMenu>
+                {group.collapsible ? <SidebarMenuSub>{visibleItems.map((item) => {
+                  const active = item.to === "/" ? pathname === "/" : pathname === item.to || pathname.startsWith(`${item.to}/`);
+                  return <SidebarMenuSubItem key={`${group.label}-${item.label}`}><SidebarMenuSubButton asChild isActive={active}>
+                    <Link to={item.to}><item.icon /><span>{item.label}</span></Link>
+                  </SidebarMenuSubButton></SidebarMenuSubItem>;
+                })}</SidebarMenuSub> : visibleItems.map((item) => {
                   const active = item.to === "/" ? pathname === "/" : pathname === item.to || pathname.startsWith(`${item.to}/`);
                   return <SidebarMenuItem key={`${group.label}-${item.label}`}>
                     <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
@@ -110,7 +130,7 @@ export function SsmOneSidebar() {
                     </SidebarMenuButton>
                   </SidebarMenuItem>;
                 })}
-              </SidebarMenu></SidebarGroupContent>
+              </SidebarMenu></SidebarGroupContent>}
             </SidebarGroup>
           );
         })}
