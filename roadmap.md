@@ -89,3 +89,4 @@
 
 - [ ] Implement the approved lean portal foundation with clearly labeled demo data, preserving protected workflows and existing operational records.
 - [ ] Expand the clearly labelled Command Center sample tasks with notes, progress, project, and team-owner context. **In progress:** sample data is display-only and will not create operational records.
+- [ ] Create a clearly labelled sample workspace-storage hierarchy from the supplied audit repository: exact top-level groups, device/part/revision packs, seven hardware phases, Supplier Quality, Calibration/Laboratory controls, and placeholder controlled-document records; do not alter live records.
