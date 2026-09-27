@@ -30,7 +30,7 @@ const taskDepartments: Record<DashboardDepartment, string[]> = {
 function useDepartmentQueues(department: DashboardDepartment) {
   const tasks = useQuery({
     queryKey: ["department_workspace_tasks", department],
-    queryFn: fetchTasks,
+    queryFn: () => fetchTasks(),
   });
   const purchaseRequests = useQuery({
     queryKey: ["department_workspace_purchase_requests", department],
