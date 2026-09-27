@@ -1,0 +1,2 @@
+GRANT EXECUTE ON FUNCTION public.create_purchase_order(uuid, date, text, numeric, jsonb) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_purchase_order(uuid, date, text, numeric, jsonb) TO service_role;
