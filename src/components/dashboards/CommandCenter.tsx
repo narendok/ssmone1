@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, CalendarDays, ChevronDown, Circle, CircleCheck, LayoutDashboard, Loader2, UserRound } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarDays, ChevronDown, Circle, LayoutDashboard, Loader2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -93,7 +93,7 @@ function TaskDetails({ task }: { task: ProjectTask }) {
 
 function DemoTaskRow({ item }: { item: (typeof DEMO_WORK_ITEMS)[number] }) {
   const [open, setOpen] = useState(false);
-  return <Collapsible open={open} onOpenChange={setOpen}><div className="border-b py-3 last:border-0"><div className="flex items-start gap-3"><Circle className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><CollapsibleTrigger className="min-w-0 flex-1 text-left"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.owner} · {item.due}</p></div><ChevronDown className="mt-0.5 size-4 shrink-0 text-muted-foreground" /></div></CollapsibleTrigger></div><CollapsibleContent className="pl-7 pt-3"><div className="space-y-3 border-l pl-4 text-sm"><div className="flex gap-2"><Badge variant={priorityVariant[item.priority]}>{item.priority}</Badge><Badge variant="outline">{item.status}</Badge></div><p className="text-muted-foreground">{item.area} · Demo task details and progress appear here when this task is expanded.</p></div></CollapsibleContent></div></Collapsible>;
+  return <Collapsible open={open} onOpenChange={setOpen}><div className="border-b py-3 last:border-0"><div className="flex items-start gap-3"><Circle className="mt-0.5 size-4 shrink-0 text-muted-foreground" /><CollapsibleTrigger className="min-w-0 flex-1 text-left"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium">{item.title}</p><p className="mt-1 text-xs text-muted-foreground">{item.owner} · {item.due}</p></div><ChevronDown className="mt-0.5 size-4 shrink-0 text-muted-foreground" /></div></CollapsibleTrigger></div><CollapsibleContent className="pl-7 pt-3"><div className="space-y-3 border-l pl-4 text-sm"><div className="flex gap-2"><Badge variant={priorityVariant[item.priority]}>{item.priority}</Badge><Badge variant="outline">{item.status}</Badge></div><p className="text-muted-foreground">{item.notes}</p><div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2"><p><span className="font-medium text-foreground">Project:</span> {item.project}</p><p><span className="font-medium text-foreground">Progress:</span> {item.progress}%</p></div><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${item.progress}%` }} /></div></div></CollapsibleContent></div></Collapsible>;
 }
 
 function sortTasks(a: ProjectTask, b: ProjectTask) {
