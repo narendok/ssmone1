@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, CalendarDays, ChevronDown, Circle, LayoutDashboard, Loader2, UserRound } from "lucide-react";
+import { AlertTriangle, CalendarDays, ChevronDown, Circle, Loader2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,33 +26,19 @@ export function CommandCenter() {
   const laterTasks = liveTasks.filter((task) => !todayTasks.some((todayTask) => todayTask.id === task.id)).sort(sortTasks);
 
   return <div className="mx-auto max-w-7xl space-y-6">
-    <section className="flex flex-col gap-4 border-b pb-6 lg:flex-row lg:items-end lg:justify-between">
+    <section className="border-b pb-6">
       <div>
-        <p className="text-sm font-medium text-primary">SSM One</p>
-        <h1 className="mt-1 text-2xl font-semibold">Command Center</h1>
-        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">A short daily list for urgent work first, with later work kept out of the way until you need it.</p>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button asChild variant="outline"><Link to="/dashboards" search={{ department: undefined }}>Department dashboards <ArrowRight className="size-4" /></Link></Button>
-        <Button asChild variant="outline"><Link to="/tasks">All tasks</Link></Button>
+        <p className="text-sm font-medium text-primary">My day</p>
+        <h1 className="mt-1 text-2xl font-semibold">Today’s work</h1>
+        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">Complete the work that needs attention today, then review what is waiting for later.</p>
       </div>
     </section>
 
     {tasks.isLoading ? <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 size-4 animate-spin" /> Loading your work pulse…</div> : <>
       {useDemo && <div className="flex items-center gap-3 border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-muted-foreground"><LayoutDashboard className="size-4 shrink-0 text-primary" /><span><strong className="font-medium text-foreground">Demo view:</strong> these examples show the intended daily workspace. They do not create, change, or share any operational record.</span></div>}
-      <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
-        <div className="space-y-4">
-          <TaskChecklist title="Today’s priority tasks" description="Urgent, high-priority, blocked, or due today." tasks={useDemo ? [] : todayTasks} demoItems={useDemo ? DEMO_WORK_ITEMS.slice(0, 2) : undefined} />
-          <TaskChecklist title="Pending for later" description="Open work that does not need attention today." tasks={useDemo ? [] : laterTasks} demoItems={useDemo ? DEMO_WORK_ITEMS.slice(2) : undefined} defaultOpen={false} />
-        </div>
-        <Card className="h-fit">
-          <CardHeader><CardTitle>At a glance</CardTitle><CardDescription>Keep the daily view short. Department dashboards show the detailed operational picture.</CardDescription></CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center justify-between border-b pb-3"><span className="text-muted-foreground">Today</span><span className="font-semibold">{useDemo ? 2 : todayTasks.length} tasks</span></div>
-            <div className="flex items-center justify-between border-b pb-3"><span className="text-muted-foreground">Later</span><span className="font-semibold">{useDemo ? 2 : laterTasks.length} tasks</span></div>
-            <Button asChild className="mt-2 w-full"><Link to="/dashboards" search={{ department: undefined }}>Open department dashboard <ArrowRight className="size-4" /></Link></Button>
-          </CardContent>
-        </Card>
+      <div className="max-w-4xl space-y-4">
+        <TaskChecklist title="Today’s priority tasks" description="Urgent, high-priority, blocked, or due today." tasks={useDemo ? [] : todayTasks} demoItems={useDemo ? DEMO_WORK_ITEMS.slice(0, 2) : undefined} />
+        <TaskChecklist title="Pending for later" description="Open work that does not need attention today." tasks={useDemo ? [] : laterTasks} demoItems={useDemo ? DEMO_WORK_ITEMS.slice(2) : undefined} defaultOpen={false} />
       </div>
     </>}
   </div>;
