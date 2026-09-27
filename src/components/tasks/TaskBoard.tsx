@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarDays, LayoutGrid, List, Plus, User } from "lucide-react";
+import { CalendarDays, ChevronDown, LayoutGrid, List, Plus, SlidersHorizontal, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import {
@@ -17,7 +19,7 @@ import { TaskDrawer } from "./TaskDrawer";
 
 export function TaskBoard({ projectId, compact = false }: { projectId?: string; compact?: boolean }) {
   const qc = useQueryClient();
-  const [view, setView] = useState<"board" | "table">("board");
+  const [view, setView] = useState<"board" | "table">("table");
   const [deps, setDeps] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
@@ -89,6 +91,17 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
           placeholder="Search tasks, people, projects…"
           className="h-9 w-full sm:max-w-xs"
         />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm"><SlidersHorizontal className="size-4" /> Departments{deps.size ? ` (${deps.size})` : ""}<ChevronDown className="size-3.5" /></Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-60 p-2">
+            <div className="space-y-1">
+              {DEPARTMENTS.map((department) => <label key={department.value} className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-muted"><Checkbox checked={deps.has(department.value)} onCheckedChange={() => toggleDep(department.value)} /><span className={cn("size-2 rounded-full", department.dot)} /><span className="flex-1">{department.label}</span><span className="text-xs text-muted-foreground">{tasks.filter((task) => task.department === department.value).length}</span></label>)}
+            </div>
+            {deps.size > 0 && <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={() => setDeps(new Set())}>Clear filters</Button>}
+          </PopoverContent>
+        </Popover>
         <div className="flex items-center gap-1 rounded-md border p-0.5">
           <Button variant={view === "board" ? "secondary" : "ghost"} size="sm" onClick={() => setView("board")}>
             <LayoutGrid className="h-4 w-4" /> Board
@@ -97,30 +110,8 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
             <List className="h-4 w-4" /> Table
           </Button>
         </div>
+        <span className="text-xs text-muted-foreground">{filtered.length} task{filtered.length === 1 ? "" : "s"}</span>
         <Button className="ml-auto" onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> New task</Button>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-1.5">
-        {DEPARTMENTS.map((d) => {
-          const active = deps.has(d.value);
-          return (
-            <button
-              key={d.value}
-              onClick={() => toggleDep(d.value)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition",
-                active ? d.pill : "text-muted-foreground hover:bg-muted",
-              )}
-            >
-              <span className={cn("h-2 w-2 rounded-full", d.dot)} />
-              {d.label}
-              <span className="opacity-60">{tasks.filter((t) => t.department === d.value).length}</span>
-            </button>
-          );
-        })}
-        {deps.size > 0 && (
-          <Button variant="ghost" size="sm" onClick={() => setDeps(new Set())}>Clear</Button>
-        )}
       </div>
 
       {isLoading && <p className="text-sm text-muted-foreground">Loading tasks…</p>}
