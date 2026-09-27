@@ -21,6 +21,7 @@ import { Route as FileTokenRouteImport } from './routes/file.$token'
 import { Route as ExternalPortalTokenRouteImport } from './routes/external-portal.$token'
 import { Route as CareersSlugRouteImport } from './routes/careers.$slug'
 import { Route as AuthenticatedSalesRouteImport } from './routes/_authenticated/sales'
+import { Route as AuthenticatedRecordsRouteImport } from './routes/_authenticated/records'
 import { Route as AuthenticatedRdTeamRouteImport } from './routes/_authenticated/rd-team'
 import { Route as AuthenticatedProductionRouteImport } from './routes/_authenticated/production'
 import { Route as AuthenticatedPcbRouteImport } from './routes/_authenticated/pcb'
@@ -160,6 +161,11 @@ const CareersSlugRoute = CareersSlugRouteImport.update({
 const AuthenticatedSalesRoute = AuthenticatedSalesRouteImport.update({
   id: '/sales',
   path: '/sales',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRecordsRoute = AuthenticatedRecordsRouteImport.update({
+  id: '/records',
+  path: '/records',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedRdTeamRoute = AuthenticatedRdTeamRouteImport.update({
@@ -646,6 +652,7 @@ export interface FileRoutesByFullPath {
   '/pcb': typeof AuthenticatedPcbRoute
   '/production': typeof AuthenticatedProductionRouteWithChildren
   '/rd-team': typeof AuthenticatedRdTeamRoute
+  '/records': typeof AuthenticatedRecordsRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/external-portal/$token': typeof ExternalPortalTokenRoute
@@ -738,6 +745,7 @@ export interface FileRoutesByTo {
   '/locations': typeof AuthenticatedLocationsRoute
   '/pcb': typeof AuthenticatedPcbRoute
   '/rd-team': typeof AuthenticatedRdTeamRoute
+  '/records': typeof AuthenticatedRecordsRoute
   '/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/external-portal/$token': typeof ExternalPortalTokenRoute
@@ -834,6 +842,7 @@ export interface FileRoutesById {
   '/_authenticated/pcb': typeof AuthenticatedPcbRoute
   '/_authenticated/production': typeof AuthenticatedProductionRouteWithChildren
   '/_authenticated/rd-team': typeof AuthenticatedRdTeamRoute
+  '/_authenticated/records': typeof AuthenticatedRecordsRoute
   '/_authenticated/sales': typeof AuthenticatedSalesRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/external-portal/$token': typeof ExternalPortalTokenRoute
@@ -931,6 +940,7 @@ export interface FileRouteTypes {
     | '/pcb'
     | '/production'
     | '/rd-team'
+    | '/records'
     | '/sales'
     | '/careers/$slug'
     | '/external-portal/$token'
@@ -1023,6 +1033,7 @@ export interface FileRouteTypes {
     | '/locations'
     | '/pcb'
     | '/rd-team'
+    | '/records'
     | '/sales'
     | '/careers/$slug'
     | '/external-portal/$token'
@@ -1118,6 +1129,7 @@ export interface FileRouteTypes {
     | '/_authenticated/pcb'
     | '/_authenticated/production'
     | '/_authenticated/rd-team'
+    | '/_authenticated/records'
     | '/_authenticated/sales'
     | '/careers/$slug'
     | '/external-portal/$token'
@@ -1294,6 +1306,13 @@ declare module '@tanstack/react-router' {
       path: '/sales'
       fullPath: '/sales'
       preLoaderRoute: typeof AuthenticatedSalesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/records': {
+      id: '/_authenticated/records'
+      path: '/records'
+      fullPath: '/records'
+      preLoaderRoute: typeof AuthenticatedRecordsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/rd-team': {
@@ -1922,6 +1941,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPcbRoute: typeof AuthenticatedPcbRoute
   AuthenticatedProductionRoute: typeof AuthenticatedProductionRouteWithChildren
   AuthenticatedRdTeamRoute: typeof AuthenticatedRdTeamRoute
+  AuthenticatedRecordsRoute: typeof AuthenticatedRecordsRoute
   AuthenticatedSalesRoute: typeof AuthenticatedSalesRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedCategorySlugRoute: typeof AuthenticatedCategorySlugRoute
@@ -1995,6 +2015,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPcbRoute: AuthenticatedPcbRoute,
   AuthenticatedProductionRoute: AuthenticatedProductionRouteWithChildren,
   AuthenticatedRdTeamRoute: AuthenticatedRdTeamRoute,
+  AuthenticatedRecordsRoute: AuthenticatedRecordsRoute,
   AuthenticatedSalesRoute: AuthenticatedSalesRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedCategorySlugRoute: AuthenticatedCategorySlugRoute,
