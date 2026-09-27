@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarDays, Clock, Plus, Trash2, User } from "lucide-react";
+import { CalendarDays, Clock, ExternalLink, Plus, Trash2, User } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,13 @@ export function TaskDrawer({
             {dep && <Badge variant="outline" className={dep.pill}>{dep.label}</Badge>}
             <Badge variant="outline">{TASK_PRIORITIES.find((p) => p.value === task.priority)?.label}</Badge>
             {task.ppap_element && <Badge variant="secondary">PPAP {task.ppap_element}</Badge>}
+          </div>
+
+          <div className="grid gap-2 text-sm">
+            {task.project && <ContextLink to="/projects/$projectId" params={{ projectId: task.project.id }} label={`${task.project.code} — ${task.project.name}`} />}
+            {task.purchase_request && <ContextLink to="/procurement/requests" label={`${task.purchase_request.request_number} — Purchase request`} />}
+            {task.qms_capa && <ContextLink to="/qms/capa" label={`${task.qms_capa.capa_code} — ${task.qms_capa.title}`} />}
+            {task.customer_complaint && <ContextLink to="/customer-service/complaints" label={`${task.customer_complaint.complaint_code} — ${task.customer_complaint.title}`} />}
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -208,3 +216,7 @@ export function TaskDrawer({
 }
 
 export const TASK_DEPARTMENTS = DEPARTMENTS;
+
+function ContextLink({ to, params, label }: { to: string; params?: Record<string, string>; label: string }) {
+  return <Button asChild variant="outline" size="sm" className="justify-between"><Link to={to as never} params={params as never}>{label}<ExternalLink className="size-3.5" /></Link></Button>;
+}

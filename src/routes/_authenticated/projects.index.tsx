@@ -1,10 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { FolderKanban, Settings } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { FolderKanban, Plus, Settings } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { fetchProjects } from "@/lib/projects";
+import { ProjectDialog } from "@/components/projects/ProjectDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/_authenticated/projects/")({
   head: () => ({
@@ -24,6 +27,9 @@ export const Route = createFileRoute("/_authenticated/projects/")({
 });
 
 function ProjectsPage() {
+  const { role } = useAuth();
+  const queryClient = useQueryClient();
+  const [creating, setCreating] = useState(false);
   const { data: projects = [], isLoading } = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
 
   return (
@@ -33,9 +39,7 @@ function ProjectsPage() {
           <h1 className="text-2xl font-semibold">Projects</h1>
           <p className="text-sm text-muted-foreground">Open a project workspace for delivery controls, engineering records and PartsBench files.</p>
         </div>
-        <Button asChild variant="outline">
-          <Link to="/settings/projects"><Settings className="h-4 w-4 mr-1" /> Manage</Link>
-        </Button>
+        <div className="flex gap-2">{role === "admin" && <Button onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> Add project</Button>}<Button asChild variant="outline"><Link to="/settings/projects"><Settings className="h-4 w-4 mr-1" /> Manage</Link></Button></div>
       </div>
 
       {isLoading ? (
@@ -66,6 +70,7 @@ function ProjectsPage() {
           ))}
         </div>
       )}
+      <ProjectDialog open={creating} onOpenChange={setCreating} onSaved={() => void queryClient.invalidateQueries({ queryKey: ["projects"] })} />
     </div>
   );
 }

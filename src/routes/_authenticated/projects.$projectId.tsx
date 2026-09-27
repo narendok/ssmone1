@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ExternalLink } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { ArrowLeft, ExternalLink, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,8 @@ import { TaskBoard } from "@/components/tasks/TaskBoard";
 import { ProjectTeamTab } from "@/components/projects/ProjectTeamTab";
 import { ProjectOperationalTab } from "@/components/projects/ProjectOperationalTabs";
 import type { Project } from "@/lib/projects";
+import { ProjectDialog } from "@/components/projects/ProjectDialog";
+import { useAuth } from "@/hooks/useAuth";
 
 const sb = supabase as any;
 
@@ -36,6 +39,9 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId")({
 
 function ProjectDetailPage() {
   const { projectId } = Route.useParams();
+  const { role } = useAuth();
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -78,6 +84,7 @@ function ProjectDetailPage() {
             {componentCount} tagged component{componentCount === 1 ? "" : "s"}
           </p>
         </div>
+          {role === "admin" && <Button variant="outline" size="sm" className="ml-auto shrink-0" onClick={() => setEditing(true)}><Pencil className="size-4" /> Edit project</Button>}
       </div>
 
       <Tabs defaultValue="overview">
@@ -150,6 +157,7 @@ function ProjectDetailPage() {
           <TaskBoard projectId={projectId} compact />
         </TabsContent>
       </Tabs>
+      <ProjectDialog open={editing} onOpenChange={setEditing} editing={project} onSaved={() => { void queryClient.invalidateQueries({ queryKey: ["project", projectId] }); void queryClient.invalidateQueries({ queryKey: ["projects"] }); }} />
     </div>
   );
 }
