@@ -15,7 +15,7 @@ type NavItem = { label: string; to: string; icon: LucideIcon; permission?: strin
 type NavGroup = { label: string; items: NavItem[]; collapsible?: boolean; department?: string };
 
 const groups: NavGroup[] = [
-  { label: "Department center", collapsible: true, items: [{ label: "Department dashboard", to: "/dashboards", icon: ChartColumnIncreasing }] },
+   { label: "Command center", items: [{ label: "Command center", to: "/command-center", icon: LayoutGrid }, { label: "Department center", to: "/dashboards", icon: ChartColumnIncreasing }] },
   { label: "Work", items: [
     { label: "Projects", to: "/projects", icon: FolderKanban, permission: "projects.view" },
     { label: "Task board", to: "/tasks", icon: ListChecks, permission: "my_work.view" },
