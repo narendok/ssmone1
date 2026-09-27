@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CheckCircle2, ClipboardCheck, ExternalLink, FileText, FolderOpen, ListChecks, Loader2, ShoppingCart } from "lucide-react";
+import { AlertTriangle, CalendarClock, CheckCircle2, ClipboardCheck, ExternalLink, FileText, FolderOpen, ListChecks, Loader2, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { DashboardDepartment } from "@/lib/department-dashboard";
+import { departmentTaskFocus, tasksForDepartment, type DashboardDepartment } from "@/lib/department-dashboard";
 import { OPEN_TASK_STATUSES, fetchTasks } from "@/lib/tasks";
+import { Badge } from "@/components/ui/badge";
 
 const sb = supabase as any;
 
@@ -16,15 +17,6 @@ type QueueItem = {
   detail: string;
   status: string;
   to: string;
-};
-
-const taskDepartments: Record<DashboardDepartment, string[]> = {
-  engineering: ["hardware", "firmware", "mechanical"],
-  operations: ["procurement"],
-  production: ["production"],
-  hr: [],
-  sales: ["executive"],
-  quality: ["qa"],
 };
 
 function useDepartmentQueues(department: DashboardDepartment) {
@@ -62,8 +54,7 @@ function useDepartmentQueues(department: DashboardDepartment) {
   });
 
   const departmentTasks = useMemo(() => {
-    const allowed = taskDepartments[department];
-    return (tasks.data ?? []).filter((task) => OPEN_TASK_STATUSES.includes(task.status) && (!allowed.length || allowed.includes(task.department)));
+    return tasksForDepartment(tasks.data ?? [], department).filter((task) => OPEN_TASK_STATUSES.includes(task.status));
   }, [department, tasks.data]);
 
   const approvals = useMemo<QueueItem[]>(() => [
@@ -85,16 +76,47 @@ function useDepartmentQueues(department: DashboardDepartment) {
 
   return {
     tasks: departmentTasks,
+    todayPriorities: departmentTaskFocus(departmentTasks, "today"),
+    overdueTasks: departmentTaskFocus(departmentTasks, "overdue"),
     approvals,
     isLoading: tasks.isLoading || purchaseRequests.isLoading || gates.isLoading,
   };
 }
 
 export function DepartmentWorkspaceQueues({ department }: { department: DashboardDepartment }) {
-  const { tasks, approvals, isLoading } = useDepartmentQueues(department);
+  const { tasks, todayPriorities, overdueTasks, approvals, isLoading } = useDepartmentQueues(department);
 
   return (
     <div className="grid gap-4 xl:grid-cols-3">
+      <Card className="xl:col-span-2">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><CalendarClock className="size-5 text-primary" /> Today’s lead priorities</CardTitle>
+          <CardDescription>Urgent, high-priority, blocked, and due-today work visible to this department.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {isLoading ? <Loading /> : todayPriorities.length === 0 ? <Empty label="No urgent, blocked, high-priority, or due-today tasks are visible." /> : todayPriorities.slice(0, 5).map((task) => (
+            <Link key={task.id} to="/tasks" className="flex flex-col gap-2 border-b pb-3 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between hover:text-primary">
+              <div className="min-w-0"><p className="truncate text-sm font-medium">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">{task.assigneeName ?? "Unassigned"}{task.projectCode ? ` · ${task.projectCode}` : ""}{task.dueDate ? ` · Due ${task.dueDate}` : " · No due date"}</p></div>
+              <div className="flex shrink-0 flex-wrap gap-1"><PriorityBadge priority={task.priority} />{task.status === "blocked" && <Badge variant="destructive">Blocked</Badge>}</div>
+            </Link>
+          ))}
+          <Button asChild variant="outline" className="w-full"><Link to="/tasks">Open department work board <ExternalLink className="size-4" /></Link></Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><AlertTriangle className="size-5 text-destructive" /> Past due</CardTitle>
+          <CardDescription>Open department work that needs recovery.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {isLoading ? <Loading /> : overdueTasks.length === 0 ? <Empty label="No past-due tasks are visible." /> : overdueTasks.slice(0, 4).map((task) => (
+            <Link key={task.id} to="/tasks" className="block border-b pb-3 last:border-0 last:pb-0 hover:text-primary"><p className="text-sm font-medium">{task.title}</p><p className="mt-1 text-xs text-muted-foreground">Due {task.dueDate} · {task.assigneeName ?? "Unassigned"}</p></Link>
+          ))}
+          <Button asChild variant="outline" className="w-full"><Link to="/tasks">Review pending tasks <ExternalLink className="size-4" /></Link></Button>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><ListChecks className="size-5 text-primary" /> Department tasks</CardTitle>
@@ -149,4 +171,10 @@ function Loading() {
 
 function Empty({ label }: { label: string }) {
   return <p className="min-h-24 text-sm text-muted-foreground">{label}</p>;
+}
+
+function PriorityBadge({ priority }: { priority: "low" | "medium" | "high" | "urgent" }) {
+  const label = priority === "urgent" ? "Urgent" : priority === "high" ? "High" : priority === "medium" ? "Medium" : "Low";
+  const variant = priority === "urgent" ? "destructive" : priority === "high" ? "secondary" : "outline";
+  return <Badge variant={variant}>{label}</Badge>;
 }
