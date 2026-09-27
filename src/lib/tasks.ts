@@ -59,6 +59,9 @@ export interface ProjectTask {
   ppap_element: string | null;
   drive_node_id: string | null;
   pcb_task_id: string | null;
+  purchase_request_id: string | null;
+  qms_capa_id: string | null;
+  customer_complaint_id: string | null;
   sort_order: number;
   created_by: string | null;
   created_at: string;
@@ -66,6 +69,9 @@ export interface ProjectTask {
   assignee?: { id: string; name: string; email: string; department: Department | null; department_id: string | null } | null;
   department_record?: { id: string; name: string; code: string | null } | null;
   project?: { id: string; name: string; code: string; color: string } | null;
+  purchase_request?: { id: string; request_number: string; status: string } | null;
+  qms_capa?: { id: string; capa_code: string; title: string; status: string } | null;
+  customer_complaint?: { id: string; complaint_code: string; title: string; status: string } | null;
 }
 
 export interface TaskChecklistItem {
@@ -89,7 +95,7 @@ export interface TaskActivity {
 }
 
 const SELECT =
-  "*, assignee:rd_members(id,name,email,department,department_id), department_record:departments(id,name,code), project:projects(id,name,code,color)";
+  "*, assignee:rd_members(id,name,email,department,department_id), department_record:departments(id,name,code), project:projects(id,name,code,color), purchase_request:purchase_requests(id,request_number,status), qms_capa:qms_capas(id,capa_code,title,status), customer_complaint:customer_complaints(id,complaint_code,title,status)";
 
 export type CanonicalDepartment = { id: string; name: string; code: string | null; aliases: string[] };
 
@@ -129,6 +135,9 @@ export async function updateTask(id: string, patch: Partial<ProjectTask>) {
   delete (clean as any).assignee;
   delete (clean as any).department_record;
   delete (clean as any).project;
+  delete (clean as any).purchase_request;
+  delete (clean as any).qms_capa;
+  delete (clean as any).customer_complaint;
   const { error } = await sb.from("project_tasks").update(clean).eq("id", id);
   if (error) throw error;
 }

@@ -5,6 +5,7 @@
 - [x] Deliver Zoho-style department workspaces: each lead gets unified request, task, approval/gate, and SSM One document-reference controls without replacing established operational workflows. Google Drive linking remains blocked until an App User Connector is available.
 - [x] Add an all-department lead command center with role-aware operational queues, workload pulse, and direct actions into each existing workspace.
 - [x] Add department-specific Today’s priorities and past-due task focus to the command center, with administrator oversight across every department.
+- [x] Link tasks to their existing project, purchase-request, CAPA, and customer-quality context, and allow administrators to create or edit projects from the project pages.
 - [x] Group the department navigation under expandable department headings, expanded by default for administrators, with a direct Department Center entry point.
 - [x] Connect R&D and project-member pages to their next actions, with contextual member creation links and no identity or authorization changes.
 - [x] Make CSV and purchase-import approvals create visible available lots alongside location stock, ledger history, audit records, persisted posting results, and retry-safe locking.

@@ -33,7 +33,7 @@ export function TaskDialog({
   const [form, setForm] = useState({
     title: "", description: "", department: "hardware", department_id: NONE, priority: "medium", status: "todo",
     assignee_id: NONE, project_id: projectId ?? NONE, due_date: "", estimated_hours: "",
-    logged_hours: "", ppap_element: "",
+    logged_hours: "", ppap_element: "", purchase_request_id: NONE, qms_capa_id: NONE, customer_complaint_id: NONE,
   });
 
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
@@ -45,6 +45,9 @@ export function TaskDialog({
       return (data ?? []) as RDMember[];
     },
   });
+  const { data: purchaseRequests = [] } = useQuery({ queryKey: ["purchase_requests", "task-link"], queryFn: async () => { const { data, error } = await supabase.from("purchase_requests").select("id,request_number,status").order("created_at", { ascending: false }).limit(100); if (error) throw error; return data ?? []; } });
+  const { data: capas = [] } = useQuery({ queryKey: ["qms_capas", "task-link"], queryFn: async () => { const { data, error } = await supabase.from("qms_capas").select("id,capa_code,title,status").order("created_at", { ascending: false }).limit(100); if (error) throw error; return data ?? []; } });
+  const { data: complaints = [] } = useQuery({ queryKey: ["customer_complaints", "task-link"], queryFn: async () => { const { data, error } = await supabase.from("customer_complaints").select("id,complaint_code,title,status").order("created_at", { ascending: false }).limit(100); if (error) throw error; return data ?? []; } });
 
   useEffect(() => {
     if (!open) return;
@@ -58,8 +61,8 @@ export function TaskDialog({
       project_id: task?.project_id ?? projectId ?? NONE,
       due_date: task?.due_date ?? "",
       estimated_hours: task?.estimated_hours != null ? String(task.estimated_hours) : "",
-      logged_hours: task?.logged_hours != null ? String(task.logged_hours) : "",
-      ppap_element: task?.ppap_element ?? "",
+      logged_hours: task?.logged_hours != null ? String(task.logged_hours) : "", ppap_element: task?.ppap_element ?? "",
+      purchase_request_id: task?.purchase_request_id ?? NONE, qms_capa_id: task?.qms_capa_id ?? NONE, customer_complaint_id: task?.customer_complaint_id ?? NONE,
     });
   }, [open, task, projectId]);
 
@@ -79,6 +82,9 @@ export function TaskDialog({
       estimated_hours: form.estimated_hours ? Number(form.estimated_hours) : null,
       logged_hours: form.logged_hours ? Number(form.logged_hours) : 0,
       ppap_element: form.ppap_element.trim() || null,
+      purchase_request_id: form.purchase_request_id === NONE ? null : form.purchase_request_id,
+      qms_capa_id: form.qms_capa_id === NONE ? null : form.qms_capa_id,
+      customer_complaint_id: form.customer_complaint_id === NONE ? null : form.customer_complaint_id,
     };
     try {
       if (task) await updateTask(task.id, payload);
@@ -163,6 +169,9 @@ export function TaskDialog({
                 </Select>
               </div>
             )}
+            <TaskLinkSelect label="Purchase request" value={form.purchase_request_id} onValueChange={(value) => setForm({ ...form, purchase_request_id: value })} noneLabel="No linked purchase request">{purchaseRequests.map((request: any) => <SelectItem key={request.id} value={request.id}>{request.request_number} — {request.status.replaceAll("_", " ")}</SelectItem>)}</TaskLinkSelect>
+            <TaskLinkSelect label="CAPA / quality action" value={form.qms_capa_id} onValueChange={(value) => setForm({ ...form, qms_capa_id: value })} noneLabel="No linked CAPA">{capas.map((capa: any) => <SelectItem key={capa.id} value={capa.id}>{capa.capa_code} — {capa.title}</SelectItem>)}</TaskLinkSelect>
+            <TaskLinkSelect label="Customer quality record" value={form.customer_complaint_id} onValueChange={(value) => setForm({ ...form, customer_complaint_id: value })} noneLabel="No linked customer complaint">{complaints.map((complaint: any) => <SelectItem key={complaint.id} value={complaint.id}>{complaint.complaint_code} — {complaint.title}</SelectItem>)}</TaskLinkSelect>
             <div className="space-y-1.5">
               <Label>Due date</Label>
               <Input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
@@ -190,3 +199,5 @@ export function TaskDialog({
     </Dialog>
   );
 }
+
+function TaskLinkSelect({ label, value, onValueChange, noneLabel, children }: { label: string; value: string; onValueChange: (value: string) => void; noneLabel: string; children: React.ReactNode }) { return <div className="space-y-1.5"><Label>{label}</Label><Select value={value} onValueChange={onValueChange}><SelectTrigger><SelectValue placeholder={noneLabel} /></SelectTrigger><SelectContent><SelectItem value={NONE}>{noneLabel}</SelectItem>{children}</SelectContent></Select></div>; }

@@ -7178,6 +7178,7 @@ export type Database = {
           assignee_id: string | null
           created_at: string
           created_by: string | null
+          customer_complaint_id: string | null
           department: Database["public"]["Enums"]["department_type"]
           department_id: string | null
           description: string | null
@@ -7190,6 +7191,8 @@ export type Database = {
           ppap_element: string | null
           priority: Database["public"]["Enums"]["task_priority"]
           project_id: string | null
+          purchase_request_id: string | null
+          qms_capa_id: string | null
           sort_order: number
           status: Database["public"]["Enums"]["task_status"]
           title: string
@@ -7199,6 +7202,7 @@ export type Database = {
           assignee_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_complaint_id?: string | null
           department?: Database["public"]["Enums"]["department_type"]
           department_id?: string | null
           description?: string | null
@@ -7211,6 +7215,8 @@ export type Database = {
           ppap_element?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           project_id?: string | null
+          purchase_request_id?: string | null
+          qms_capa_id?: string | null
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
           title: string
@@ -7220,6 +7226,7 @@ export type Database = {
           assignee_id?: string | null
           created_at?: string
           created_by?: string | null
+          customer_complaint_id?: string | null
           department?: Database["public"]["Enums"]["department_type"]
           department_id?: string | null
           description?: string | null
@@ -7232,6 +7239,8 @@ export type Database = {
           ppap_element?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           project_id?: string | null
+          purchase_request_id?: string | null
+          qms_capa_id?: string | null
           sort_order?: number
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
@@ -7243,6 +7252,13 @@ export type Database = {
             columns: ["assignee_id"]
             isOneToOne: false
             referencedRelation: "rd_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_customer_complaint_id_fkey"
+            columns: ["customer_complaint_id"]
+            isOneToOne: false
+            referencedRelation: "customer_complaints"
             referencedColumns: ["id"]
           },
           {
@@ -7271,6 +7287,27 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_purchase_request_id_fkey"
+            columns: ["purchase_request_id"]
+            isOneToOne: false
+            referencedRelation: "operational_purchase_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_purchase_request_id_fkey"
+            columns: ["purchase_request_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_qms_capa_id_fkey"
+            columns: ["qms_capa_id"]
+            isOneToOne: false
+            referencedRelation: "qms_capas"
             referencedColumns: ["id"]
           },
         ]
