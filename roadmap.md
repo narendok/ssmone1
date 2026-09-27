@@ -7,6 +7,7 @@
 - [x] Add department-specific Today’s priorities and past-due task focus to the command center, with administrator oversight across every department.
 - [x] Add safe Administrator department-context switching so administrators can oversee each department from its dashboard without impersonating another user or changing authorization.
 - [x] Add Administrator department quick-view cards for today, priority, and pending work, with each card opening its department dashboard.
+- [ ] Consolidate the department dashboard into one role-aware lead page with administrator-selectable department context and direct management access. **In progress:** replacing duplicate overview layers with one quick-access workspace.
 - [x] Link tasks to their existing project, purchase-request, CAPA, and customer-quality context, and allow administrators to create or edit projects from the project pages.
 - [x] Group the department navigation under expandable department headings, expanded by default for administrators, with a direct Department Center entry point.
 - [x] Connect R&D and project-member pages to their next actions, with contextual member creation links and no identity or authorization changes.
