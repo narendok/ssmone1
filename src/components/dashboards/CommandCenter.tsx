@@ -50,7 +50,7 @@ export function CommandCenter() {
           <CardContent className="space-y-3 text-sm">
             <div className="flex items-center justify-between border-b pb-3"><span className="text-muted-foreground">Today</span><span className="font-semibold">{useDemo ? 2 : todayTasks.length} tasks</span></div>
             <div className="flex items-center justify-between border-b pb-3"><span className="text-muted-foreground">Later</span><span className="font-semibold">{useDemo ? 2 : laterTasks.length} tasks</span></div>
-            <Button asChild className="mt-2 w-full"><Link to="/dashboards">Open department dashboard <ArrowRight className="size-4" /></Link></Button>
+            <Button asChild className="mt-2 w-full"><Link to="/dashboards" search={{ department: undefined }}>Open department dashboard <ArrowRight className="size-4" /></Link></Button>
           </CardContent>
         </Card>
       </div>
