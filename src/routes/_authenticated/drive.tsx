@@ -2,6 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { DriveBrowser } from "@/components/drive/DriveBrowser";
 
 export const Route = createFileRoute("/_authenticated/drive")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    node: typeof search.node === "string" ? search.node : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Drive — PartsBench document vault" },
@@ -22,6 +25,7 @@ export const Route = createFileRoute("/_authenticated/drive")({
 });
 
 function DrivePage() {
+  const { node } = Route.useSearch();
   return (
     <div className="space-y-4">
       <div>
@@ -30,7 +34,7 @@ function DrivePage() {
           Every project gets its own folder tree, including the 18-part PPAP audit package.
         </p>
       </div>
-      <DriveBrowser />
+      <DriveBrowser initialNodeId={node} />
     </div>
   );
 }

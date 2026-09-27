@@ -87,7 +87,7 @@ function RDTeamPage() {
               <Mail className="h-3.5 w-3.5" /> {m.email}
             </div>
               <div className="flex flex-wrap gap-2 pt-2">
-                <Button asChild variant="outline" size="sm"><Link to="/tasks"><ClipboardList className="h-3.5 w-3.5" /> Task</Link></Button>
+                <Button asChild variant="outline" size="sm"><Link to="/tasks" search={{ assignee: undefined, task: undefined }}><ClipboardList className="h-3.5 w-3.5" /> Task</Link></Button>
                 <Button asChild variant="outline" size="sm"><Link to="/pcb"><Wrench className="h-3.5 w-3.5" /> PCB repair</Link></Button>
                 <Button variant="ghost" size="icon" aria-label={`Edit ${m.name}`} title="Edit member" onClick={() => openEdit(m)}><Pencil className="h-3.5 w-3.5" /></Button>
                 <Button variant="ghost" size="icon" aria-label={`Remove ${m.name}`} title="Remove member" onClick={() => remove(m)}><Trash2 className="h-3.5 w-3.5" /></Button>

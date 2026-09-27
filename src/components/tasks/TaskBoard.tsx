@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { CalendarDays, ChevronDown, LayoutGrid, List, Plus, SlidersHorizontal, User } from "lucide-react";
+import { CalendarDays, ChevronDown, FileText, LayoutGrid, List, Plus, SlidersHorizontal, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,12 +20,14 @@ import { TaskDrawer } from "./TaskDrawer";
 
 export function TaskBoard({ projectId, compact = false }: { projectId?: string; compact?: boolean }) {
   const qc = useQueryClient();
+  const navigate = useNavigate({ from: "/tasks/" });
+  const routeSearch = useSearch({ from: "/_authenticated/tasks/" });
   const [view, setView] = useState<"board" | "table">("table");
   const [deps, setDeps] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<ProjectTask | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(routeSearch.task ?? null);
   const [dragId, setDragId] = useState<string | null>(null);
 
   const { data: tasks = [], isLoading } = useQuery({
@@ -36,6 +39,7 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
     const q = search.trim().toLowerCase();
     return tasks.filter((t) => {
       if (deps.size && !deps.has(t.department)) return false;
+      if (routeSearch.assignee && t.assignee_id !== routeSearch.assignee) return false;
       if (!q) return true;
       return (
         t.title.toLowerCase().includes(q) ||
@@ -43,7 +47,7 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
         (t.project?.code ?? "").toLowerCase().includes(q)
       );
     });
-  }, [tasks, deps, search]);
+  }, [tasks, deps, search, routeSearch.assignee]);
 
   const grouped = useMemo(() => {
     const m: Record<string, ProjectTask[]> = {};
@@ -80,7 +84,7 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
     });
   }
 
-  const openTask = tasks.find((t) => t.id === openId) ?? null;
+  const openTask = tasks.find((t) => t.id === (routeSearch.task ?? openId)) ?? null;
 
   return (
     <div className="space-y-4">
@@ -110,7 +114,8 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
             <List className="h-4 w-4" /> Table
           </Button>
         </div>
-        <span className="text-xs text-muted-foreground">{filtered.length} task{filtered.length === 1 ? "" : "s"}</span>
+        <span className="text-xs text-muted-foreground">{filtered.length} task{filtered.length === 1 ? "" : "s"}{routeSearch.assignee ? " for selected assignee" : ""}</span>
+        {routeSearch.assignee && <Button variant="ghost" size="sm" onClick={() => void navigate({ search: { assignee: undefined, task: routeSearch.task } })}>Clear assignee</Button>}
         <Button className="ml-auto" onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> New task</Button>
       </div>
 
@@ -175,6 +180,7 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
                 <TableHead>Department</TableHead>
                 <TableHead>Project</TableHead>
                 <TableHead>Assignee</TableHead>
+                <TableHead>Document</TableHead>
                 <TableHead>Priority</TableHead>
                 <TableHead>Due</TableHead>
                 <TableHead>Status</TableHead>
@@ -184,11 +190,12 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
               {filtered.map((t) => {
                 const dep = findDepartment(t.department);
                 return (
-                  <TableRow key={t.id} className="cursor-pointer" onClick={() => setOpenId(t.id)}>
+                    <TableRow key={t.id} className="cursor-pointer" onClick={() => { setOpenId(t.id); void navigate({ search: { assignee: routeSearch.assignee, task: t.id } }); }}>
                     <TableCell className="font-medium">{t.title}</TableCell>
                     <TableCell>{dep && <Badge variant="outline" className={dep.pill}>{dep.label}</Badge>}</TableCell>
                     <TableCell className="font-mono text-xs">{t.project?.code ?? "—"}</TableCell>
                     <TableCell>{t.assignee?.name ?? "—"}</TableCell>
+                    <TableCell>{t.drive_node_id ? <span className="inline-flex items-center gap-1 text-muted-foreground"><FileText className="size-3.5" /> Linked</span> : "—"}</TableCell>
                     <TableCell className={TASK_PRIORITIES.find((p) => p.value === t.priority)?.color}>
                       {TASK_PRIORITIES.find((p) => p.value === t.priority)?.label}
                     </TableCell>
@@ -198,7 +205,7 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
                 );
               })}
               {filtered.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No tasks match.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No tasks match.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -214,7 +221,7 @@ export function TaskBoard({ projectId, compact = false }: { projectId?: string; 
       />
       <TaskDrawer
         task={openTask}
-        onOpenChange={(v) => { if (!v) setOpenId(null); }}
+        onOpenChange={(v) => { if (!v) { setOpenId(null); void navigate({ search: { assignee: routeSearch.assignee, task: undefined } }); } }}
         onEdit={(t) => { setOpenId(null); setEditing(t); }}
       />
     </div>
