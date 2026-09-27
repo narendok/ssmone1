@@ -24,7 +24,7 @@ const groups: NavGroup[] = [
     { label: "Sales overview", to: "/sales", icon: BriefcaseBusiness, permission: "sales.view" },
     { label: "Customers", to: "/customers", icon: Building2, permission: "sales.view" },
   ] },
-  { label: "Engineering", collapsible: true, items: [
+  { label: "Engineering", collapsible: true, department: "engineering", items: [
     { label: "R&D / PartsBench", to: "/", icon: CircuitBoard, permission: "engineering.view" },
     { label: "Inventory", to: "/locations", icon: MapPin, permission: "engineering.view" },
     { label: "BOM import", to: "/bom", icon: FileSpreadsheet, permission: "engineering.edit" },
