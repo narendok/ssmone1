@@ -10,6 +10,7 @@ const targets = [
   { name: "Department Center", hint: "Daily work", to: "/dashboards", permission: "my_work.view" },
   { name: "PartsBench inventory", hint: "Engineering", to: "/", permission: "engineering.view" },
   { name: "Projects", hint: "Work", to: "/projects", permission: "projects.view" },
+  { name: "Unified records search", hint: "Clients, projects, audits & documents", to: "/records", permission: "documents.view" },
   { name: "Task board", hint: "Work", to: "/tasks", permission: "my_work.view" },
   { name: "HR overview", hint: "HR", to: "/hr", permission: "hr.view" },
   { name: "Recruitment", hint: "HR", to: "/hr/recruitment", permission: "recruitment.manage" },

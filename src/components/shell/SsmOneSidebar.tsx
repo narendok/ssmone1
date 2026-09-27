@@ -19,6 +19,7 @@ const groups: NavGroup[] = [
   { label: "Work", items: [
     { label: "Projects", to: "/projects", icon: FolderKanban, permission: "projects.view" },
     { label: "Task board", to: "/tasks", icon: ListChecks, permission: "my_work.view" },
+    { label: "Unified records", to: "/records", icon: Search, permission: "documents.view" },
   ] },
   { label: "Sales", collapsible: true, department: "sales", items: [
     { label: "Sales overview", to: "/sales", icon: BriefcaseBusiness, permission: "sales.view" },
