@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CalendarDays, ChevronDown, Circle, FileText, LayoutDashboard, Loader2, UserRound } from "lucide-react";
 import { toast } from "sonner";
@@ -23,6 +23,7 @@ const priorityVariant: Record<DemoPriority, "default" | "secondary" | "destructi
 
 export function CommandCenter() {
   const { role, permissions } = useAuth();
+  const navigate = useNavigate({ from: "/command-center" });
   const tasks = useQuery({ queryKey: ["command-center-tasks"], queryFn: () => fetchTasks() });
   const availableDepartments = getPermittedDepartments(role, permissions);
   const [selectedDepartment, setSelectedDepartment] = useState<DashboardDepartment | "all">(role === "admin" ? "all" : availableDepartments[0]?.id ?? "all");
@@ -81,8 +82,9 @@ function TaskChecklist({ title, description, tasks, demoItems, defaultOpen = tru
 }
 
 function TaskDetails({ task }: { task: ProjectTask }) {
+  const navigate = useNavigate({ from: "/command-center" });
   const progress = task.estimated_hours ? Math.min(100, Math.round((Number(task.logged_hours ?? 0) / Number(task.estimated_hours)) * 100)) : null;
-  return <div className="space-y-3 border-l pl-4 text-sm"><div className="flex flex-wrap gap-2"><Badge variant={task.priority === "urgent" ? "destructive" : task.priority === "high" ? "default" : "secondary"}>{task.priority}</Badge><Badge variant="outline">{task.status.replaceAll("_", " ")}</Badge></div>{task.description && <p className="whitespace-pre-wrap text-muted-foreground">{task.description}</p>}{progress !== null && <p className="text-muted-foreground">Progress: {progress}% · {task.logged_hours ?? 0} of {task.estimated_hours} hours logged</p>}<div className="flex flex-wrap gap-2">{task.project && <Button asChild size="sm" variant="outline"><Link to="/projects/$projectId" params={{ projectId: task.project.id }}>Project: {task.project.code}</Link></Button>}{task.assignee && <Button asChild size="sm" variant="outline"><Link to="/tasks">Assignee: {task.assignee.name}</Link></Button>}{task.drive_node_id ? <Button asChild size="sm" variant="outline"><Link to="/drive">Open document</Link></Button> : <span className="inline-flex items-center px-2 text-xs text-muted-foreground">No document linked</span>}<Button asChild size="sm" variant="ghost"><Link to="/tasks">Open task</Link></Button></div></div>;
+  return <div className="space-y-3 border-l pl-4 text-sm"><div className="flex flex-wrap gap-2"><Badge variant={task.priority === "urgent" ? "destructive" : task.priority === "high" ? "default" : "secondary"}>{task.priority}</Badge><Badge variant="outline">{task.status.replaceAll("_", " ")}</Badge></div>{task.description && <p className="whitespace-pre-wrap text-muted-foreground">{task.description}</p>}{progress !== null && <p className="text-muted-foreground">Progress: {progress}% · {task.logged_hours ?? 0} of {task.estimated_hours} hours logged</p>}<div className="flex flex-wrap gap-2">{task.project && <Button asChild size="sm" variant="outline"><Link to="/projects/$projectId" params={{ projectId: task.project.id }}>Project: {task.project.code}</Link></Button>}{task.assignee && <Button size="sm" variant="outline" onClick={() => void navigate({ to: "/tasks", search: { assignee: task.assignee_id ?? undefined } })}>Assignee: {task.assignee.name}</Button>}{task.drive_node_id ? <Button size="sm" variant="outline" onClick={() => void navigate({ to: "/drive", search: { node: task.drive_node_id } })}>Open document</Button> : <span className="inline-flex items-center px-2 text-xs text-muted-foreground">No document linked</span>}<Button size="sm" variant="ghost" onClick={() => void navigate({ to: "/tasks", search: { task: task.id } })}>Open task</Button></div></div>;
 }
 
 function DemoTaskRow({ item }: { item: (typeof DEMO_WORK_ITEMS)[number] }) {

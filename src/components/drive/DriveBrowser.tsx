@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -36,7 +36,7 @@ function iconFor(node: DriveNode) {
   return FileIcon;
 }
 
-export function DriveBrowser({ projectId = null }: { projectId?: string | null }) {
+export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: string | null; initialNodeId?: string }) {
   const qc = useQueryClient();
   const [folderId, setFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -62,6 +62,21 @@ export function DriveBrowser({ projectId = null }: { projectId?: string | null }
     queryKey: ["drive_favorites"],
     queryFn: fetchFavorites,
   });
+  const { data: initialNode } = useQuery({
+    queryKey: ["drive_node", initialNodeId],
+    queryFn: async () => {
+      const { data, error } = await (await import("@/integrations/supabase/client")).supabase.from("drive_nodes").select("*").eq("id", initialNodeId ?? "").maybeSingle();
+      if (error) throw error;
+      return data as DriveNode | null;
+    },
+    enabled: Boolean(initialNodeId),
+  });
+
+  useEffect(() => {
+    if (!initialNode) return;
+    if (initialNode.node_type === "FOLDER") setFolderId(initialNode.id);
+    else setPreview(initialNode);
+  }, [initialNode]);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["drive_children"] });

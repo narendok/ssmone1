@@ -3,6 +3,10 @@ import { ListChecks } from "lucide-react";
 import { TaskBoard } from "@/components/tasks/TaskBoard";
 
 export const Route = createFileRoute("/_authenticated/tasks/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    assignee: typeof search.assignee === "string" ? search.assignee : undefined,
+    task: typeof search.task === "string" ? search.task : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Task board — SSM One" },
