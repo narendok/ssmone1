@@ -1568,6 +1568,7 @@ export type Database = {
           display_name: string | null
           id: string
           industry: string | null
+          is_sample: boolean
           legal_name: string
           notes: string | null
           primary_email: string | null
@@ -1588,6 +1589,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           industry?: string | null
+          is_sample?: boolean
           legal_name: string
           notes?: string | null
           primary_email?: string | null
@@ -1608,6 +1610,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           industry?: string | null
+          is_sample?: boolean
           legal_name?: string
           notes?: string | null
           primary_email?: string | null
@@ -7386,6 +7389,7 @@ export type Database = {
           engineering_lead_employee_id: string | null
           health_status: string
           id: string
+          is_sample: boolean
           name: string
           opportunity_id: string | null
           planned_start_date: string | null
@@ -7413,6 +7417,7 @@ export type Database = {
           engineering_lead_employee_id?: string | null
           health_status?: string
           id?: string
+          is_sample?: boolean
           name: string
           opportunity_id?: string | null
           planned_start_date?: string | null
@@ -7440,6 +7445,7 @@ export type Database = {
           engineering_lead_employee_id?: string | null
           health_status?: string
           id?: string
+          is_sample?: boolean
           name?: string
           opportunity_id?: string | null
           planned_start_date?: string | null
@@ -7899,6 +7905,7 @@ export type Database = {
           criteria: string | null
           department_id: string | null
           id: string
+          is_sample: boolean
           planned_date: string | null
           process_name: string | null
           risk_basis: string | null
@@ -7918,6 +7925,7 @@ export type Database = {
           criteria?: string | null
           department_id?: string | null
           id?: string
+          is_sample?: boolean
           planned_date?: string | null
           process_name?: string | null
           risk_basis?: string | null
@@ -7937,6 +7945,7 @@ export type Database = {
           criteria?: string | null
           department_id?: string | null
           id?: string
+          is_sample?: boolean
           planned_date?: string | null
           process_name?: string | null
           risk_basis?: string | null

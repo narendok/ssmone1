@@ -1,0 +1,1 @@
+WITH ranked AS (SELECT id, row_number() OVER (ORDER BY created_at ASC) AS rn FROM public.drive_nodes WHERE parent_id IS NULL AND name='SAMPLE — 00_Automotive_Hardware_Audit_Repository' AND is_trashed=false) DELETE FROM public.drive_nodes WHERE id IN (SELECT id FROM ranked WHERE rn>1);

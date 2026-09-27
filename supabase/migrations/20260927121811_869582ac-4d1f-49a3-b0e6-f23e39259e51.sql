@@ -1,0 +1,1 @@
+SELECT (SELECT count(*) FROM public.customers WHERE is_sample=true) AS sample_customers, (SELECT count(*) FROM public.projects WHERE is_sample=true) AS sample_projects, (SELECT count(*) FROM public.qms_audits WHERE is_sample=true) AS sample_audit_packs;
