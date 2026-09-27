@@ -44,6 +44,12 @@ export type DepartmentDashboardData = {
 
 export type DepartmentTaskFocus = "today" | "overdue" | "pending";
 
+export type DepartmentQuickView = {
+  today: number;
+  priority: number;
+  pending: number;
+};
+
 export type DepartmentTaskItem = {
   id: string;
   title: string;
@@ -107,6 +113,15 @@ export function departmentTaskFocus(tasks: ProjectTask[], focus: DepartmentTaskF
       assigneeName: task.assignee?.name ?? null,
       projectCode: task.project?.code ?? null,
     }));
+}
+
+export function departmentQuickView(tasks: ProjectTask[], department: DashboardDepartment, today = new Date().toISOString().slice(0, 10)): DepartmentQuickView {
+  const scopedTasks = tasksForDepartment(tasks, department).filter((task) => OPEN_TASK_STATUSES.includes(task.status));
+  return {
+    today: scopedTasks.filter((task) => task.priority === "urgent" || task.priority === "high" || task.due_date === today || task.status === "blocked").length,
+    priority: scopedTasks.filter((task) => task.priority === "urgent" || task.priority === "high").length,
+    pending: scopedTasks.length,
+  };
 }
 
 async function count(table: string, apply?: (query: any) => any) {
