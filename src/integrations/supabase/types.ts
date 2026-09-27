@@ -4771,6 +4771,116 @@ export type Database = {
           },
         ]
       }
+      inventory_cycle_count_lines: {
+        Row: {
+          component_id: string
+          counted_at: string | null
+          counted_by: string | null
+          counted_quantity: number | null
+          created_at: string
+          cycle_count_id: string
+          expected_quantity: number
+          id: string
+          location_id: string
+          posted_adjustment_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          component_id: string
+          counted_at?: string | null
+          counted_by?: string | null
+          counted_quantity?: number | null
+          created_at?: string
+          cycle_count_id: string
+          expected_quantity: number
+          id?: string
+          location_id: string
+          posted_adjustment_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          component_id?: string
+          counted_at?: string | null
+          counted_by?: string | null
+          counted_quantity?: number | null
+          created_at?: string
+          cycle_count_id?: string
+          expected_quantity?: number
+          id?: string
+          location_id?: string
+          posted_adjustment_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_cycle_count_lines_component_id_fkey"
+            columns: ["component_id"]
+            isOneToOne: false
+            referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_cycle_count_lines_cycle_count_id_fkey"
+            columns: ["cycle_count_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_cycle_counts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_cycle_count_lines_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_cycle_count_lines_posted_adjustment_id_fkey"
+            columns: ["posted_adjustment_id"]
+            isOneToOne: false
+            referencedRelation: "stock_adjustments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_cycle_counts: {
+        Row: {
+          assigned_by: string
+          assigned_to: string
+          count_number: string
+          created_at: string
+          due_at: string | null
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by: string
+          assigned_to: string
+          count_number: string
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string
+          assigned_to?: string
+          count_number?: string
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       inventory_lots: {
         Row: {
           component_id: string
@@ -5287,6 +5397,8 @@ export type Database = {
           id: string
           is_read: boolean
           read_at: string | null
+          target_entity_id: string | null
+          target_entity_type: string | null
           target_url: string | null
           title: string
           user_id: string
@@ -5298,6 +5410,8 @@ export type Database = {
           id?: string
           is_read?: boolean
           read_at?: string | null
+          target_entity_id?: string | null
+          target_entity_type?: string | null
           target_url?: string | null
           title: string
           user_id: string
@@ -5309,6 +5423,8 @@ export type Database = {
           id?: string
           is_read?: boolean
           read_at?: string | null
+          target_entity_id?: string | null
+          target_entity_type?: string | null
           target_url?: string | null
           title?: string
           user_id?: string
@@ -11017,6 +11133,14 @@ export type Database = {
         Args: { _error?: string; _job_key: string; _pause?: boolean }
         Returns: undefined
       }
+      confirm_production_kit_pick: {
+        Args: {
+          _idempotency_key: string
+          _kit_line_id: string
+          _picked_quantity: number
+        }
+        Returns: Json
+      }
       create_grn:
         | {
             Args: {
@@ -11214,6 +11338,10 @@ export type Database = {
         }
         Returns: Json
       }
+      mark_notification_read: {
+        Args: { _notification_id: string }
+        Returns: Json
+      }
       mark_po_sent: {
         Args: { _address: string; _po_id: string }
         Returns: Json
@@ -11359,6 +11487,15 @@ export type Database = {
       seed_mobile_stage5_test_data: { Args: never; Returns: Json }
       short_close_po_item: {
         Args: { _item_id: string; _reason: string; _undo?: boolean }
+        Returns: Json
+      }
+      submit_cycle_count: {
+        Args: {
+          _counted_quantity: number
+          _cycle_count_line_id: string
+          _idempotency_key: string
+          _reason: string
+        }
         Returns: Json
       }
       submit_public_job_application:
