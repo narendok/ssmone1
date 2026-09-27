@@ -2,6 +2,7 @@
 
 ## Maintenance
 
+- [x] Add an all-department lead command center with role-aware operational queues, workload pulse, and direct actions into each existing workspace.
 - [x] Connect R&D and project-member pages to their next actions, with contextual member creation links and no identity or authorization changes.
 - [x] Make CSV and purchase-import approvals create visible available lots alongside location stock, ledger history, audit records, persisted posting results, and retry-safe locking.
 - [x] Repair Add/Edit component location saves to use the protected inventory location action instead of blocked direct location writes.
