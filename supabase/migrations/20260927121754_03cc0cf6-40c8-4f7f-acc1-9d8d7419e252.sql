@@ -1,0 +1,1 @@
+SELECT child.name FROM public.drive_nodes root JOIN public.drive_nodes child ON child.parent_id=root.id WHERE root.parent_id IS NULL AND root.name='SAMPLE — 00_Automotive_Hardware_Audit_Repository' AND root.is_trashed=false ORDER BY child.name;
