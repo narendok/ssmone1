@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CalendarDays, ChevronDown, Circle, Loader2, UserRound } from "lucide-react";
+import { AlertTriangle, CalendarDays, ChevronDown, Circle, LayoutDashboard, Loader2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

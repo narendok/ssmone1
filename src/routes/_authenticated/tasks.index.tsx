@@ -24,7 +24,7 @@ function TasksPage() {
           <ListChecks className="h-6 w-6" /> Tasks
         </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Every task across the company — project work and standalone jobs. Drag cards between columns to change status.
+            Search and manage project work or standalone jobs. Use the board only when you need to move work between stages.
         </p>
       </div>
       <TaskBoard />
