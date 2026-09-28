@@ -5,6 +5,18 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const employeeAccessSchema = z.object({ employeeId: z.string().uuid(), departmentId: z.string().uuid().nullable(), roleId: z.string().uuid().nullable(), permissionIds: z.array(z.string().uuid()).max(200), accessActive: z.boolean() });
 const inviteEmployeeSchema = z.object({ employeeId: z.string().uuid() });
 
+async function findAuthUserByEmail(sb: { auth: { admin: { listUsers: (params: { page: number; perPage: number }) => Promise<{ data: { users: Array<{ id: string; email?: string | null }> } | null; error: { message: string } | null }> } } }, email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  for (let page = 1; page <= 20; page += 1) {
+    const { data, error } = await sb.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw new Error("Could not check whether this email already has an account.");
+    const existingUser = data?.users.find((user) => user.email?.trim().toLowerCase() === normalizedEmail);
+    if (existingUser) return existingUser;
+    if (!data || data.users.length < 1000) break;
+  }
+  return null;
+}
+
 function isDeliverableWorkEmail(value: string) {
   const email = value.trim().toLowerCase();
   const domain = email.split("@")[1] ?? "";
@@ -41,6 +53,14 @@ export const inviteEmployeeAccess = createServerFn({ method: "POST" }).middlewar
   if (!isDeliverableWorkEmail(employee.official_email)) throw new Error("This employee has a sample or placeholder email. Update their profile with a real work email before sending an invitation.");
   if (employee.user_id) throw new Error("This employee already has a login account.");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const existingUser = await findAuthUserByEmail(supabaseAdmin, employee.official_email);
+  if (existingUser) {
+    const { error: employeeUpdateError } = await supabaseAdmin.from("employees").update({ user_id: existingUser.id, employment_status: "ACTIVE" }).eq("id", employee.id).is("user_id", null);
+    if (employeeUpdateError) throw new Error("This email already has an account, but it could not be linked to the employee record.");
+    const { error: activityError } = await supabaseAdmin.from("activity_log").insert({ actor_user_id: context.userId, module_key: "hr", entity_type: "employee_access", entity_id: employee.id, action: "access_linked", summary: `Linked existing workspace account for ${employee.official_email}` });
+    if (activityError) throw new Error("The existing account was linked, but its activity record could not be written.");
+    return { email: employee.official_email, status: "linked" as const };
+  }
   const appUrl = process.env["PUBLIC_APP_URL"];
   const invite = await supabaseAdmin.auth.admin.inviteUserByEmail(employee.official_email, {
     data: { display_name: employee.display_name ?? employee.official_email, employee_id: employee.id },
@@ -53,7 +73,7 @@ export const inviteEmployeeAccess = createServerFn({ method: "POST" }).middlewar
   if (employeeUpdateError) throw new Error("The invitation was sent, but the employee account could not be linked.");
   const { error: activityError } = await supabaseAdmin.from("activity_log").insert({ actor_user_id: context.userId, module_key: "hr", entity_type: "employee_access", entity_id: employee.id, action: "access_invited", summary: `Sent workspace invitation to ${employee.official_email}` });
   if (activityError) throw new Error("The invitation was sent, but its activity record could not be written.");
-  return { email: employee.official_email };
+  return { email: employee.official_email, status: "invited" as const };
 });
 
 export const saveEmployeeAccess = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => employeeAccessSchema.parse(data)).handler(async ({ data, context }) => {
