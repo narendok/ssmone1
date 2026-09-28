@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   Folder, FileText, FileCode2, Box, Image as ImageIcon, FileSpreadsheet, File as FileIcon,
@@ -22,8 +24,9 @@ import {
 import { FilePreviewDialog } from "./FilePreviewDialog";
 import { RevisionsDialog } from "./RevisionsDialog";
 import { ShareNodeDialog } from "./ShareNodeDialog";
+import { fetchDriveProjectBoms, type DriveProjectBomSummary } from "@/lib/project-bom.functions";
 
-type Filter = "all" | "starred" | "ppap";
+type Filter = "all" | "starred" | "ppap" | "boms";
 
 function iconFor(node: DriveNode) {
   if (node.node_type === "FOLDER") return Folder;
@@ -38,6 +41,7 @@ function iconFor(node: DriveNode) {
 
 export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: string | null; initialNodeId?: string }) {
   const qc = useQueryClient();
+  const fetchBoms = useServerFn(fetchDriveProjectBoms);
   const [folderId, setFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -61,6 +65,11 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
   const { data: favorites = new Set<string>() } = useQuery({
     queryKey: ["drive_favorites"],
     queryFn: fetchFavorites,
+  });
+  const { data: projectBoms = [], isLoading: bomsLoading, isError: bomsError, error: bomsErrorDetail } = useQuery({
+    queryKey: ["drive_project_boms"],
+    queryFn: () => fetchBoms(),
+    enabled: filter === "boms",
   });
   const { data: initialNode } = useQuery({
     queryKey: ["drive_node", initialNodeId],
@@ -92,6 +101,16 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
       return true;
     });
   }, [nodes, search, filter, favorites]);
+
+  const visibleBoms = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return projectBoms as DriveProjectBomSummary[];
+    return (projectBoms as DriveProjectBomSummary[]).filter((bom) =>
+      [bom.bom_number, bom.name, bom.project_name, bom.project_code, bom.source_filename]
+        .filter(Boolean)
+        .some((value) => value?.toLowerCase().includes(q)),
+    );
+  }, [projectBoms, search]);
 
   async function handleUpload(files: FileList | null) {
     if (!files?.length) return;
@@ -259,7 +278,7 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search this folder…"
+            placeholder={filter === "boms" ? "Search BOM number, name, or project…" : "Search this folder…"}
             className="pl-8"
           />
         </div>
@@ -268,15 +287,16 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="starred">Starred</TabsTrigger>
             <TabsTrigger value="ppap">PPAP</TabsTrigger>
+            {!projectId && <TabsTrigger value="boms">Project BOMs</TabsTrigger>}
           </TabsList>
         </Tabs>
-        <Button variant="outline" size="icon" onClick={() => setView(view === "list" ? "grid" : "list")}>
+        <Button variant="outline" size="icon" onClick={() => setView(view === "list" ? "grid" : "list")} disabled={filter === "boms"}>
           {view === "list" ? <LayoutGrid className="h-4 w-4" /> : <List className="h-4 w-4" />}
         </Button>
-        <Button variant="outline" onClick={handleNewFolder}>
+        <Button variant="outline" onClick={handleNewFolder} disabled={filter === "boms"}>
           <FolderPlus className="h-4 w-4 mr-1" /> Folder
         </Button>
-        <Button onClick={() => fileInput.current?.click()} disabled={!!busy}>
+        <Button onClick={() => fileInput.current?.click()} disabled={!!busy || filter === "boms"}>
           {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Upload className="h-4 w-4 mr-1" />} Upload
         </Button>
         <input
@@ -310,7 +330,43 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
 
       {busy && <p className="text-xs text-muted-foreground">{busy}</p>}
 
-      {isLoading ? (
+      {filter === "boms" ? (
+        bomsLoading ? (
+          <Card className="p-8 text-center text-muted-foreground">Loading project BOMs…</Card>
+        ) : bomsError ? (
+          <Card className="border-destructive/40 bg-destructive/5 p-8 text-center text-sm text-destructive">
+            {bomsErrorDetail instanceof Error ? bomsErrorDetail.message : "Project BOMs could not be loaded with your current access."}
+          </Card>
+        ) : visibleBoms.length === 0 ? (
+          <Card className="p-8 text-center text-muted-foreground">No accessible project BOMs match this search.</Card>
+        ) : (
+          <Card className="overflow-hidden">
+            {visibleBoms.map((bom) => (
+              <Link
+                key={bom.id}
+                to="/bom"
+                search={{ loadBom: bom.id } as any}
+                className="flex items-center gap-3 border-b px-3 py-3 text-sm last:border-b-0 hover:bg-accent/50"
+              >
+                <FileSpreadsheet className="h-5 w-5 shrink-0 text-muted-foreground" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{bom.name}</span>
+                    <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">{bom.bom_number}</span>
+                    {bom.revision && <Badge variant="secondary">Rev {bom.revision}</Badge>}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap gap-x-2 text-xs text-muted-foreground">
+                    <span>{bom.project_code ? `${bom.project_code} · ` : ""}{bom.project_name}</span>
+                    <span>{bom.line_count} line items</span>
+                    {bom.source_filename && <span className="truncate">{bom.source_filename}</span>}
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </Link>
+            ))}
+          </Card>
+        )
+      ) : isLoading ? (
         <Card className="p-8 text-center text-muted-foreground">Loading…</Card>
       ) : isError ? (
         <Card className="border-destructive/40 bg-destructive/5 p-8 text-center text-sm text-destructive">{error instanceof Error ? error.message : "This folder could not be loaded with your current access."}</Card>
