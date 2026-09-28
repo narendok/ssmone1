@@ -31,6 +31,12 @@ export interface ProjectBomSummary {
   created_at: string;
 }
 
+export interface DriveProjectBomSummary extends ProjectBomSummary {
+  project_id: string;
+  project_name: string;
+  project_code: string | null;
+}
+
 export interface ProjectBomItemRow extends SavedBomItem {
   id: string;
   bom_id: string;
@@ -164,6 +170,32 @@ export const fetchProjectBoms = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return (rows ?? []) as ProjectBomSummary[];
+  });
+
+/** RLS-scoped saved BOM index for the controlled Drive workspace. */
+export const fetchDriveProjectBoms = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb = context.supabase as any;
+    const { data: rows, error } = await sb
+      .from("project_boms")
+      .select("id, bom_number, name, source_filename, revision, notes, line_count, total_cost, created_at, project_id, project:projects(name, code)")
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return ((rows ?? []) as any[]).map((row) => ({
+      id: row.id,
+      bom_number: row.bom_number,
+      name: row.name,
+      source_filename: row.source_filename,
+      revision: row.revision,
+      notes: row.notes,
+      line_count: row.line_count,
+      total_cost: row.total_cost,
+      created_at: row.created_at,
+      project_id: row.project_id,
+      project_name: row.project?.name ?? "Untitled project",
+      project_code: row.project?.code ?? null,
+    })) as DriveProjectBomSummary[];
   });
 
 export const fetchProjectBomItems = createServerFn({ method: "GET" })
