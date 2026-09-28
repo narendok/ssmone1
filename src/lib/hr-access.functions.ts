@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const employeeAccessSchema = z.object({ employeeId: z.string().uuid(), departmentId: z.string().uuid().nullable(), roleId: z.string().uuid().nullable(), permissionIds: z.array(z.string().uuid()).max(200), accessActive: z.boolean() });
+const inviteEmployeeSchema = z.object({ employeeId: z.string().uuid() });
 
 async function requireSystemAdmin(sb: any, userId: string) { const { data, error } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" }); if (error || !data) throw new Error("Only a system administrator can manage employee access."); }
 
@@ -23,6 +24,29 @@ export const getHrAccessWorkspace = createServerFn({ method: "GET" }).middleware
     roles: (roles.data ?? []).map((role: any) => ({ ...role, permissionIds: (role.access_role_permissions ?? []).map((assignment: { permission_id: string }) => assignment.permission_id) })),
     permissions: permissions.data ?? [],
   };
+});
+
+export const inviteEmployeeAccess = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => inviteEmployeeSchema.parse(data)).handler(async ({ data, context }) => {
+  const sb = context.supabase as any;
+  await requireSystemAdmin(sb, context.userId);
+  const { data: employee, error: employeeError } = await sb.from("employees").select("id,display_name,official_email,user_id,employment_status").eq("id", data.employeeId).maybeSingle();
+  if (employeeError || !employee) throw new Error("Employee record was not found.");
+  if (!employee.official_email) throw new Error("Add an official email before sending an invitation.");
+  if (employee.user_id) throw new Error("This employee already has a login account.");
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const appUrl = process.env["PUBLIC_APP_URL"];
+  const invite = await supabaseAdmin.auth.admin.inviteUserByEmail(employee.official_email, {
+    data: { display_name: employee.display_name ?? employee.official_email, employee_id: employee.id },
+    ...(appUrl?.startsWith("http") ? { redirectTo: `${appUrl}/auth` } : {}),
+  });
+  if (invite.error) throw new Error(invite.error.message);
+  const invitedUserId = invite.data.user?.id;
+  if (!invitedUserId) throw new Error("The invitation could not be created.");
+  const { error: employeeUpdateError } = await supabaseAdmin.from("employees").update({ user_id: invitedUserId, employment_status: "ACTIVE" }).eq("id", employee.id);
+  if (employeeUpdateError) throw new Error("The invitation was sent, but the employee account could not be linked.");
+  const { error: activityError } = await supabaseAdmin.from("activity_log").insert({ actor_user_id: context.userId, module_key: "hr", entity_type: "employee_access", entity_id: employee.id, action: "access_invited", summary: `Sent workspace invitation to ${employee.official_email}` });
+  if (activityError) throw new Error("The invitation was sent, but its activity record could not be written.");
+  return { email: employee.official_email };
 });
 
 export const saveEmployeeAccess = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => employeeAccessSchema.parse(data)).handler(async ({ data, context }) => {
