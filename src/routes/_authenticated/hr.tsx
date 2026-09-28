@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { BriefcaseBusiness, ClipboardCheck, GraduationCap, PlaneTakeoff, ShieldAlert, Users } from "lucide-react";
 import { PermissionGate } from "@/components/PermissionGate";
@@ -10,6 +10,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { fetchHrDashboard, fetchRecruitmentSnapshot, fetchTrainingOverview } from "@/lib/hr";
 
 export const Route = createFileRoute("/_authenticated/hr")({
+  head: () => ({
+    meta: [
+      { title: "HR — SSM One" },
+      { name: "description", content: "Recruitment, leave, onboarding, and training operations for SSM One." },
+      { property: "og:title", content: "HR — SSM One" },
+      { property: "og:description", content: "Recruitment, leave, onboarding, and training operations for SSM One." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: HrLayout,
+});
+
+export const HrIndexRoute = createFileRoute("/_authenticated/hr/")({
   head: () => ({
     meta: [
       { title: "HR — SSM One" },
@@ -147,6 +161,10 @@ function HrPage() {
       </div>
     </PermissionGate>
   );
+}
+
+function HrLayout() {
+  return <Outlet />;
 }
 
 function AccessDenied() {
