@@ -45,7 +45,7 @@
 
 ## Preserved follow-up work
 
-- [ ] Complete remaining Phase 1 administration forms: users, roles/permission assignment, module status, document numbering, and audit log.
+- [ ] Complete remaining Phase 1 administration forms: role/permission catalogue and module status. Employee access, document numbering, and activity-history access are available through Administration.
 - [ ] Complete shared Phase 2 operational surfaces: My Work, approvals, documents, enriched Drive, resolver, global search and activity timelines.
 
 ## Phase 5 — Project delivery & engineering controls
