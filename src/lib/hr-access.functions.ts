@@ -5,6 +5,12 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const employeeAccessSchema = z.object({ employeeId: z.string().uuid(), departmentId: z.string().uuid().nullable(), roleId: z.string().uuid().nullable(), permissionIds: z.array(z.string().uuid()).max(200), accessActive: z.boolean() });
 const inviteEmployeeSchema = z.object({ employeeId: z.string().uuid() });
 
+function isDeliverableWorkEmail(value: string) {
+  const email = value.trim().toLowerCase();
+  const domain = email.split("@")[1] ?? "";
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !["example.com", "example.org", "example.net", "invalid", "localhost", "test"].includes(domain) && !domain.endsWith(".invalid") && !domain.endsWith(".test");
+}
+
 async function requireSystemAdmin(sb: any, userId: string) { const { data, error } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" }); if (error || !data) throw new Error("Only a system administrator can manage employee access."); }
 
 export const getHrAccessWorkspace = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
@@ -31,7 +37,8 @@ export const inviteEmployeeAccess = createServerFn({ method: "POST" }).middlewar
   await requireSystemAdmin(sb, context.userId);
   const { data: employee, error: employeeError } = await sb.from("employees").select("id,display_name,official_email,user_id,employment_status").eq("id", data.employeeId).maybeSingle();
   if (employeeError || !employee) throw new Error("Employee record was not found.");
-  if (!employee.official_email) throw new Error("Add an official email before sending an invitation.");
+  if (!employee.official_email) throw new Error("Add a work email before sending an invitation.");
+  if (!isDeliverableWorkEmail(employee.official_email)) throw new Error("This employee has a sample or placeholder email. Update their profile with a real work email before sending an invitation.");
   if (employee.user_id) throw new Error("This employee already has a login account.");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const appUrl = process.env["PUBLIC_APP_URL"];
