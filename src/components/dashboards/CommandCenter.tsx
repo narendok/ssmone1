@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CalendarDays, ChevronDown, FileText, Loader2, UserRound } from "lucide-react";
+import { AlertTriangle, CalendarDays, ChevronDown, FileText, Loader2, UserRound, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +45,7 @@ export function CommandCenter() {
 function DepartmentSelector({ departments, isAdmin, value, onChange }: { departments: CanonicalDepartment[]; isAdmin: boolean; value: string | null; onChange: (departmentId: string | null) => void }) {
   const selectedDepartment = departments.find((department) => department.id === value) ?? null;
   const workTarget = selectedDepartment ? departmentWorkTarget(selectedDepartment) : "/tasks";
-  return <div className="w-full sm:w-60"><p className="mb-1.5 text-xs font-medium text-muted-foreground">Department</p><div className="flex gap-2"><Select value={value ?? "all"} onValueChange={(nextValue) => onChange(nextValue === "all" ? null : nextValue)}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{isAdmin && <SelectItem value="all">All departments</SelectItem>}{departments.map((department) => <SelectItem key={department.id} value={department.id}>{department.name}{department.aliases.length ? ` · ${department.aliases.join(", ")}` : ""}</SelectItem>)}</SelectContent></Select>{selectedDepartment && <Button asChild size="icon" variant="outline" title={`Open ${selectedDepartment.name} work`} aria-label={`Open ${selectedDepartment.name} work`}><Link to={workTarget} /></Button>}</div></div>;
+  return <div className="w-full sm:w-60"><p className="mb-1.5 text-xs font-medium text-muted-foreground">Department</p><div className="flex gap-2"><Select value={value ?? "all"} onValueChange={(nextValue) => onChange(nextValue === "all" ? null : nextValue)}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{isAdmin && <SelectItem value="all">All departments</SelectItem>}{departments.map((department) => <SelectItem key={department.id} value={department.id}>{department.name}{department.aliases.length ? ` · ${department.aliases.join(", ")}` : ""}</SelectItem>)}</SelectContent></Select>{selectedDepartment && <Button asChild size="icon" variant="outline" title={`Open ${selectedDepartment.name} work`} aria-label={`Open ${selectedDepartment.name} work`}><Link to={workTarget}><Wrench className="size-4" /></Link></Button>}</div></div>;
 }
 
 function TaskChecklist({ title, description, tasks, defaultOpen = true }: { title: string; description: string; tasks: ProjectTask[]; defaultOpen?: boolean }) {
