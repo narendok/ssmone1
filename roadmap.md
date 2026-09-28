@@ -17,6 +17,7 @@
 - [x] Repair Add/Edit component location saves to use the protected inventory location action instead of blocked direct location writes.
 - [ ] Re-enter verified source quantity and storage details for the remaining historical zero-stock components (max485, irfz44). **Blocker:** the database retained no source quantity or location data, so automatic backfill would invent inventory facts. The five verified DigiKey components (KG200ZABTB, VNH7040AYTR, MLPF-WB-02D3, C0402C105K4PAC7411, GRM188R71H224KAC4D) were posted through the Administrator-only recovery action: 5 units each in bin `bag 1`.
 - [x] Repair the sign-in page hydration mismatch.
+- [x] Standardize responsive workspace navigation around Dashboard, Work, Search/Scan, Drive, and More without changing department or inventory authorization.
 - [ ] Review the newly added DigiKey order through the inventory CSV approval workflow after category safeguards are validated.
 
 ## Mobile Stage 5 backend remediation

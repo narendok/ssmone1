@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Search } from "lucide-react";
+import { ScanLine, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,7 +19,7 @@ const targets = [
   { name: "Administration", hint: "System", to: "/admin", permission: "admin.view" },
 ];
 
-export function GlobalSearch() {
+export function GlobalSearch({ mobile = false, canScan = false }: { mobile?: boolean; canScan?: boolean }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const { role, permissions, employeeStatus } = useAuth();
@@ -33,8 +33,8 @@ export function GlobalSearch() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   return <>
-    <Button variant="outline" className="hidden h-8 w-full max-w-md justify-between text-muted-foreground md:flex" onClick={() => setOpen(true)}>
-      <span className="flex items-center gap-2"><Search /> Search workspace</span><kbd className="text-[10px]">Ctrl K</kbd>
+    <Button variant={mobile ? "ghost" : "outline"} className={mobile ? "h-full flex-col gap-1 rounded-none px-1 text-xs" : "hidden h-8 w-full max-w-md justify-between text-muted-foreground md:flex"} onClick={() => setOpen(true)}>
+      {mobile ? <><span className="relative"><Search className="size-5" />{canScan && <ScanLine className="absolute -right-2 -bottom-1 size-3 text-primary" /></span><span>Search</span></> : <><span className="flex items-center gap-2"><Search /> Search workspace</span><kbd className="text-[10px]">Ctrl K</kbd></>}
     </Button>
     {open && <div className="fixed inset-0 z-50 flex items-start justify-center bg-foreground/20 p-4 pt-[15vh]" onMouseDown={() => setOpen(false)}>
       <div className="w-full max-w-xl rounded-lg border bg-popover p-3 shadow-elevated" onMouseDown={(event) => event.stopPropagation()}>
