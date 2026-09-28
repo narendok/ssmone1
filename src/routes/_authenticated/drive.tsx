@@ -31,7 +31,7 @@ function DrivePage() {
       <div>
         <h1 className="text-2xl font-semibold">Drive</h1>
         <p className="text-sm text-muted-foreground">
-          Every project gets its own folder tree, including the 18-part PPAP audit package.
+          Browse the existing controlled project and department folder hierarchy available to your account.
         </p>
       </div>
       <DriveBrowser initialNodeId={node} />
