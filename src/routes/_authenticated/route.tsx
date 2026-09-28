@@ -53,7 +53,7 @@ function AppLayout() {
           </main>
         </SidebarInset>
         <VoiceAssistant />
-         <MobileWorkspaceTabs />
+          <MobileWorkspaceTabs />
       </div>
     </SidebarProvider>
 
