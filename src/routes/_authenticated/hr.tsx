@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { BriefcaseBusiness, ClipboardCheck, GraduationCap, PlaneTakeoff, ShieldAlert, Users } from "lucide-react";
 import { PermissionGate } from "@/components/PermissionGate";
@@ -20,8 +20,12 @@ export const Route = createFileRoute("/_authenticated/hr")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: HrPage,
+  component: HrLayout,
 });
+
+function HrLayout() {
+  return <Outlet />;
+}
 
 function HrPage() {
   const stats = useQuery({ queryKey: ["hr_dashboard"], queryFn: fetchHrDashboard });
@@ -148,6 +152,7 @@ function HrPage() {
     </PermissionGate>
   );
 }
+
 
 function AccessDenied() {
   return (
