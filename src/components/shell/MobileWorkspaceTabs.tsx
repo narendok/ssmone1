@@ -1,19 +1,16 @@
 import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
 import { FolderOpen, LayoutDashboard, Menu, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { GlobalSearch } from "@/components/shell/GlobalSearch";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchCanonicalDepartments, type CanonicalDepartment } from "@/lib/tasks";
-import { departmentWorkTarget } from "@/lib/department-workspace";
 
-export function MobileWorkspaceTabs({ selectedDepartment }: { selectedDepartment: CanonicalDepartment | null }) {
+export function MobileWorkspaceTabs() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const { role, permissions, employeeStatus } = useAuth();
   const [moreOpen, setMoreOpen] = useState(false);
-  const work = selectedDepartment ? departmentWorkTarget(selectedDepartment) : "/tasks";
+  const work = "/command-center";
   const inactive = employeeStatus === "SUSPENDED" || employeeStatus === "EXITED";
   const canScan = role === "admin" || permissions.includes("engineering.view") || permissions.includes("stores.view");
   const isActive = (to: string) => to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
@@ -46,7 +43,7 @@ export function MobileWorkspaceTabs({ selectedDepartment }: { selectedDepartment
   );
 }
 
-function TabLink({ to, label, active, children }: { to: "/projects" | "/hr" | "/procurement/requests" | "/production" | "/qms" | "/sales" | "/tasks" | "/command-center" | "/drive"; label: string; active: boolean; children: React.ReactNode }) {
+function TabLink({ to, label, active, children }: { to: "/command-center" | "/drive"; label: string; active: boolean; children: React.ReactNode }) {
   return <Button asChild variant="ghost" className={`h-full flex-col gap-1 rounded-none px-1 text-xs ${active ? "text-primary" : "text-muted-foreground"}`}><Link to={to}>{children}{label}</Link></Button>;
 }
 
