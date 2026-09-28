@@ -42,7 +42,7 @@ export const inviteEmployeeAccess = createServerFn({ method: "POST" }).middlewar
   if (invite.error) throw new Error(invite.error.message);
   const invitedUserId = invite.data.user?.id;
   if (!invitedUserId) throw new Error("The invitation could not be created.");
-  const { error: employeeUpdateError } = await supabaseAdmin.from("employees").update({ user_id: invitedUserId, employment_status: "ACTIVE" }).eq("id", employee.id);
+  const { error: employeeUpdateError } = await supabaseAdmin.from("employees").update({ user_id: invitedUserId, employment_status: "ACTIVE" }).eq("id", employee.id).is("user_id", null);
   if (employeeUpdateError) throw new Error("The invitation was sent, but the employee account could not be linked.");
   const { error: activityError } = await supabaseAdmin.from("activity_log").insert({ actor_user_id: context.userId, module_key: "hr", entity_type: "employee_access", entity_id: employee.id, action: "access_invited", summary: `Sent workspace invitation to ${employee.official_email}` });
   if (activityError) throw new Error("The invitation was sent, but its activity record could not be written.");
