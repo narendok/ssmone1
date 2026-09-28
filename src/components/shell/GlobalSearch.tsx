@@ -40,6 +40,7 @@ export function GlobalSearch({ mobile = false, canScan = false }: { mobile?: boo
       <div className="w-full max-w-xl rounded-lg border bg-popover p-3 shadow-elevated" onMouseDown={(event) => event.stopPropagation()}>
         <div className="flex items-center gap-2 border-b pb-3"><Search className="size-4 text-muted-foreground" /><Input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search accessible workspace areas" className="border-0 shadow-none focus-visible:ring-0" /></div>
         <div className="max-h-72 overflow-auto py-2">
+          {canScan && <Link to="/" onClick={() => setOpen(false)} className="flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-accent"><span className="flex items-center gap-2"><ScanLine className="size-4" />Inventory lookup</span><span className="text-xs text-muted-foreground">Authorized stock access</span></Link>}
           {results.map((result) => <Link key={result.name} to={result.to} onClick={() => setOpen(false)} className="flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-accent"><span>{result.name}</span><span className="text-xs text-muted-foreground">{result.hint}</span></Link>)}
           {!results.length && <p className="px-3 py-5 text-sm text-muted-foreground">No accessible results found.</p>}
         </div>

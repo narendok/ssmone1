@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { FolderOpen, LayoutDashboard, Menu, Search, Settings2, ScanLine, Wrench } from "lucide-react";
+import { FolderOpen, LayoutDashboard, Menu, Wrench } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { GlobalSearch } from "@/components/shell/GlobalSearch";
