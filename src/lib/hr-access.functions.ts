@@ -6,6 +6,25 @@ const employeeAccessSchema = z.object({ employeeId: z.string().uuid(), departmen
 
 async function requireSystemAdmin(sb: any, userId: string) { const { data, error } = await sb.rpc("has_role", { _user_id: userId, _role: "admin" }); if (error || !data) throw new Error("Only a system administrator can manage employee access."); }
 
+export const getHrAccessWorkspace = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  const sb = context.supabase as any;
+  await requireSystemAdmin(sb, context.userId);
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const [employees, departments, roles, permissions] = await Promise.all([
+    supabaseAdmin.from("employees").select("id,display_name,employee_code,official_email,designation,employment_status,primary_department_id,default_role_id,memberships:employee_departments(department_id,is_primary),roles:employee_access_roles(role_id,role:access_roles(id,name,description))").order("display_name"),
+    supabaseAdmin.from("departments").select("id,name,code").eq("is_active", true).order("sort_order"),
+    supabaseAdmin.from("access_roles").select("id,name,description,is_system,access_role_permissions(permission_id)").order("name"),
+    supabaseAdmin.from("permissions").select("id,key,label,description,module_key").order("module_key").order("label"),
+  ]);
+  for (const result of [employees, departments, roles, permissions]) if (result.error) throw new Error("Could not load employee access records.");
+  return {
+    employees: (employees.data ?? []).map((employee: any) => ({ ...employee, memberships: employee.memberships ?? [], roles: employee.roles ?? [] })),
+    departments: departments.data ?? [],
+    roles: (roles.data ?? []).map((role: any) => ({ ...role, permissionIds: (role.access_role_permissions ?? []).map((assignment: { permission_id: string }) => assignment.permission_id) })),
+    permissions: permissions.data ?? [],
+  };
+});
+
 export const saveEmployeeAccess = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => employeeAccessSchema.parse(data)).handler(async ({ data, context }) => {
   const sb = context.supabase as any;
   await requireSystemAdmin(sb, context.userId);
