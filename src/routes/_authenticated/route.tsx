@@ -8,9 +8,11 @@ import { NotificationCenter } from "@/components/shell/NotificationCenter";
 import { VoiceAssistant } from "@/components/inventory/VoiceAssistant";
 
 import { useAuth } from "@/hooks/useAuth";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { LogOut, Settings } from "lucide-react";
+import { fetchCanonicalDepartments, type CanonicalDepartment } from "@/lib/tasks";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -25,6 +27,9 @@ export const Route = createFileRoute("/_authenticated")({
 function AppLayout() {
   const { user, role, displayName, employeeStatus, signOut } = useAuth();
   const navigate = useNavigate();
+  const departments = useQuery({ queryKey: ["active-departments"], queryFn: fetchCanonicalDepartments });
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(null);
+  const selectedDepartment = departments.data?.find((department) => department.id === selectedDepartmentId) ?? null;
   const suspended = employeeStatus === "SUSPENDED" || employeeStatus === "EXITED";
   useEffect(() => { if (suspended) { void signOut().finally(() => navigate({ to: "/auth" })); } }, [navigate, signOut, suspended]);
   if (suspended) return <main className="flex min-h-screen items-center justify-center p-6"><section className="max-w-md text-center"><h1 className="text-xl font-semibold">Access unavailable</h1><p className="mt-2 text-sm text-muted-foreground">Your workspace access is not active. Please contact your system administrator.</p></section></main>;
@@ -53,7 +58,7 @@ function AppLayout() {
           </main>
         </SidebarInset>
         <VoiceAssistant />
-         <MobileWorkspaceTabs />
+          <MobileWorkspaceTabs selectedDepartment={selectedDepartment} />
       </div>
     </SidebarProvider>
 

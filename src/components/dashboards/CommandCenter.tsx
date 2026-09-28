@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CalendarDays, ChevronDown, FileText, Loader2, UserRound } from "lucide-react";
@@ -8,29 +8,29 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { fetchTasks, OPEN_TASK_STATUSES, updateTask, type ProjectTask } from "@/lib/tasks";
-import { departmentDefinitions, getPermittedDepartments, type DashboardDepartment } from "@/lib/department-dashboard";
+import { fetchCanonicalDepartments, fetchTasks, OPEN_TASK_STATUSES, updateTask, type CanonicalDepartment, type ProjectTask } from "@/lib/tasks";
 import { groupWorkspaceTasks, taskDueLabel } from "@/lib/task-workspace";
 import { useAuth } from "@/hooks/useAuth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export function CommandCenter() {
+export function CommandCenter({ selectedDepartmentId, onSelectedDepartmentChange }: { selectedDepartmentId: string | null; onSelectedDepartmentChange: (departmentId: string | null) => void }) {
   const { role, permissions } = useAuth();
   const tasks = useQuery({ queryKey: ["command-center-tasks"], queryFn: () => fetchTasks() });
-  const availableDepartments = getPermittedDepartments(role, permissions);
-  const [selectedDepartment, setSelectedDepartment] = useState<DashboardDepartment | "all">(role === "admin" ? "all" : availableDepartments[0]?.id ?? "all");
-  const activeDepartment = selectedDepartment === "all" ? null : departmentDefinitions.find((department) => department.id === selectedDepartment);
-  const departmentTaskKeys = activeDepartment ? {
-    engineering: ["hardware", "firmware", "mechanical"], operations: ["procurement"], production: ["production"], hr: [], sales: ["executive"], quality: ["qa"],
-  }[activeDepartment.id] : ["__all_departments__"];
+  const departments = useQuery({ queryKey: ["active-departments"], queryFn: fetchCanonicalDepartments });
+  const isAdmin = role === "admin";
+  const availableDepartments = departments.data ?? [];
+  useEffect(() => {
+    if (!selectedDepartmentId && !isAdmin && availableDepartments[0]) onSelectedDepartmentChange(availableDepartments[0].id);
+  }, [availableDepartments, isAdmin, onSelectedDepartmentChange, selectedDepartmentId]);
   const liveTasks = (tasks.data ?? []).filter((task) => OPEN_TASK_STATUSES.includes(task.status));
-  const groupedTasks = groupWorkspaceTasks(liveTasks, departmentTaskKeys);
+  const filteredTasks = selectedDepartmentId ? liveTasks.filter((task) => task.department_id === selectedDepartmentId) : liveTasks;
+  const groupedTasks = groupWorkspaceTasks(filteredTasks, ["__all_departments__"]);
 
   return <div className="mx-auto max-w-7xl space-y-6">
     <section className="border-b pb-6">
       <div>
         <p className="text-sm font-medium text-primary">My day</p>
-        <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-semibold">Department tasks</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">Complete the tasks needing attention today, then review the department’s later work.</p></div><div className="w-full sm:w-60"><p className="mb-1.5 text-xs font-medium text-muted-foreground">Department</p><Select value={selectedDepartment} onValueChange={(value) => setSelectedDepartment(value as DashboardDepartment | "all")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{role === "admin" && <SelectItem value="all">All departments</SelectItem>}{availableDepartments.map((department) => <SelectItem key={department.id} value={department.id}>{department.label}</SelectItem>)}</SelectContent></Select></div></div>
+        <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-semibold">Department tasks</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">Complete the tasks needing attention today, then review the department’s later work.</p></div><DepartmentSelector departments={availableDepartments} isAdmin={isAdmin} value={selectedDepartmentId} onChange={onSelectedDepartmentChange} /></div>
       </div>
     </section>
 
@@ -41,6 +41,10 @@ export function CommandCenter() {
       </div>
     </>}
   </div>;
+}
+
+function DepartmentSelector({ departments, isAdmin, value, onChange }: { departments: CanonicalDepartment[]; isAdmin: boolean; value: string | null; onChange: (departmentId: string | null) => void }) {
+  return <div className="w-full sm:w-60"><p className="mb-1.5 text-xs font-medium text-muted-foreground">Department</p><Select value={value ?? "all"} onValueChange={(nextValue) => onChange(nextValue === "all" ? null : nextValue)}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{isAdmin && <SelectItem value="all">All departments</SelectItem>}{departments.map((department) => <SelectItem key={department.id} value={department.id}>{department.name}{department.aliases.length ? ` · ${department.aliases.join(", ")}` : ""}</SelectItem>)}</SelectContent></Select></div>;
 }
 
 function TaskChecklist({ title, description, tasks, defaultOpen = true }: { title: string; description: string; tasks: ProjectTask[]; defaultOpen?: boolean }) {
