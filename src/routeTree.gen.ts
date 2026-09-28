@@ -41,6 +41,7 @@ import { Route as AuthenticatedQmsIndexRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedProductionIndexRouteImport } from './routes/_authenticated/production.index'
 import { Route as AuthenticatedMaintenanceIndexRouteImport } from './routes/_authenticated/maintenance.index'
+import { Route as AuthenticatedHrIndexRouteImport } from './routes/_authenticated/hr.index'
 import { Route as AuthenticatedFacilityIndexRouteImport } from './routes/_authenticated/facility.index'
 import { Route as AuthenticatedExternalCollaborationIndexRouteImport } from './routes/_authenticated/external-collaboration.index'
 import { Route as AuthenticatedDashboardsIndexRouteImport } from './routes/_authenticated/dashboards.index'
@@ -271,6 +272,11 @@ const AuthenticatedMaintenanceIndexRoute =
     path: '/maintenance/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedHrIndexRoute = AuthenticatedHrIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedHrRoute,
+} as any)
 const AuthenticatedFacilityIndexRoute =
   AuthenticatedFacilityIndexRouteImport.update({
     id: '/facility/',
@@ -726,6 +732,7 @@ export interface FileRoutesByFullPath {
   '/dashboards/': typeof AuthenticatedDashboardsIndexRoute
   '/external-collaboration/': typeof AuthenticatedExternalCollaborationIndexRoute
   '/facility/': typeof AuthenticatedFacilityIndexRoute
+  '/hr/': typeof AuthenticatedHrIndexRoute
   '/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
   '/production/': typeof AuthenticatedProductionIndexRoute
   '/projects/': typeof AuthenticatedProjectsIndexRoute
@@ -748,7 +755,6 @@ export interface FileRoutesByTo {
   '/customers': typeof AuthenticatedCustomersRoute
   '/drive': typeof AuthenticatedDriveRoute
   '/history': typeof AuthenticatedHistoryRoute
-  '/hr': typeof AuthenticatedHrRouteWithChildren
   '/locations': typeof AuthenticatedLocationsRoute
   '/pcb': typeof AuthenticatedPcbRoute
   '/rd-team': typeof AuthenticatedRdTeamRoute
@@ -821,6 +827,7 @@ export interface FileRoutesByTo {
   '/dashboards': typeof AuthenticatedDashboardsIndexRoute
   '/external-collaboration': typeof AuthenticatedExternalCollaborationIndexRoute
   '/facility': typeof AuthenticatedFacilityIndexRoute
+  '/hr': typeof AuthenticatedHrIndexRoute
   '/maintenance': typeof AuthenticatedMaintenanceIndexRoute
   '/production': typeof AuthenticatedProductionIndexRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
@@ -919,6 +926,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboards/': typeof AuthenticatedDashboardsIndexRoute
   '/_authenticated/external-collaboration/': typeof AuthenticatedExternalCollaborationIndexRoute
   '/_authenticated/facility/': typeof AuthenticatedFacilityIndexRoute
+  '/_authenticated/hr/': typeof AuthenticatedHrIndexRoute
   '/_authenticated/maintenance/': typeof AuthenticatedMaintenanceIndexRoute
   '/_authenticated/production/': typeof AuthenticatedProductionIndexRoute
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
@@ -1017,6 +1025,7 @@ export interface FileRouteTypes {
     | '/dashboards/'
     | '/external-collaboration/'
     | '/facility/'
+    | '/hr/'
     | '/maintenance/'
     | '/production/'
     | '/projects/'
@@ -1039,7 +1048,6 @@ export interface FileRouteTypes {
     | '/customers'
     | '/drive'
     | '/history'
-    | '/hr'
     | '/locations'
     | '/pcb'
     | '/rd-team'
@@ -1112,6 +1120,7 @@ export interface FileRouteTypes {
     | '/dashboards'
     | '/external-collaboration'
     | '/facility'
+    | '/hr'
     | '/maintenance'
     | '/production'
     | '/projects'
@@ -1209,6 +1218,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboards/'
     | '/_authenticated/external-collaboration/'
     | '/_authenticated/facility/'
+    | '/_authenticated/hr/'
     | '/_authenticated/maintenance/'
     | '/_authenticated/production/'
     | '/_authenticated/projects/'
@@ -1459,6 +1469,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/maintenance/'
       preLoaderRoute: typeof AuthenticatedMaintenanceIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hr/': {
+      id: '/_authenticated/hr/'
+      path: '/'
+      fullPath: '/hr/'
+      preLoaderRoute: typeof AuthenticatedHrIndexRouteImport
+      parentRoute: typeof AuthenticatedHrRoute
     }
     '/_authenticated/facility/': {
       id: '/_authenticated/facility/'
@@ -1911,6 +1928,7 @@ interface AuthenticatedHrRouteChildren {
   AuthenticatedHrPoliciesRoute: typeof AuthenticatedHrPoliciesRoute
   AuthenticatedHrRecruitmentRoute: typeof AuthenticatedHrRecruitmentRoute
   AuthenticatedHrTrainingRoute: typeof AuthenticatedHrTrainingRoute
+  AuthenticatedHrIndexRoute: typeof AuthenticatedHrIndexRoute
 }
 
 const AuthenticatedHrRouteChildren: AuthenticatedHrRouteChildren = {
@@ -1920,6 +1938,7 @@ const AuthenticatedHrRouteChildren: AuthenticatedHrRouteChildren = {
   AuthenticatedHrPoliciesRoute: AuthenticatedHrPoliciesRoute,
   AuthenticatedHrRecruitmentRoute: AuthenticatedHrRecruitmentRoute,
   AuthenticatedHrTrainingRoute: AuthenticatedHrTrainingRoute,
+  AuthenticatedHrIndexRoute: AuthenticatedHrIndexRoute,
 }
 
 const AuthenticatedHrRouteWithChildren = AuthenticatedHrRoute._addFileChildren(
