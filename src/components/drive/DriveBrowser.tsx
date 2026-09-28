@@ -49,7 +49,7 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
   const fileInput = useRef<HTMLInputElement | null>(null);
 
   const childrenKey = ["drive_children", projectId, folderId];
-  const { data: nodes = [], isLoading } = useQuery({
+  const { data: nodes = [], isLoading, isError, error } = useQuery({
     queryKey: childrenKey,
     queryFn: () => fetchChildren(folderId, projectId),
   });
@@ -312,9 +312,11 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
 
       {isLoading ? (
         <Card className="p-8 text-center text-muted-foreground">Loading…</Card>
+      ) : isError ? (
+        <Card className="border-destructive/40 bg-destructive/5 p-8 text-center text-sm text-destructive">{error instanceof Error ? error.message : "This folder could not be loaded with your current access."}</Card>
       ) : visible.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
-          Nothing here yet — upload a file or create a folder.
+          No accessible items are stored in this folder.
         </Card>
       ) : view === "grid" ? (
         <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
