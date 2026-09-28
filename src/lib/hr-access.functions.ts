@@ -24,12 +24,7 @@ export const saveEmployeeAccess = createServerFn({ method: "POST" }).middleware(
   const { error: roleRemoveError } = await supabaseAdmin.from("employee_access_roles").delete().eq("employee_id", data.employeeId);
   if (roleRemoveError) throw new Error("Could not update role assignment.");
   if (data.roleId) { const { error } = await supabaseAdmin.from("employee_access_roles").insert({ employee_id: data.employeeId, role_id: data.roleId, assigned_by_user_id: context.userId }); if (error) throw new Error("Could not assign the access role."); }
-  if (data.roleId) {
-    const { error: capabilitiesRemoveError } = await supabaseAdmin.from("access_role_permissions").delete().eq("role_id", data.roleId);
-    if (capabilitiesRemoveError) throw new Error("Could not update role capabilities.");
-    if (permissionIds.length) { const { error } = await supabaseAdmin.from("access_role_permissions").insert(permissionIds.map((permissionId) => ({ role_id: data.roleId as string, permission_id: permissionId }))); if (error) throw new Error("Could not save role capabilities."); }
-  }
-  const { error: logError } = await supabaseAdmin.from("activity_log").insert({ actor_user_id: context.userId, module_key: "hr", entity_type: "employee_access", entity_id: data.employeeId, action: "access_updated", summary: `${data.accessActive ? "Activated" : "Deactivated"} employee access`, after_data: { departmentId: data.departmentId, roleId: data.roleId, permissionCount: permissionIds.length, accessActive: data.accessActive } });
+  const { error: logError } = await supabaseAdmin.from("activity_log").insert({ actor_user_id: context.userId, module_key: "hr", entity_type: "employee_access", entity_id: data.employeeId, action: "access_updated", summary: `${data.accessActive ? "Activated" : "Deactivated"} employee access`, after_data: { departmentId: data.departmentId, roleId: data.roleId, roleCapabilityCount: permissionIds.length, accessActive: data.accessActive } });
   if (logError) throw new Error("Access changes were saved, but the audit record could not be written.");
   return { employeeId: data.employeeId, employmentStatus: data.accessActive ? "ACTIVE" : "SUSPENDED" };
 });
