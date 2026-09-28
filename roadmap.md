@@ -2,6 +2,7 @@
 
 ## Maintenance
 
+- [x] Ensure administrators can edit existing department records from Administration, with clear save feedback and no permission bypass.
 - [x] Refine daily-work navigation: remove repeated Command Center, Department Center, and task-board controls while preserving all existing task, approval, project, and document access.
 - [x] Deliver Zoho-style department workspaces: each lead gets unified request, task, approval/gate, and SSM One document-reference controls without replacing established operational workflows. Google Drive linking remains blocked until an App User Connector is available.
 - [x] Add an all-department lead command center with role-aware operational queues, workload pulse, and direct actions into each existing workspace.
@@ -45,7 +46,7 @@
 
 ## Preserved follow-up work
 
-- [ ] Complete remaining Phase 1 administration forms: users, roles/permission assignment, module status, document numbering, and audit log.
+- [ ] Complete remaining Phase 1 administration forms: role/permission catalogue and module status. Employee access, document numbering, and activity-history access are available through Administration.
 - [ ] Complete shared Phase 2 operational surfaces: My Work, approvals, documents, enriched Drive, resolver, global search and activity timelines.
 
 ## Phase 5 — Project delivery & engineering controls
