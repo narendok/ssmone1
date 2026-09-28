@@ -14,12 +14,6 @@ import { groupWorkspaceTasks, taskDueLabel } from "@/lib/task-workspace";
 import { useAuth } from "@/hooks/useAuth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const priorityVariant: Record<DemoPriority, "default" | "secondary" | "destructive"> = {
-  Urgent: "destructive",
-  High: "default",
-  Medium: "secondary",
-};
-
 export function CommandCenter() {
   const { role, permissions } = useAuth();
   const tasks = useQuery({ queryKey: ["command-center-tasks"], queryFn: () => fetchTasks() });
