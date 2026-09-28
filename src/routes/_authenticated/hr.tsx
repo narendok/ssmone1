@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link, Outlet, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { BriefcaseBusiness, ClipboardCheck, GraduationCap, PlaneTakeoff, ShieldAlert, Users } from "lucide-react";
 import { PermissionGate } from "@/components/PermissionGate";
@@ -20,24 +20,10 @@ export const Route = createFileRoute("/_authenticated/hr")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: HrLayout,
-});
-
-export const HrIndexRoute = createFileRoute("/_authenticated/hr/")({
-  head: () => ({
-    meta: [
-      { title: "HR — SSM One" },
-      { name: "description", content: "Recruitment, leave, onboarding, and training operations for SSM One." },
-      { property: "og:title", content: "HR — SSM One" },
-      { property: "og:description", content: "Recruitment, leave, onboarding, and training operations for SSM One." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-    ],
-  }),
   component: HrPage,
 });
 
-function HrPage() {
+export function HrPage() {
   const stats = useQuery({ queryKey: ["hr_dashboard"], queryFn: fetchHrDashboard });
   const recruitment = useQuery({ queryKey: ["hr_recruitment_snapshot"], queryFn: fetchRecruitmentSnapshot });
   const training = useQuery({ queryKey: ["hr_training_overview"], queryFn: fetchTrainingOverview });
@@ -163,9 +149,6 @@ function HrPage() {
   );
 }
 
-function HrLayout() {
-  return <Outlet />;
-}
 
 function AccessDenied() {
   return (
