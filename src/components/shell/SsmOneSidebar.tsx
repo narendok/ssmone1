@@ -69,6 +69,7 @@ const groups: NavGroup[] = [
   ] },
    { label: "People & HR", collapsible: true, department: "hr", items: [
     { label: "HR overview", to: "/hr", icon: Users, permission: "hr.view" },
+      { label: "Employees & Access", to: "/hr/access", icon: ShieldCheck, permission: "admin.view" },
     { label: "Recruitment", to: "/hr/recruitment", icon: ClipboardList, permission: "recruitment.manage" },
     { label: "Leave desk", to: "/hr/leave", icon: PlaneTakeoff, permission: "hr.view" },
     { label: "Learning", to: "/hr/training", icon: GraduationCap, permission: "training.manage" },

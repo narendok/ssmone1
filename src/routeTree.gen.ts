@@ -84,6 +84,7 @@ import { Route as AuthenticatedHrRecruitmentRouteImport } from './routes/_authen
 import { Route as AuthenticatedHrPoliciesRouteImport } from './routes/_authenticated/hr.policies'
 import { Route as AuthenticatedHrOnboardingRouteImport } from './routes/_authenticated/hr.onboarding'
 import { Route as AuthenticatedHrLeaveRouteImport } from './routes/_authenticated/hr.leave'
+import { Route as AuthenticatedHrAccessRouteImport } from './routes/_authenticated/hr.access'
 import { Route as AuthenticatedFinancePaymentPlansRouteImport } from './routes/_authenticated/finance.payment-plans'
 import { Route as AuthenticatedFinanceExpensesRouteImport } from './routes/_authenticated/finance.expenses'
 import { Route as AuthenticatedExternalCollaborationUploadsRouteImport } from './routes/_authenticated/external-collaboration.uploads'
@@ -519,6 +520,11 @@ const AuthenticatedHrLeaveRoute = AuthenticatedHrLeaveRouteImport.update({
   path: '/leave',
   getParentRoute: () => AuthenticatedHrRoute,
 } as any)
+const AuthenticatedHrAccessRoute = AuthenticatedHrAccessRouteImport.update({
+  id: '/access',
+  path: '/access',
+  getParentRoute: () => AuthenticatedHrRoute,
+} as any)
 const AuthenticatedFinancePaymentPlansRoute =
   AuthenticatedFinancePaymentPlansRouteImport.update({
     id: '/finance/payment-plans',
@@ -676,6 +682,7 @@ export interface FileRoutesByFullPath {
   '/external-collaboration/uploads': typeof AuthenticatedExternalCollaborationUploadsRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/finance/payment-plans': typeof AuthenticatedFinancePaymentPlansRoute
+  '/hr/access': typeof AuthenticatedHrAccessRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
   '/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
   '/hr/policies': typeof AuthenticatedHrPoliciesRoute
@@ -770,6 +777,7 @@ export interface FileRoutesByTo {
   '/external-collaboration/uploads': typeof AuthenticatedExternalCollaborationUploadsRoute
   '/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/finance/payment-plans': typeof AuthenticatedFinancePaymentPlansRoute
+  '/hr/access': typeof AuthenticatedHrAccessRoute
   '/hr/leave': typeof AuthenticatedHrLeaveRoute
   '/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
   '/hr/policies': typeof AuthenticatedHrPoliciesRoute
@@ -867,6 +875,7 @@ export interface FileRoutesById {
   '/_authenticated/external-collaboration/uploads': typeof AuthenticatedExternalCollaborationUploadsRoute
   '/_authenticated/finance/expenses': typeof AuthenticatedFinanceExpensesRoute
   '/_authenticated/finance/payment-plans': typeof AuthenticatedFinancePaymentPlansRoute
+  '/_authenticated/hr/access': typeof AuthenticatedHrAccessRoute
   '/_authenticated/hr/leave': typeof AuthenticatedHrLeaveRoute
   '/_authenticated/hr/onboarding': typeof AuthenticatedHrOnboardingRoute
   '/_authenticated/hr/policies': typeof AuthenticatedHrPoliciesRoute
@@ -964,6 +973,7 @@ export interface FileRouteTypes {
     | '/external-collaboration/uploads'
     | '/finance/expenses'
     | '/finance/payment-plans'
+    | '/hr/access'
     | '/hr/leave'
     | '/hr/onboarding'
     | '/hr/policies'
@@ -1058,6 +1068,7 @@ export interface FileRouteTypes {
     | '/external-collaboration/uploads'
     | '/finance/expenses'
     | '/finance/payment-plans'
+    | '/hr/access'
     | '/hr/leave'
     | '/hr/onboarding'
     | '/hr/policies'
@@ -1154,6 +1165,7 @@ export interface FileRouteTypes {
     | '/_authenticated/external-collaboration/uploads'
     | '/_authenticated/finance/expenses'
     | '/_authenticated/finance/payment-plans'
+    | '/_authenticated/hr/access'
     | '/_authenticated/hr/leave'
     | '/_authenticated/hr/onboarding'
     | '/_authenticated/hr/policies'
@@ -1749,6 +1761,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHrLeaveRouteImport
       parentRoute: typeof AuthenticatedHrRoute
     }
+    '/_authenticated/hr/access': {
+      id: '/_authenticated/hr/access'
+      path: '/access'
+      fullPath: '/hr/access'
+      preLoaderRoute: typeof AuthenticatedHrAccessRouteImport
+      parentRoute: typeof AuthenticatedHrRoute
+    }
     '/_authenticated/finance/payment-plans': {
       id: '/_authenticated/finance/payment-plans'
       path: '/finance/payment-plans'
@@ -1886,6 +1905,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedHrRouteChildren {
+  AuthenticatedHrAccessRoute: typeof AuthenticatedHrAccessRoute
   AuthenticatedHrLeaveRoute: typeof AuthenticatedHrLeaveRoute
   AuthenticatedHrOnboardingRoute: typeof AuthenticatedHrOnboardingRoute
   AuthenticatedHrPoliciesRoute: typeof AuthenticatedHrPoliciesRoute
@@ -1894,6 +1914,7 @@ interface AuthenticatedHrRouteChildren {
 }
 
 const AuthenticatedHrRouteChildren: AuthenticatedHrRouteChildren = {
+  AuthenticatedHrAccessRoute: AuthenticatedHrAccessRoute,
   AuthenticatedHrLeaveRoute: AuthenticatedHrLeaveRoute,
   AuthenticatedHrOnboardingRoute: AuthenticatedHrOnboardingRoute,
   AuthenticatedHrPoliciesRoute: AuthenticatedHrPoliciesRoute,
