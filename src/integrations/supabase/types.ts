@@ -11460,6 +11460,10 @@ export type Database = {
         Args: { p_project_id: string }
         Returns: undefined
       }
+      provision_project_drive_template: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
       record_phase7_unit_execution: {
         Args: {
           _notes?: string
