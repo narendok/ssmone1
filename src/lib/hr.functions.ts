@@ -134,7 +134,7 @@ export const createLeaveRequest = createServerFn({ method: "POST" }).middleware(
   const { data: employee, error: employeeError } = await sb.from("employees").select("reporting_manager_user_id").eq("id", employeeId).maybeSingle(); if (employeeError) throw new Error(employeeError.message);
   const { data: request, error } = await sb.from("hr_leave_requests").insert({ employee_id: employeeId, leave_type_id: data.leaveTypeId, start_date: data.startDate, end_date: data.endDate, total_days: data.totalDays, reason: data.reason, status: "pending", approver_user_id: employee?.reporting_manager_user_id ?? null, created_by: context.userId }).select("id").single();
   if (error || !request) throw new Error(error?.message ?? "Could not submit leave request."); await logActivity(sb, context.userId, "leave_request", request.id, "created", "Submitted leave request");
-  if (employee?.reporting_manager_user_id) await sb.from("notifications").insert({ user_id: employee.reporting_manager_user_id, category: "HR", title: "Leave approval pending", body: "A team member submitted a leave request for your review.", target_url: "/hr/leave" }); return { id: request.id };
+  return { id: request.id };
 });
 
 export const createJobRequisition = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => requisitionSchema.parse(data)).handler(async ({ data, context }) => {

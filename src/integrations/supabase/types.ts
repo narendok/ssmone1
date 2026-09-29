@@ -5394,6 +5394,7 @@ export type Database = {
           body: string | null
           category: string
           created_at: string
+          event_key: string | null
           id: string
           is_read: boolean
           read_at: string | null
@@ -5407,6 +5408,7 @@ export type Database = {
           body?: string | null
           category?: string
           created_at?: string
+          event_key?: string | null
           id?: string
           is_read?: boolean
           read_at?: string | null
@@ -5420,6 +5422,7 @@ export type Database = {
           body?: string | null
           category?: string
           created_at?: string
+          event_key?: string | null
           id?: string
           is_read?: boolean
           read_at?: string | null
@@ -11163,6 +11166,7 @@ export type Database = {
             }
             Returns: Json
           }
+      create_notification_verification: { Args: never; Returns: Json }
       create_phase6_quotation: {
         Args: {
           _items: Json
@@ -11255,6 +11259,19 @@ export type Database = {
         Args: { _ncr_id: string; _notes?: string; _status: string }
         Returns: undefined
       }
+      enqueue_notification: {
+        Args: {
+          _body: string
+          _category: string
+          _event_key: string
+          _target_entity_id: string
+          _target_entity_type: string
+          _target_url: string
+          _title: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       ensure_phase5_project_access_catalog: { Args: never; Returns: undefined }
       external_contact_has_access: {
         Args: { _contact_id: string; _portal_type?: string }
@@ -11289,6 +11306,7 @@ export type Database = {
           node_type: string
         }[]
       }
+      get_notification_inbox_state: { Args: never; Returns: Json }
       get_public_application_status: {
         Args: { _status_token: string }
         Returns: {
@@ -11338,6 +11356,7 @@ export type Database = {
         }
         Returns: Json
       }
+      mark_all_notifications_read: { Args: never; Returns: Json }
       mark_notification_read: {
         Args: { _notification_id: string }
         Returns: Json
@@ -11428,6 +11447,14 @@ export type Database = {
           _to_location_id: string
         }
         Returns: Json
+      }
+      project_task_notification_project_lead: {
+        Args: { _project_id: string }
+        Returns: string
+      }
+      project_task_notification_recipient: {
+        Args: { _member_id: string }
+        Returns: string
       }
       provision_drive_for_project: {
         Args: { p_project_id: string }
@@ -11534,6 +11561,7 @@ export type Database = {
         Args: { _job_key: string; _lease_seconds?: number }
         Returns: boolean
       }
+      verify_notification_contract: { Args: never; Returns: Json }
     }
     Enums: {
       app_role:
