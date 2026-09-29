@@ -36,7 +36,7 @@ function useDepartmentQueues(department: DashboardDepartment) {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: department === "operations",
+    enabled: department === "procurement",
   });
   const gates = useQuery({
     queryKey: ["department_workspace_gates", department],
@@ -50,7 +50,7 @@ function useDepartmentQueues(department: DashboardDepartment) {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: department === "engineering" || department === "production" || department === "quality",
+    enabled: department === "rnd" || department === "production" || department === "operations",
   });
 
   const departmentTasks = useMemo(() => {
@@ -129,7 +129,7 @@ export function DepartmentWorkspaceQueues({ department }: { department: Dashboar
               <p className="mt-1 text-xs text-muted-foreground">{item.detail} · {item.status.replaceAll("_", " ")}</p>
             </Link>
           ))}
-          <Button asChild variant="outline" className="w-full"><Link to={department === "operations" ? "/procurement/requests" : "/projects"}>Open approval work <ExternalLink className="size-4" /></Link></Button>
+          <Button asChild variant="outline" className="w-full"><Link to={department === "procurement" ? "/procurement/requests" : "/projects"}>Open approval work <ExternalLink className="size-4" /></Link></Button>
         </CardContent>
       </Card>
 
