@@ -209,6 +209,24 @@ export async function fetchDepartmentDashboard(department: DashboardDepartment):
     };
   }
 
+  if (department === "facility") {
+    return {
+      metrics: [
+        { label: "Open facility work", value: pulse.open.length, detail: "Maintenance, security, utility and asset tasks" },
+        { label: "Blocked work", value: pulse.blocked.length, detail: "Requires lead attention", tone: pulse.blocked.length ? "critical" : "default" },
+        { label: "Overdue work", value: pulse.overdue.length, detail: "Past due date", tone: pulse.overdue.length ? "attention" : "default" },
+        { label: "Priority tasks", value: pulse.urgent.length, detail: "High and urgent work", tone: pulse.urgent.length ? "attention" : "default" },
+      ],
+      actions: [
+        { label: "Manage facilities", detail: "Review sites, rooms and responsible owners.", to: "/facility" },
+        { label: "Manage maintenance", detail: "Plan work and close service actions.", to: "/maintenance" },
+        { label: "Review assets", detail: "Track custodianship and asset status.", to: "/assets" },
+        { label: "Review security", detail: "Open controlled security operations.", to: "/security" },
+      ],
+      workload: sharedWorkload,
+    };
+  }
+
   if (department === "hr") {
     const [openRequisitions, leaveWaiting, learning] = await Promise.all([
       count("hr_job_requisitions", (query) => query.eq("status", "open")),
@@ -249,6 +267,23 @@ export async function fetchDepartmentDashboard(department: DashboardDepartment):
         { label: "Open sales overview", detail: "Review pipeline, requirements and handovers.", to: "/sales" },
         { label: "Manage customers", detail: "Open the customer master and contacts.", to: "/customers" },
         { label: "Review tasks", detail: "Assign commercial follow-ups and due work.", to: "/tasks" },
+      ],
+      workload: sharedWorkload,
+    };
+  }
+
+  if (department === "finance" || department === "administration") {
+    return {
+      metrics: [
+        { label: "Open work", value: pulse.open.length, detail: "Work visible to this department" },
+        { label: "Blocked work", value: pulse.blocked.length, detail: "Requires a lead decision", tone: pulse.blocked.length ? "critical" : "default" },
+        { label: "Overdue work", value: pulse.overdue.length, detail: "Past due date", tone: pulse.overdue.length ? "attention" : "default" },
+        { label: "Priority work", value: pulse.urgent.length, detail: "High and urgent tasks", tone: pulse.urgent.length ? "attention" : "default" },
+      ],
+      actions: [
+        { label: "Review tasks", detail: "Assign owners and resolve blockers.", to: "/tasks" },
+        { label: "Open projects", detail: "Review project context and delivery work.", to: "/projects" },
+        { label: "Open documents", detail: "Open controlled project files and links.", to: "/drive" },
       ],
       workload: sharedWorkload,
     };
