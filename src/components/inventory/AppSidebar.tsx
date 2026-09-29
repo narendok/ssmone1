@@ -127,8 +127,6 @@ export function AppSidebar() {
         </SidebarGroup>
 
         <SidebarGroup>
-
-        <SidebarGroup>
           <SidebarGroupLabel>Categories</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
