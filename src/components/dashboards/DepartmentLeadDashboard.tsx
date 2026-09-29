@@ -18,10 +18,10 @@ export function DepartmentLeadDashboard() {
   const search = useSearch({ from: "/_authenticated/dashboards/" });
   const availableDepartments = useMemo(() => getPermittedDepartments(role, permissions), [permissions, role]);
   const requestedDepartment = departmentDefinitions.some((department) => department.id === search.department) ? search.department as DashboardDepartment : undefined;
-  const [selectedDepartment, setSelectedDepartment] = useState<DashboardDepartment>(requestedDepartment ?? availableDepartments[0]?.id ?? "engineering");
+  const [selectedDepartment, setSelectedDepartment] = useState<DashboardDepartment>(requestedDepartment ?? availableDepartments[0]?.id ?? "rnd");
   const activeSelection = requestedDepartment && availableDepartments.some((department) => department.id === requestedDepartment) ? requestedDepartment : selectedDepartment;
   const activeDepartment = availableDepartments.find((department) => department.id === activeSelection) ?? availableDepartments[0];
-  const dashboard = useQuery({ queryKey: ["department_dashboard", activeDepartment?.id], queryFn: () => fetchDepartmentDashboard(activeDepartment?.id ?? "engineering"), enabled: Boolean(activeDepartment) });
+  const dashboard = useQuery({ queryKey: ["department_dashboard", activeDepartment?.id], queryFn: () => fetchDepartmentDashboard(activeDepartment?.id ?? "rnd"), enabled: Boolean(activeDepartment) });
 
   if (!availableDepartments.length) return <section className="mx-auto max-w-lg py-20 text-center"><h1 className="text-xl font-semibold">Department access required</h1><p className="mt-2 text-sm text-muted-foreground">Your account does not currently have access to a department workspace.</p></section>;
 
@@ -40,7 +40,7 @@ function buildQuickAccess(department: DashboardDepartment, actions: { label: str
   const core = [
     { label: "Team tasks", detail: "Assign work and update due dates.", to: "/tasks", icon: CheckSquare },
     { label: "Projects", detail: "Review delivery, ownership, and progress.", to: "/projects", icon: FolderKanban },
-    { label: "Approvals", detail: "Open the established decision queue.", to: department === "operations" ? "/procurement/requests" : "/projects", icon: ClipboardCheck },
+    { label: "Approvals", detail: "Open the established decision queue.", to: department === "procurement" ? "/procurement/requests" : "/projects", icon: ClipboardCheck },
     { label: "Documents", detail: "Open controlled project files and links.", to: "/drive", icon: FileText },
   ];
   const departmentActions = actions.map((action) => ({ ...action, icon: action.to.includes("inventory") || action.to.includes("stores") || action.to.includes("inward") ? PackageSearch : UsersRound }));
