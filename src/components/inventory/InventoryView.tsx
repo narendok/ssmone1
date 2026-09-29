@@ -16,6 +16,7 @@ import { fetchProjects, fetchAllComponentProjectMap, type Project } from "@/lib/
 import { fetchAllSubstituteMap, type SubstituteRef } from "@/lib/substitutes";
 import { shareRows } from "@/lib/bom-share";
 import { ShareSelectionBar } from "./ShareSelectionBar";
+import { PermissionGate } from "@/components/PermissionGate";
 import { ProjectChips } from "./ProjectMultiSelect";
 import { ComponentFormDialog } from "./ComponentFormDialog";
 import { HistoricalStockRecoveryDialog } from "./HistoricalStockRecoveryDialog";
@@ -263,9 +264,11 @@ export function InventoryView({ categorySlug, title, subtitle }: Props) {
             <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
             {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
           </div>
-          <Button onClick={() => setCreating(true)}>
-            <Plus className="h-4 w-4" /> Add component
-          </Button>
+          <PermissionGate permission={["inventory.manage", "engineering.edit"]}>
+            <Button onClick={() => setCreating(true)}>
+              <Plus className="h-4 w-4" /> Add component
+            </Button>
+          </PermissionGate>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -410,7 +413,9 @@ export function InventoryView({ categorySlug, title, subtitle }: Props) {
                     </TableCell>
 
                     <TableCell>
-                      <button onClick={() => setEditing(r)} className="font-medium hover:text-primary text-left">{r.name}</button>
+                      <PermissionGate permission={["inventory.manage", "engineering.edit"]} fallback={<span className="font-medium">{r.name}</span>}>
+                        <button onClick={() => setEditing(r)} className="font-medium hover:text-primary text-left">{r.name}</button>
+                      </PermissionGate>
                       <div className="text-xs text-muted-foreground">{r.category.name}</div>
                       {(r.voltage_rating || r.current_rating || r.temperature_rating || r.cost != null) && (
                         <div className="mt-0.5 flex flex-wrap gap-1 text-[10px] text-muted-foreground">
@@ -451,11 +456,13 @@ export function InventoryView({ categorySlug, title, subtitle }: Props) {
                     <TableCell><StatusBadge status={status} /></TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        {role === "admin" && r.total_quantity === 0 && r.locations.length === 0 && (
-                          <Button variant="ghost" size="sm" onClick={() => setRecovering(r)}>Recover</Button>
-                        )}
-                        <Button variant="ghost" size="sm" onClick={() => setAdjusting(r)}>Adjust</Button>
-                        <Button variant="ghost" size="sm" onClick={() => setAssigning([r])}>Assign</Button>
+                        <PermissionGate permission="inventory.manage">
+                          {role === "admin" && r.total_quantity === 0 && r.locations.length === 0 && (
+                            <Button variant="ghost" size="sm" onClick={() => setRecovering(r)}>Recover</Button>
+                          )}
+                          <Button variant="ghost" size="sm" onClick={() => setAdjusting(r)}>Adjust</Button>
+                          <Button variant="ghost" size="sm" onClick={() => setAssigning([r])}>Assign</Button>
+                        </PermissionGate>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -475,6 +482,7 @@ export function InventoryView({ categorySlug, title, subtitle }: Props) {
 
 
 
+        <PermissionGate permission={["inventory.manage", "engineering.edit"]}>
         {(creating || editing) && (
           <ComponentFormDialog
             open
@@ -484,7 +492,9 @@ export function InventoryView({ categorySlug, title, subtitle }: Props) {
             onSaved={(id) => { refresh(id); setCreating(false); setEditing(null); }}
           />
         )}
+        </PermissionGate>
 
+        <PermissionGate permission="inventory.manage">
         {adjusting && (
           <StockAdjustDialog
             open
@@ -509,6 +519,7 @@ export function InventoryView({ categorySlug, title, subtitle }: Props) {
             onSaved={(id) => { refresh(id); setAssigning(null); setSelected(new Set()); }}
           />
         )}
+        </PermissionGate>
       </div>
     </TooltipProvider>
   );
