@@ -94,3 +94,5 @@
 - [ ] Expand the clearly labelled Command Center sample tasks with notes, progress, project, and team-owner context. **In progress:** sample data is display-only and will not create operational records.
 - [x] Create a clearly labelled sample workspace-storage hierarchy from the supplied audit repository: exact top-level groups, device/part/revision packs, seven hardware phases, Supplier Quality, Calibration/Laboratory controls, and placeholder controlled-document records; do not alter live records.
 - [ ] Deliver a read-only, approval-ready department and access matrix covering current departments, roles, permissions, memberships, helpers, overlaps, routes, and proposed minimum access. **Blocker:** awaiting user approval before any changes.
+
+- [ ] Apply approved access redesign: backend department canonicalization, RBAC/RLS reconciliation, and inventory route guards; verify denied and authorized access paths.
