@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Category } from "@/lib/inventory";
 import { fetchOpenPcbTaskCount } from "@/lib/pcb";
 import { fetchOpenTaskCount } from "@/lib/tasks";
+import { PermissionGate } from "@/components/PermissionGate";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Zap, Activity, Cpu, Triangle, GitBranch, Box, CircuitBoard,
@@ -82,6 +83,7 @@ export function AppSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
+        <PermissionGate permission="inventory.view">
         <SidebarGroup>
           <SidebarGroupLabel>Overview</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -179,6 +181,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        </PermissionGate>
 
         <SidebarGroup>
           <SidebarGroupLabel>R&amp;D</SidebarGroupLabel>

@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Operational teams manage component projects" ON public.component_projects;
