@@ -5394,6 +5394,7 @@ export type Database = {
           body: string | null
           category: string
           created_at: string
+          event_key: string | null
           id: string
           is_read: boolean
           read_at: string | null
@@ -5407,6 +5408,7 @@ export type Database = {
           body?: string | null
           category?: string
           created_at?: string
+          event_key?: string | null
           id?: string
           is_read?: boolean
           read_at?: string | null
@@ -5420,6 +5422,7 @@ export type Database = {
           body?: string | null
           category?: string
           created_at?: string
+          event_key?: string | null
           id?: string
           is_read?: boolean
           read_at?: string | null
