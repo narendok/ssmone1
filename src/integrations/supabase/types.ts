@@ -11166,6 +11166,7 @@ export type Database = {
             }
             Returns: Json
           }
+      create_notification_verification: { Args: never; Returns: Json }
       create_phase6_quotation: {
         Args: {
           _items: Json
