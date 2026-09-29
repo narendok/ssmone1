@@ -3,6 +3,7 @@
 ## Maintenance
 
 - [ ] Publish the exact verified Android client contract for notification inbox state and read actions.
+- [x] Provision governed, idempotent project Drive templates with approved empty folders while preserving existing project files and access controls.
 - [x] Implement server-side, RLS-safe in-app notification automation for task events, approvals, and authenticated read state.
 - [x] Ensure administrators can edit existing department records from Administration, with clear save feedback and no permission bypass.
 - [x] Refine daily-work navigation: remove repeated Command Center, Department Center, and task-board controls while preserving all existing task, approval, project, and document access.
