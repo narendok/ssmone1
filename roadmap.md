@@ -2,7 +2,8 @@
 
 ## Maintenance
 
-- [ ] Publish the exact verified Android client contract for notification inbox state and read actions.
+- [x] Apply the approved consolidated department-to-role mapping, preserve inactive legacy aliases, align Drive management permissions, and verify existing mobile contracts.
+- [x] Publish the exact verified Android client contract for notification inbox state and read actions.
 - [x] Provision governed, idempotent project Drive templates with approved empty folders while preserving existing project files and access controls.
 - [x] Implement server-side, RLS-safe in-app notification automation for task events, approvals, and authenticated read state.
 - [x] Ensure administrators can edit existing department records from Administration, with clear save feedback and no permission bypass.

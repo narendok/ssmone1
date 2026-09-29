@@ -17,7 +17,7 @@ export const createPurchaseRequest = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const [{ data: number, error: numberError }, { data: purchaseDepartment }] = await Promise.all([
       supabaseAdmin.rpc("next_business_number", { _entity_type: "purchase_request", _department_code: "PUR/PD" }),
-      supabaseAdmin.from("departments").select("id").in("code", ["PUR", "PD", "PUR/PD"]).eq("is_active", true).limit(1).maybeSingle(),
+      supabaseAdmin.from("departments").select("id").in("code", ["PROC", "PUR", "PD", "PUR/PD"]).eq("is_active", true).limit(1).maybeSingle(),
     ]);
     if (numberError || !number) throw new Error("Could not generate the purchase request number.");
     const { data: request, error } = await supabaseAdmin.from("purchase_requests").insert({
