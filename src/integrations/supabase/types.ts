@@ -11561,6 +11561,7 @@ export type Database = {
         Args: { _job_key: string; _lease_seconds?: number }
         Returns: boolean
       }
+      verify_notification_contract: { Args: never; Returns: Json }
     }
     Enums: {
       app_role:
