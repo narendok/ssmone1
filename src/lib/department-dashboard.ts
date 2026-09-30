@@ -44,6 +44,13 @@ export type DepartmentDashboardData = {
   workload: { label: string; open: number; blocked: number; overdue: number }[];
 };
 
+export type DepartmentAvailability = {
+  total: number;
+  available: number;
+  onLeave: number;
+  team: { id: string; name: string; designation: string | null; availability: "available" | "on_leave" }[];
+};
+
 export type DepartmentTaskFocus = "today" | "overdue" | "pending";
 
 export type DepartmentQuickView = {
@@ -126,6 +133,40 @@ export function departmentQuickView(tasks: ProjectTask[], department: DashboardD
     priority: scopedTasks.filter((task) => task.priority === "urgent" || task.priority === "high").length,
     pending: scopedTasks.length,
   };
+}
+
+export async function fetchDepartmentAvailability(departmentId: string): Promise<DepartmentAvailability> {
+  const { data: memberships, error: membershipError } = await sb
+    .from("employee_departments")
+    .select("employee_id, employees!inner(id,display_name,designation,employment_status)")
+    .eq("department_id", departmentId);
+  if (membershipError) throw membershipError;
+
+  const team = (memberships ?? [])
+    .map((membership: any) => membership.employees)
+    .filter((employee: any) => employee?.employment_status === "ACTIVE")
+    .filter((employee: any, index: number, employees: any[]) => employees.findIndex((candidate) => candidate.id === employee.id) === index);
+  if (!team.length) return { total: 0, available: 0, onLeave: 0, team: [] };
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: leaveRows, error: leaveError } = await sb
+    .from("hr_leave_requests")
+    .select("employee_id")
+    .eq("status", "approved")
+    .lte("start_date", today)
+    .gte("end_date", today)
+    .in("employee_id", team.map((employee: any) => employee.id));
+  if (leaveError) throw leaveError;
+
+  const onLeaveIds = new Set((leaveRows ?? []).map((leave: { employee_id: string }) => leave.employee_id));
+  const availability = team.map((employee: any) => ({
+    id: employee.id,
+    name: employee.display_name?.trim() || "Unnamed employee",
+    designation: employee.designation ?? null,
+    availability: onLeaveIds.has(employee.id) ? "on_leave" as const : "available" as const,
+  }));
+  const onLeave = availability.filter((employee) => employee.availability === "on_leave").length;
+  return { total: availability.length, available: availability.length - onLeave, onLeave, team: availability };
 }
 
 async function count(table: string, apply?: (query: any) => any) {
