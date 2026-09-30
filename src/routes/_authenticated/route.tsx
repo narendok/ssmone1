@@ -5,6 +5,7 @@ import { SsmOneSidebar } from "@/components/shell/SsmOneSidebar";
 import { MobileWorkspaceTabs } from "@/components/shell/MobileWorkspaceTabs";
 import { GlobalSearch } from "@/components/shell/GlobalSearch";
 import { NotificationCenter } from "@/components/shell/NotificationCenter";
+import { WorkspaceSwitcher } from "@/components/shell/WorkspaceSwitcher";
 import { VoiceAssistant } from "@/components/inventory/VoiceAssistant";
 
 import { useAuth } from "@/hooks/useAuth";
@@ -36,7 +37,7 @@ function AppLayout() {
           <header className="h-14 flex items-center gap-3 border-b bg-card px-4 sticky top-0 z-10">
             <SidebarTrigger />
              <div className="flex-1"><GlobalSearch /></div>
-              <div className="flex items-center gap-1"><NotificationCenter />
+              <div className="flex items-center gap-1"><WorkspaceSwitcher /><NotificationCenter />
              <div className="hidden sm:flex flex-col items-end leading-tight">
                <span className="text-xs font-medium">{displayName ?? user?.email}</span>
                <span className="text-[11px] text-muted-foreground">{employeeStatus === "SUSPENDED" ? "Access suspended" : role === "admin" ? "Platform Owner" : "Employee"}</span>
