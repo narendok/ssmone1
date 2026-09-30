@@ -11379,6 +11379,7 @@ export type Database = {
         Args: { _employee_id: string; _user_id: string }
         Returns: boolean
       }
+      is_platform_owner: { Args: { _user_id: string }; Returns: boolean }
       manage_component_location: {
         Args: {
           _approved_by: string
