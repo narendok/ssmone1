@@ -11,6 +11,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { fetchCanonicalDepartments, fetchTasks, OPEN_TASK_STATUSES, updateTask, type CanonicalDepartment, type ProjectTask } from "@/lib/tasks";
 import { departmentWorkTarget } from "@/lib/department-workspace";
 import { groupWorkspaceTasks, taskDueLabel } from "@/lib/task-workspace";
+import { workspaceForDepartment } from "@/lib/department-workspace-navigation";
+import { setWorkspaceDepartmentId } from "@/lib/workspace-context";
 import { useAuth } from "@/hooks/useAuth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -27,15 +29,17 @@ export function CommandCenter() {
 
   const selectedDepartment = availableDepartments.find((department) => department.id === selectedDepartmentId) ?? null;
   const workspaceLabel = selectedDepartment?.name ?? "All departments";
+  const workspace = workspaceForDepartment(selectedDepartment);
 
   return <div className="mx-auto max-w-7xl space-y-6">
     <section className="border-b pb-6">
       <div>
         <p className="text-sm font-medium text-primary">{isAdmin ? "Administrator workspace" : "Department workspace"}</p>
-        <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-semibold">{workspaceLabel} tasks</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">{isAdmin ? "Select a department to oversee its lead view, or keep every department visible for a complete task picture." : "Complete the tasks needing attention today, then review the department’s later work."}</p></div><DepartmentSelector departments={availableDepartments} isAdmin={isAdmin} value={selectedDepartmentId} onChange={setSelectedDepartmentId} /></div>
+        <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-semibold">{workspaceLabel} tasks</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">{selectedDepartment && workspace ? workspace.summary : isAdmin ? "Select a department to focus its approved work, or keep every department visible for a complete task picture." : "Complete the tasks needing attention today, then review the department’s later work."}</p></div><DepartmentSelector departments={availableDepartments} isAdmin={isAdmin} value={selectedDepartmentId} onChange={(departmentId) => { setSelectedDepartmentId(departmentId); setWorkspaceDepartmentId(departmentId); }} /></div>
       </div>
     </section>
 
+    {selectedDepartment && workspace && <section className="border-y py-5"><div className="mb-3 flex items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">{workspace.label} work</h2><p className="mt-1 text-sm text-muted-foreground">Only the areas relevant to this workspace are shown here. Access remains enforced separately.</p></div><Button asChild variant="outline" size="sm"><Link to="/dashboards" search={{ department: workspace.id }}>Open lead workspace</Link></Button></div><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{workspace.items.map((item) => <Button key={item.to + item.label} asChild variant="outline" className="h-auto justify-start gap-3 px-3 py-3 text-left"><Link to={item.to}><item.icon className="size-4 shrink-0 text-primary" /><span className="min-w-0"><span className="block text-sm font-medium">{item.label}</span></span></Link></Button>)}</div></section>}
     {tasks.isLoading ? <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 size-4 animate-spin" /> Loading your work pulse…</div> : tasks.isError ? <div className="border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">Tasks could not be loaded. Your access has not been changed; refresh or try again later.</div> : <>
       <div className="max-w-4xl space-y-4">
         <TaskChecklist title={selectedDepartment ? "Today’s priority tasks" : "Today’s priorities across departments"} description="Urgent, high-priority, blocked, due today, or overdue." tasks={groupedTasks.today} />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   BriefcaseBusiness, Building2, CircuitBoard, ClipboardList, FileSpreadsheet, FolderKanban, FolderOpen,
@@ -10,6 +10,10 @@ import {
   SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, useSidebar,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { fetchCanonicalDepartments, type CanonicalDepartment } from "@/lib/tasks";
+import { useQuery } from "@tanstack/react-query";
+import { readWorkspaceDepartmentId, WORKSPACE_CONTEXT_EVENT } from "@/lib/workspace-context";
+import { workspaceForDepartment } from "@/lib/department-workspace-navigation";
 
 type NavItem = { label: string; to: string; icon: LucideIcon; permission?: string };
 type NavGroup = { label: string; items: NavItem[]; collapsible?: boolean; department?: string };
@@ -87,6 +91,8 @@ export function SsmOneSidebar() {
   const { state } = useSidebar();
   const { role, permissions, employeeStatus } = useAuth();
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [workspaceDepartmentId, setWorkspaceDepartmentId] = useState<string | null>(() => readWorkspaceDepartmentId());
+  const departments = useQuery({ queryKey: ["active-departments"], queryFn: fetchCanonicalDepartments });
   const collapsed = state === "collapsed";
   const can = (permission?: string) => employeeStatus !== "SUSPENDED" && employeeStatus !== "EXITED" && (role === "admin" || !permission || permissions.includes(permission));
   const toggleGroup = (label: string) => setCollapsedGroups((previous) => {
@@ -95,6 +101,15 @@ export function SsmOneSidebar() {
     else next.add(label);
     return next;
   });
+  useEffect(() => {
+    const syncWorkspace = () => setWorkspaceDepartmentId(readWorkspaceDepartmentId());
+    window.addEventListener(WORKSPACE_CONTEXT_EVENT, syncWorkspace);
+    window.addEventListener("storage", syncWorkspace);
+    return () => { window.removeEventListener(WORKSPACE_CONTEXT_EVENT, syncWorkspace); window.removeEventListener("storage", syncWorkspace); };
+  }, []);
+  const selectedDepartment = (departments.data ?? []).find((department: CanonicalDepartment) => department.id === workspaceDepartmentId) ?? null;
+  const selectedWorkspace = workspaceForDepartment(selectedDepartment);
+  const visibleGroups = selectedWorkspace ? [{ label: `${selectedWorkspace.label} workspace`, collapsible: false, items: selectedWorkspace.items }] : groups;
 
   return (
     <Sidebar collapsible="icon">
@@ -105,7 +120,7 @@ export function SsmOneSidebar() {
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        {groups.map((group) => {
+        {visibleGroups.map((group) => {
           const visibleItems = group.items.filter((item) => can(item.permission));
           if (!visibleItems.length) return null;
           const groupCollapsed = group.collapsible && collapsedGroups.has(group.label);
