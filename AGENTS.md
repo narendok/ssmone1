@@ -11,3 +11,4 @@
 - Component-form stock changes reuse per-location request keys; all manual adjustments verify the actor in server actions before service-only posting.
 - Reuse the R&D member dialog for R&D-specific contacts; project membership remains employee-based so no workflow creates duplicate identities.
 - Department workspaces are read-only RLS-protected queues; approval actions stay in established workflows and priorities are department-scoped, with admin oversight.
+- Department-assigned projects provision their controlled Drive hierarchy through a database trigger; regular users cannot invoke the provisioner.
