@@ -32,8 +32,10 @@ export interface Project {
 
 const sb = supabase as any;
 
-export async function fetchProjects(): Promise<Project[]> {
-  const { data, error } = await sb.from("projects").select("*").order("status").order("name");
+export async function fetchProjects(departmentId?: string | null): Promise<Project[]> {
+  let query = sb.from("projects").select("*").order("status").order("name");
+  if (departmentId) query = query.eq("department_id", departmentId);
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as Project[];
 }

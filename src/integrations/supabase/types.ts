@@ -1716,6 +1716,50 @@ export type Database = {
         }
         Relationships: []
       }
+      department_workspace_preferences: {
+        Row: {
+          created_at: string
+          department_id: string
+          drive_default_filter: string
+          id: string
+          lead_digest_enabled: boolean
+          project_tracker_view: string
+          show_dashboard_documents: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_id: string
+          drive_default_filter?: string
+          id?: string
+          lead_digest_enabled?: boolean
+          project_tracker_view?: string
+          show_dashboard_documents?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string
+          drive_default_filter?: string
+          id?: string
+          lead_digest_enabled?: boolean
+          project_tracker_view?: string
+          show_dashboard_documents?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_workspace_preferences_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           aliases: string[]
@@ -1771,6 +1815,113 @@ export type Database = {
             columns: ["parent_department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_control_events: {
+        Row: {
+          actor_id: string
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          note: string | null
+          register_id: string
+          to_status: string | null
+          version: number | null
+        }
+        Insert: {
+          actor_id?: string
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          register_id: string
+          to_status?: string | null
+          version?: number | null
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          register_id?: string
+          to_status?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_control_events_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "document_control_registers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_control_registers: {
+        Row: {
+          approval_note: string | null
+          approved_at: string | null
+          approved_by: string | null
+          controlled_version: number
+          created_at: string
+          created_by: string
+          department_id: string
+          document_number: string
+          document_status: string
+          drive_node_id: string
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approval_note?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          controlled_version?: number
+          created_at?: string
+          created_by?: string
+          department_id: string
+          document_number: string
+          document_status?: string
+          drive_node_id: string
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approval_note?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          controlled_version?: number
+          created_at?: string
+          created_by?: string
+          department_id?: string
+          document_number?: string
+          document_status?: string
+          drive_node_id?: string
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_control_registers_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_drive_node_id_fkey"
+            columns: ["drive_node_id"]
+            isOneToOne: true
+            referencedRelation: "drive_nodes"
             referencedColumns: ["id"]
           },
         ]
