@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CalendarDays, ChevronDown, FileText, Loader2, UserRound, Wrench } from "lucide-react";
+import { AlertTriangle, CalendarDays, ChevronDown, FileText, Layers3, Loader2, UserRound, Wrench } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,18 +25,21 @@ export function CommandCenter() {
   const filteredTasks = selectedDepartmentId ? liveTasks.filter((task) => task.department_id === selectedDepartmentId) : liveTasks;
   const groupedTasks = groupWorkspaceTasks(filteredTasks, ["__all_departments__"]);
 
+  const selectedDepartment = availableDepartments.find((department) => department.id === selectedDepartmentId) ?? null;
+  const workspaceLabel = selectedDepartment?.name ?? "All departments";
+
   return <div className="mx-auto max-w-7xl space-y-6">
     <section className="border-b pb-6">
       <div>
-        <p className="text-sm font-medium text-primary">My day</p>
-        <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-semibold">Department tasks</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">Complete the tasks needing attention today, then review the department’s later work.</p></div><DepartmentSelector departments={availableDepartments} isAdmin={isAdmin} value={selectedDepartmentId} onChange={setSelectedDepartmentId} /></div>
+        <p className="text-sm font-medium text-primary">{isAdmin ? "Administrator workspace" : "Department workspace"}</p>
+        <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-semibold">{workspaceLabel} tasks</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">{isAdmin ? "Select a department to oversee its lead view, or keep every department visible for a complete task picture." : "Complete the tasks needing attention today, then review the department’s later work."}</p></div><DepartmentSelector departments={availableDepartments} isAdmin={isAdmin} value={selectedDepartmentId} onChange={setSelectedDepartmentId} /></div>
       </div>
     </section>
 
     {tasks.isLoading ? <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 size-4 animate-spin" /> Loading your work pulse…</div> : tasks.isError ? <div className="border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">Tasks could not be loaded. Your access has not been changed; refresh or try again later.</div> : <>
       <div className="max-w-4xl space-y-4">
-        <TaskChecklist title="Today’s priority tasks" description="Urgent, high-priority, blocked, due today, or overdue." tasks={groupedTasks.today} />
-        <TaskChecklist title="Pending for later" description="Open department work that does not need attention today." tasks={groupedTasks.later} defaultOpen={false} />
+        <TaskChecklist title={selectedDepartment ? "Today’s priority tasks" : "Today’s priorities across departments"} description="Urgent, high-priority, blocked, due today, or overdue." tasks={groupedTasks.today} />
+        <TaskChecklist title={selectedDepartment ? "Pending for later" : "Pending across departments"} description="Open work that does not need attention today." tasks={groupedTasks.later} defaultOpen={false} />
       </div>
     </>}
   </div>;
@@ -45,7 +48,8 @@ export function CommandCenter() {
 function DepartmentSelector({ departments, isAdmin, value, onChange }: { departments: CanonicalDepartment[]; isAdmin: boolean; value: string | null; onChange: (departmentId: string | null) => void }) {
   const selectedDepartment = departments.find((department) => department.id === value) ?? null;
   const workTarget = selectedDepartment ? departmentWorkTarget(selectedDepartment) : "/tasks";
-  return <div className="w-full sm:w-60"><p className="mb-1.5 text-xs font-medium text-muted-foreground">Department</p><div className="flex gap-2"><Select value={value ?? "all"} onValueChange={(nextValue) => onChange(nextValue === "all" ? null : nextValue)}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{isAdmin && <SelectItem value="all">All departments</SelectItem>}{departments.map((department) => <SelectItem key={department.id} value={department.id}>{department.name}{department.aliases.length ? ` · ${department.aliases.join(", ")}` : ""}</SelectItem>)}</SelectContent></Select>{selectedDepartment && <Button asChild size="icon" variant="outline" title={`Open ${selectedDepartment.name} work`} aria-label={`Open ${selectedDepartment.name} work`}><Link to={workTarget}><Wrench className="size-4" /></Link></Button>}</div></div>;
+  const label = isAdmin ? "Workspace view" : "Department";
+  return <div className="w-full sm:w-72"><p className="mb-1.5 text-xs font-medium text-muted-foreground">{label}</p><div className="flex gap-2"><Select value={value ?? "all"} onValueChange={(nextValue) => onChange(nextValue === "all" ? null : nextValue)}><SelectTrigger><SelectValue placeholder="Select department" /></SelectTrigger><SelectContent>{isAdmin && <SelectItem value="all"><span className="flex items-center gap-2"><Layers3 className="size-3.5" />All departments</span></SelectItem>}{departments.map((department) => <SelectItem key={department.id} value={department.id}>{department.name}{department.aliases.length ? ` · ${department.aliases.join(", ")}` : ""}</SelectItem>)}</SelectContent></Select>{selectedDepartment && <Button asChild size="icon" variant="outline" title={`Open ${selectedDepartment.name} lead workspace`} aria-label={`Open ${selectedDepartment.name} lead workspace`}><Link to={workTarget}><Wrench className="size-4" /></Link></Button>}</div>{isAdmin && <p className="mt-1.5 text-xs text-muted-foreground">Changes your oversight view only; permissions remain administrator-controlled.</p>}</div>;
 }
 
 function TaskChecklist({ title, description, tasks, defaultOpen = true }: { title: string; description: string; tasks: ProjectTask[]; defaultOpen?: boolean }) {
@@ -69,7 +73,7 @@ function TaskChecklist({ title, description, tasks, defaultOpen = true }: { titl
     <CardHeader className="pb-3"><CardTitle className="flex items-center gap-2 text-lg"><AlertTriangle className="size-4 text-primary" /> {title}<Badge variant="secondary">{total}</Badge></CardTitle><CardDescription>{description}</CardDescription></CardHeader>
     <CardContent className="space-y-1">
        {tasks.map((task) => <Collapsible key={task.id} open={openTaskId === task.id} onOpenChange={(isOpen) => setOpenTaskId(isOpen ? task.id : null)}><div className="border-b py-3 last:border-0"><div className="flex items-start gap-3"><Checkbox aria-label={`Mark ${task.title} complete`} onCheckedChange={(checked) => void completeTask(task, Boolean(checked))} /><CollapsibleTrigger className="min-w-0 flex-1 text-left"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="text-sm font-medium">{task.title}</p><p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground"><span className="inline-flex items-center gap-1"><UserRound className="size-3" />{task.assignee?.name ?? "Unassigned"}</span><span className="inline-flex items-center gap-1"><CalendarDays className="size-3" />{taskDueLabel(task.due_date)}</span><StatusBadge status={task.status} />{task.department_record && <span>{task.department_record.code ?? task.department_record.name}</span>}{task.project && <span>{task.project.code}</span>}{task.drive_node_id && <span className="inline-flex items-center gap-1"><FileText className="size-3" />Document linked</span>}</p></div><ChevronDown className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform data-[state=open]:rotate-180" /></div></CollapsibleTrigger></div><CollapsibleContent className="pl-7 pt-3"><TaskDetails task={task} /></CollapsibleContent></div></Collapsible>)}
-       {total === 0 && <p className="py-5 text-sm text-muted-foreground">No open tasks are visible for this department.</p>}
+       {total === 0 && <p className="py-5 text-sm text-muted-foreground">No open tasks are visible in this workspace view.</p>}
       {!defaultOpen && total > 0 && <p className="pt-2 text-xs text-muted-foreground">Open any task to see its notes, progress, project, and owner.</p>}
     </CardContent>
   </Card>;
