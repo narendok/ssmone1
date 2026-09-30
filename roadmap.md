@@ -105,3 +105,4 @@
 - [x] Focus navigation and quick work links on the selected administrator department workspace without altering authorization.
 - [ ] Add user-approved real departmental operating records through their established workflows. **Blocker:** source records and owners have not been supplied; the workspace must not invent business data.
 - [x] Complete department cleanup and department-scoped Drive/project workflow.
+- [x] Restore department Drive navigation with Common, Internal Project, Client Project, PPAP, Starred, and BOM filters; add Platform Owner editable folder categories for future projects.

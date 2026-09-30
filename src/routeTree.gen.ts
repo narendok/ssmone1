@@ -52,6 +52,7 @@ import { Route as ApiPublicDatasheetProxyRouteImport } from './routes/api/public
 import { Route as AuthenticatedTasksDepartmentsRouteImport } from './routes/_authenticated/tasks.departments'
 import { Route as AuthenticatedStoresInventoryRouteImport } from './routes/_authenticated/stores.inventory'
 import { Route as AuthenticatedSettingsProjectsRouteImport } from './routes/_authenticated/settings.projects'
+import { Route as AuthenticatedSettingsDriveRouteImport } from './routes/_authenticated/settings.drive'
 import { Route as AuthenticatedSettingsCategoriesRouteImport } from './routes/_authenticated/settings.categories'
 import { Route as AuthenticatedQualityIncomingRouteImport } from './routes/_authenticated/quality.incoming'
 import { Route as AuthenticatedQmsRisksRouteImport } from './routes/_authenticated/qms.risks'
@@ -334,6 +335,12 @@ const AuthenticatedSettingsProjectsRoute =
   AuthenticatedSettingsProjectsRouteImport.update({
     id: '/settings/projects',
     path: '/settings/projects',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSettingsDriveRoute =
+  AuthenticatedSettingsDriveRouteImport.update({
+    id: '/settings/drive',
+    path: '/settings/drive',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedSettingsCategoriesRoute =
@@ -722,6 +729,7 @@ export interface FileRoutesByFullPath {
   '/qms/risks': typeof AuthenticatedQmsRisksRoute
   '/quality/incoming': typeof AuthenticatedQualityIncomingRoute
   '/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
+  '/settings/drive': typeof AuthenticatedSettingsDriveRoute
   '/settings/projects': typeof AuthenticatedSettingsProjectsRoute
   '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
@@ -817,6 +825,7 @@ export interface FileRoutesByTo {
   '/qms/risks': typeof AuthenticatedQmsRisksRoute
   '/quality/incoming': typeof AuthenticatedQualityIncomingRoute
   '/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
+  '/settings/drive': typeof AuthenticatedSettingsDriveRoute
   '/settings/projects': typeof AuthenticatedSettingsProjectsRoute
   '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
@@ -916,6 +925,7 @@ export interface FileRoutesById {
   '/_authenticated/qms/risks': typeof AuthenticatedQmsRisksRoute
   '/_authenticated/quality/incoming': typeof AuthenticatedQualityIncomingRoute
   '/_authenticated/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
+  '/_authenticated/settings/drive': typeof AuthenticatedSettingsDriveRoute
   '/_authenticated/settings/projects': typeof AuthenticatedSettingsProjectsRoute
   '/_authenticated/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/_authenticated/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
@@ -1015,6 +1025,7 @@ export interface FileRouteTypes {
     | '/qms/risks'
     | '/quality/incoming'
     | '/settings/categories'
+    | '/settings/drive'
     | '/settings/projects'
     | '/stores/inventory'
     | '/tasks/departments'
@@ -1110,6 +1121,7 @@ export interface FileRouteTypes {
     | '/qms/risks'
     | '/quality/incoming'
     | '/settings/categories'
+    | '/settings/drive'
     | '/settings/projects'
     | '/stores/inventory'
     | '/tasks/departments'
@@ -1208,6 +1220,7 @@ export interface FileRouteTypes {
     | '/_authenticated/qms/risks'
     | '/_authenticated/quality/incoming'
     | '/_authenticated/settings/categories'
+    | '/_authenticated/settings/drive'
     | '/_authenticated/settings/projects'
     | '/_authenticated/stores/inventory'
     | '/_authenticated/tasks/departments'
@@ -1545,6 +1558,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/projects'
       fullPath: '/settings/projects'
       preLoaderRoute: typeof AuthenticatedSettingsProjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings/drive': {
+      id: '/_authenticated/settings/drive'
+      path: '/settings/drive'
+      fullPath: '/settings/drive'
+      preLoaderRoute: typeof AuthenticatedSettingsDriveRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/settings/categories': {
@@ -2025,6 +2045,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedQmsRisksRoute: typeof AuthenticatedQmsRisksRoute
   AuthenticatedQualityIncomingRoute: typeof AuthenticatedQualityIncomingRoute
   AuthenticatedSettingsCategoriesRoute: typeof AuthenticatedSettingsCategoriesRoute
+  AuthenticatedSettingsDriveRoute: typeof AuthenticatedSettingsDriveRoute
   AuthenticatedSettingsProjectsRoute: typeof AuthenticatedSettingsProjectsRoute
   AuthenticatedStoresInventoryRoute: typeof AuthenticatedStoresInventoryRoute
   AuthenticatedTasksDepartmentsRoute: typeof AuthenticatedTasksDepartmentsRoute
@@ -2116,6 +2137,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedQmsRisksRoute: AuthenticatedQmsRisksRoute,
   AuthenticatedQualityIncomingRoute: AuthenticatedQualityIncomingRoute,
   AuthenticatedSettingsCategoriesRoute: AuthenticatedSettingsCategoriesRoute,
+  AuthenticatedSettingsDriveRoute: AuthenticatedSettingsDriveRoute,
   AuthenticatedSettingsProjectsRoute: AuthenticatedSettingsProjectsRoute,
   AuthenticatedStoresInventoryRoute: AuthenticatedStoresInventoryRoute,
   AuthenticatedTasksDepartmentsRoute: AuthenticatedTasksDepartmentsRoute,
