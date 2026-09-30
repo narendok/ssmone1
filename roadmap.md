@@ -102,3 +102,4 @@
 - [ ] Apply approved access redesign: backend department canonicalization, RBAC/RLS reconciliation, and inventory route guards; verify denied and authorized access paths.
 
 - [x] Make administrator workspace context switching primary; remove redundant My Day switching and add all-departments task visibility.
+- [x] Focus navigation and quick work links on the selected administrator department workspace without altering authorization.
