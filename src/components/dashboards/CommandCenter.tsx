@@ -23,7 +23,7 @@ export function CommandCenter() {
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(isAdmin ? null : availableDepartments[0]?.id ?? null);
   const liveTasks = (tasks.data ?? []).filter((task) => OPEN_TASK_STATUSES.includes(task.status));
   const filteredTasks = selectedDepartmentId ? liveTasks.filter((task) => task.department_id === selectedDepartmentId) : liveTasks;
-  const groupedTasks = groupWorkspaceTasks(filteredTasks, ["__all_departments__"]);
+  const groupedTasks = groupWorkspaceTasks(filteredTasks, []);
 
   const selectedDepartment = availableDepartments.find((department) => department.id === selectedDepartmentId) ?? null;
   const workspaceLabel = selectedDepartment?.name ?? "All departments";
