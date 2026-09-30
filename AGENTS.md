@@ -11,3 +11,4 @@
 - Reuse the R&D member dialog for R&D-specific contacts; project membership remains employee-based so no workflow creates duplicate identities.
 - Department workspaces are read-only RLS queues; approvals stay in established workflows and priorities remain department-scoped with admin oversight.
 - Department projects provision their controlled Drive hierarchy by trigger; regular users cannot invoke it.
+- Drive categories are department-owned templates: common categories belong under the department standards branch, project categories are provisioned only for new internal/client projects, and Platform Owners manage templates through the settings page.

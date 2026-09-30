@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   Folder, FileText, FileCode2, Box, Image as ImageIcon, FileSpreadsheet, File as FileIcon,
   Star, MoreVertical, Upload, FolderPlus, Search, LayoutGrid, List, Loader2, Download,
-  Link2, History, Pencil, Trash2, ChevronRight, Home, Lock,
+  Link2, History, Pencil, Trash2, ChevronRight, Home, Lock, FolderTree, Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +18,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
-  createFolder, downloadNode, extOf, fetchBreadcrumbs, fetchChildren, fetchFavorites, formatBytes,
+  createFolder, downloadNode, extOf, fetchBreadcrumbs, fetchChildren, fetchDriveCategoryTemplates, fetchFavorites, formatBytes,
   renameNode, toggleStar, trashNode, uploadFile, FOLDER_COLOR, type DriveNode,
 } from "@/lib/drive";
 import { FilePreviewDialog } from "./FilePreviewDialog";
@@ -26,7 +26,7 @@ import { RevisionsDialog } from "./RevisionsDialog";
 import { ShareNodeDialog } from "./ShareNodeDialog";
 import { fetchDriveProjectBoms, type DriveProjectBomSummary } from "@/lib/project-bom.functions";
 
-type Filter = "all" | "starred" | "ppap" | "boms";
+type Filter = "all" | "common" | "internal" | "client" | "starred" | "ppap" | "boms";
 
 function iconFor(node: DriveNode) {
   if (node.node_type === "FOLDER") return Folder;
@@ -80,6 +80,12 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
     },
     enabled: Boolean(initialNodeId),
   });
+  const activeDepartmentId = initialNode?.department_id ?? null;
+  const { data: categories = [] } = useQuery({
+    queryKey: ["drive_category_templates", activeDepartmentId],
+    queryFn: () => fetchDriveCategoryTemplates(activeDepartmentId),
+    enabled: Boolean(activeDepartmentId),
+  });
 
   useEffect(() => {
     if (!initialNode) return;
@@ -98,9 +104,17 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
       if (q && !n.name.toLowerCase().includes(q)) return false;
       if (filter === "starred" && !(n.is_starred || favorites.has(n.id))) return false;
       if (filter === "ppap" && !n.slug.startsWith("ppap") && !n.name.includes("PPAP")) return false;
+      if (filter === "common" && n.folder_kind !== "DEPARTMENT_STANDARDS") return false;
+      if (filter === "internal" && n.folder_kind !== "INTERNAL_PROJECTS") return false;
+      if (filter === "client" && n.folder_kind !== "CLIENT_PROJECTS") return false;
       return true;
     });
   }, [nodes, search, filter, favorites]);
+
+  const rootCategories = useMemo(() => {
+    if (projectId || folderId) return [];
+    return categories.filter((category) => category.placement === "COMMON" && category.is_active);
+  }, [categories, folderId, projectId]);
 
   const visibleBoms = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -285,8 +299,11 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
         <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="starred">Starred</TabsTrigger>
+            {!projectId && <TabsTrigger value="common">Common documents</TabsTrigger>}
+            {!projectId && <TabsTrigger value="internal">Internal projects</TabsTrigger>}
+            {!projectId && <TabsTrigger value="client">Client projects</TabsTrigger>}
             <TabsTrigger value="ppap">PPAP</TabsTrigger>
+            <TabsTrigger value="starred">Starred</TabsTrigger>
             {!projectId && <TabsTrigger value="boms">Project BOMs</TabsTrigger>}
           </TabsList>
         </Tabs>
@@ -330,7 +347,7 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
 
       {busy && <p className="text-xs text-muted-foreground">{busy}</p>}
 
-      {filter === "boms" ? (
+       {filter === "boms" ? (
         bomsLoading ? (
           <Card className="p-8 text-center text-muted-foreground">Loading project BOMs…</Card>
         ) : bomsError ? (
@@ -366,11 +383,11 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
             ))}
           </Card>
         )
-      ) : isLoading ? (
+       ) : isLoading ? (
         <Card className="p-8 text-center text-muted-foreground">Loading…</Card>
       ) : isError ? (
         <Card className="border-destructive/40 bg-destructive/5 p-8 text-center text-sm text-destructive">{error instanceof Error ? error.message : "This folder could not be loaded with your current access."}</Card>
-      ) : visible.length === 0 ? (
+       ) : visible.length === 0 ? (
         <Card className="p-8 text-center text-muted-foreground">
           No accessible items are stored in this folder.
         </Card>
@@ -383,6 +400,20 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
           {visible.map((n) => <Row key={n.id} node={n} />)}
         </Card>
       )}
+
+       {rootCategories.length > 0 && filter === "all" && (
+         <div className="border-t pt-4">
+           <div className="mb-2 flex items-center gap-2 text-sm font-medium"><FolderTree className="h-4 w-4 text-muted-foreground" /> Department document categories</div>
+           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+             {rootCategories.map((category) => (
+               <Card key={category.id} className="flex items-center gap-3 p-3">
+                 <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                 <div className="min-w-0"><p className="truncate text-sm font-medium">{category.label}</p><p className="text-xs text-muted-foreground">Common department documents</p></div>
+               </Card>
+             ))}
+           </div>
+         </div>
+       )}
 
       <FilePreviewDialog node={preview} onOpenChange={(o) => !o && setPreview(null)} />
       <RevisionsDialog

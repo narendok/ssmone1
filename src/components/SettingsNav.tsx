@@ -6,6 +6,7 @@ export function SettingsNav() {
   const items = [
     { to: "/settings/categories", label: "Categories" },
     { to: "/settings/projects", label: "Projects" },
+    { to: "/settings/drive", label: "Drive structure" },
   ] as const;
   return (
     <nav className="flex items-center gap-1 border-b mb-4">
