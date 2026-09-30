@@ -19,7 +19,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   createFolder, downloadNode, extOf, fetchBreadcrumbs, fetchChildren, fetchDriveCategoryTemplates, fetchFavorites, formatBytes,
-  renameNode, toggleStar, trashNode, uploadFile, FOLDER_COLOR, type DriveNode,
+  fetchDepartmentDriveRoots, renameNode, toggleStar, trashNode, uploadFile, FOLDER_COLOR, type DriveNode,
 } from "@/lib/drive";
 import { FilePreviewDialog } from "./FilePreviewDialog";
 import { RevisionsDialog } from "./RevisionsDialog";
@@ -39,7 +39,7 @@ function iconFor(node: DriveNode) {
   return FileIcon;
 }
 
-export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: string | null; initialNodeId?: string }) {
+export function DriveBrowser({ projectId = null, departmentId = null, initialNodeId }: { projectId?: string | null; departmentId?: string | null; initialNodeId?: string }) {
   const qc = useQueryClient();
   const fetchBoms = useServerFn(fetchDriveProjectBoms);
   const [folderId, setFolderId] = useState<string | null>(null);
@@ -55,7 +55,7 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
   const childrenKey = ["drive_children", projectId, folderId];
   const { data: nodes = [], isLoading, isError, error } = useQuery({
     queryKey: childrenKey,
-    queryFn: () => fetchChildren(folderId, projectId),
+    queryFn: () => fetchChildren(folderId, projectId, departmentId),
   });
   const { data: crumbs = [] } = useQuery({
     queryKey: ["drive_crumbs", folderId],
@@ -80,11 +80,16 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
     },
     enabled: Boolean(initialNodeId),
   });
-  const activeDepartmentId = initialNode?.department_id ?? null;
+  const activeDepartmentId = departmentId ?? initialNode?.department_id ?? null;
   const { data: categories = [] } = useQuery({
     queryKey: ["drive_category_templates", activeDepartmentId],
     queryFn: () => fetchDriveCategoryTemplates(activeDepartmentId),
     enabled: Boolean(activeDepartmentId),
+  });
+  const { data: departmentRoots = [] } = useQuery({
+    queryKey: ["department_drive_roots", activeDepartmentId],
+    queryFn: () => fetchDepartmentDriveRoots(activeDepartmentId ?? ""),
+    enabled: Boolean(activeDepartmentId && !projectId),
   });
 
   useEffect(() => {
@@ -92,6 +97,13 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
     if (initialNode.node_type === "FOLDER") setFolderId(initialNode.id);
     else setPreview(initialNode);
   }, [initialNode]);
+
+  useEffect(() => {
+    if (!departmentId || projectId || folderId || filter === "all" || filter === "starred" || filter === "ppap" || filter === "boms") return;
+    const folderKind = filter === "common" ? "DEPARTMENT_STANDARDS" : filter === "internal" ? "INTERNAL_PROJECTS" : "CLIENT_PROJECTS";
+    const target = departmentRoots.find((root) => root.folder_kind === folderKind);
+    if (target) setFolderId(target.id);
+  }, [departmentId, departmentRoots, filter, folderId, projectId]);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["drive_children"] });
@@ -104,9 +116,6 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
       if (q && !n.name.toLowerCase().includes(q)) return false;
       if (filter === "starred" && !(n.is_starred || favorites.has(n.id))) return false;
       if (filter === "ppap" && !n.slug.startsWith("ppap") && !n.name.includes("PPAP")) return false;
-      if (filter === "common" && n.folder_kind !== "DEPARTMENT_STANDARDS") return false;
-      if (filter === "internal" && n.folder_kind !== "INTERNAL_PROJECTS") return false;
-      if (filter === "client" && n.folder_kind !== "CLIENT_PROJECTS") return false;
       return true;
     });
   }, [nodes, search, filter, favorites]);
@@ -131,7 +140,7 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
     for (const file of Array.from(files)) {
       try {
         setBusy(`Uploading ${file.name}…`);
-        await uploadFile({ file, parentId: folderId, projectId, onProgress: (l) => setBusy(`${file.name}: ${l}`) });
+        await uploadFile({ file, parentId: folderId, projectId, departmentId: activeDepartmentId, onProgress: (l) => setBusy(`${file.name}: ${l}`) });
         toast.success(`${file.name} uploaded`);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : `Could not upload ${file.name}`);
@@ -145,7 +154,7 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
     const name = window.prompt("Folder name");
     if (!name?.trim()) return;
     try {
-      await createFolder({ name: name.trim(), parentId: folderId, projectId });
+      await createFolder({ name: name.trim(), parentId: folderId, projectId, departmentId: activeDepartmentId });
       toast.success("Folder created");
       refresh();
     } catch (e) {
@@ -299,9 +308,9 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
         <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
-            {!projectId && <TabsTrigger value="common">Common documents</TabsTrigger>}
-            {!projectId && <TabsTrigger value="internal">Internal projects</TabsTrigger>}
-            {!projectId && <TabsTrigger value="client">Client projects</TabsTrigger>}
+            {!projectId && activeDepartmentId && <TabsTrigger value="common">Common documents</TabsTrigger>}
+            {!projectId && activeDepartmentId && <TabsTrigger value="internal">Internal projects</TabsTrigger>}
+            {!projectId && activeDepartmentId && <TabsTrigger value="client">Client projects</TabsTrigger>}
             <TabsTrigger value="ppap">PPAP</TabsTrigger>
             <TabsTrigger value="starred">Starred</TabsTrigger>
             {!projectId && <TabsTrigger value="boms">Project BOMs</TabsTrigger>}
@@ -329,7 +338,7 @@ export function DriveBrowser({ projectId = null, initialNodeId }: { projectId?: 
       </div>
 
       <div className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
-        <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setFolderId(null)}>
+        <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => { setFilter("all"); setFolderId(null); }}>
           <Home className="h-3.5 w-3.5" /> {projectId ? "Project files" : "Drive"}
         </button>
         {crumbs.map((c) => (

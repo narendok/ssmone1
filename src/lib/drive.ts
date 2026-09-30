@@ -140,10 +140,11 @@ export const FOLDER_COLOR: Record<string, string> = {
 
 /* ---------------- queries ---------------- */
 
-export async function fetchChildren(parentId: string | null, projectId?: string | null): Promise<DriveNode[]> {
+export async function fetchChildren(parentId: string | null, projectId?: string | null, departmentId?: string | null): Promise<DriveNode[]> {
   let q = sb.from("drive_nodes").select("*").eq("is_trashed", false);
   q = parentId === null ? q.is("parent_id", null) : q.eq("parent_id", parentId);
   if (parentId === null && projectId) q = q.eq("project_id", projectId);
+  if (parentId === null && departmentId) q = q.eq("department_id", departmentId);
   const { data, error } = await q.order("node_type").order("name");
   if (error) throw error;
   return (data ?? []) as DriveNode[];
@@ -170,6 +171,18 @@ export async function fetchAllNodes(projectId?: string | null): Promise<DriveNod
   return (data ?? []) as DriveNode[];
 }
 
+export async function fetchDepartmentDriveRoots(departmentId: string): Promise<DriveNode[]> {
+  const { data, error } = await sb
+    .from("drive_nodes")
+    .select("*")
+    .eq("department_id", departmentId)
+    .eq("is_trashed", false)
+    .in("folder_kind", ["DEPARTMENT_STANDARDS", "INTERNAL_PROJECTS", "CLIENT_PROJECTS"])
+    .order("folder_kind");
+  if (error) throw error;
+  return (data ?? []) as DriveNode[];
+}
+
 export async function fetchBreadcrumbs(nodeId: string): Promise<Breadcrumb[]> {
   const { data, error } = await sb.rpc("get_drive_breadcrumbs", { p_node_id: nodeId });
   if (error) throw error;
@@ -191,6 +204,7 @@ export async function createFolder(opts: {
   name: string;
   parentId: string | null;
   projectId: string | null;
+  departmentId?: string | null;
 }): Promise<DriveNode> {
   const { data: u } = await supabase.auth.getUser();
   const { data, error } = await sb
@@ -201,6 +215,7 @@ export async function createFolder(opts: {
       node_type: "FOLDER",
       parent_id: opts.parentId,
       project_id: opts.projectId,
+      department_id: opts.departmentId ?? null,
       created_by: u.user?.id ?? null,
     })
     .select()
@@ -224,9 +239,10 @@ export async function uploadFile(opts: {
   file: File;
   parentId: string | null;
   projectId: string | null;
+  departmentId?: string | null;
   onProgress?: (label: string) => void;
 }): Promise<DriveNode> {
-  const { file, parentId, projectId } = opts;
+  const { file, parentId, projectId, departmentId } = opts;
   opts.onProgress?.("Calculating checksum…");
   const checksum = await sha256Hex(file);
   const { data: u } = await supabase.auth.getUser();
@@ -248,6 +264,7 @@ export async function uploadFile(opts: {
       sha256_checksum: checksum,
       parent_id: parentId,
       project_id: projectId,
+      department_id: departmentId ?? null,
       created_by: u.user?.id ?? null,
     })
     .select()
