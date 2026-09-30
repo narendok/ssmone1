@@ -16,7 +16,7 @@ const targets = [
   { name: "Recruitment", hint: "HR", to: "/hr/recruitment", permission: "recruitment.manage" },
   { name: "Leave desk", hint: "HR", to: "/hr/leave", permission: "hr.view" },
   { name: "Purchase orders", hint: "Operations", to: "/procurement/orders", permission: "procurement.view" },
-  { name: "Administration", hint: "System", to: "/admin", permission: "admin.view" },
+  { name: "System controls", hint: "System", to: "/admin", permission: "admin.view" },
 ];
 
 export function GlobalSearch({ mobile = false, canScan = false }: { mobile?: boolean; canScan?: boolean }) {

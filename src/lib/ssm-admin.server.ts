@@ -3,27 +3,18 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 const ADMIN_EMAIL = "narendok@gmail.com";
 
 const DEPARTMENTS = [
-  ["Software", "SW"],
-  ["Embedded Hardware", "EHW"],
-  ["Embedded Software", "ESW"],
-  ["Purchase", "PUR/PD"],
-  ["Production", "MPRD/PRD-01"],
-  ["Engineering Production", "EPRD/PRD-02"],
+  ["Hardware & R&D", "RND"],
+  ["Procurement, Stores & Incoming Quality", "PROC"],
+  ["Production & Calibration", "PROD"],
+  ["Facility, Maintenance, Security, Utilities & Assets", "FAC"],
+  ["Operations & QMS", "OPS"],
   ["Sales", "SAL"],
-  ["Customer Support", "CS"],
-  ["Finance", "FIN"],
   ["Human Resources", "HR"],
-  ["Operations", "OP"],
-  ["Marketing & Business Development", "MKT/BD"],
-  ["Research & Development", "R&D"],
-  ["Maintenance", "MNT"],
-  ["Quality Assurance", "QA"],
-  ["Stores", "STR"],
-  ["Management Review", "MR"],
+  ["Finance", "FIN"],
 ] as const;
 
 const ROLE_DEFINITIONS = [
-  ["System Admin", "Full company administration", true],
+  ["Platform Owner", "Platform-wide administration and oversight", true],
   ["Management", "Organization-wide visibility and approvals", true],
   ["Head of Department", "Department management", true],
   ["Project Manager", "Project coordination", true],
@@ -51,14 +42,14 @@ const MODULES = [
   ["home", "Home", "Home", "/", "ENABLED", 10],
   ["my_work", "My Work", "Work", "/tasks", "ENABLED", 20],
   ["projects", "Projects", "Work", "/projects", "ENABLED", 30],
-  ["engineering", "R&D / PartsBench", "Engineering", "/", "ENABLED", 40],
+  ["engineering", "Engineering", "Engineering", "/", "ENABLED", 40],
   ["procurement", "Procurement", "Operations", "/procurement/requests", "ENABLED", 50],
   ["stores", "Stores", "Operations", "/stores/inventory", "ENABLED", 55],
   ["quality", "Quality", "Operations", "/quality/incoming", "ENABLED", 60],
   ["finance", "Finance", "Operations", "/finance/expenses", "ENABLED", 65],
   ["people", "People", "Workplace", "/coming-soon/people", "COMING_SOON", 70],
   ["documents", "Documents", "Workplace", "/coming-soon/documents", "COMING_SOON", 80],
-  ["admin", "Administration", "System", "/admin", "ENABLED", 90],
+  ["admin", "System controls", "System", "/admin", "ENABLED", 90],
   ["facility", "Facility", "Operations", "/facility", "ENABLED", 80],
   ["assets", "Assets", "Operations", "/assets", "ENABLED", 81],
   ["maintenance", "Maintenance", "Operations", "/maintenance", "ENABLED", 82],
@@ -121,13 +112,13 @@ export async function bootstrapSsmOne() {
 
   const { data: roles, error: roleFetchError } = await supabaseAdmin.from("access_roles").select("id, name");
   if (roleFetchError) throw roleFetchError;
-  const systemAdminRole = roles.find((role) => role.name === "System Admin");
-  if (!systemAdminRole) throw new Error("System Admin role could not be prepared");
+  const platformOwnerRole = roles.find((role) => role.name === "Platform Owner");
+  if (!platformOwnerRole) throw new Error("Platform Owner role could not be prepared");
 
   const { data: permissionRows, error: permissionFetchError } = await supabaseAdmin.from("permissions").select("id");
   if (permissionFetchError) throw permissionFetchError;
   const { error: rolePermissionError } = await supabaseAdmin.from("access_role_permissions").upsert(
-    permissionRows.map((permission) => ({ role_id: systemAdminRole.id, permission_id: permission.id })),
+    permissionRows.map((permission) => ({ role_id: platformOwnerRole.id, permission_id: permission.id })),
     { onConflict: "role_id,permission_id" },
   );
   if (rolePermissionError) throw rolePermissionError;
@@ -138,7 +129,7 @@ export async function bootstrapSsmOne() {
   let invitationSent = false;
   if (!adminUser) {
     const invite = await supabaseAdmin.auth.admin.inviteUserByEmail(ADMIN_EMAIL, {
-      data: { display_name: "System Administrator" },
+      data: { display_name: "Platform Owner" },
       redirectTo: `${process.env['PUBLIC_APP_URL'] ?? 'https://id-preview--33eca6ac-b01a-4598-8314-5c773b2b8543.lovable.app'}/auth`,
     });
     if (invite.error || !invite.data.user) throw new Error(invite.error?.message ?? "Could not invite the initial administrator");
@@ -149,22 +140,22 @@ export async function bootstrapSsmOne() {
   const { error: profileError } = await supabaseAdmin.from("profiles").upsert({
     id: adminUser.id,
     email: ADMIN_EMAIL,
-    display_name: adminUser.user_metadata?.display_name ?? "System Administrator",
+    display_name: adminUser.user_metadata?.display_name ?? "Platform Owner",
   }, { onConflict: "id" });
   if (profileError) throw profileError;
 
   const { error: legacyRoleError } = await supabaseAdmin.from("user_roles").upsert({ user_id: adminUser.id, role: "admin" }, { onConflict: "user_id,role" });
   if (legacyRoleError) throw legacyRoleError;
 
-  const { data: rAndDDepartment, error: departmentError } = await supabaseAdmin.from("departments").select("id").eq("code", "R&D").single();
+  const { data: rAndDDepartment, error: departmentError } = await supabaseAdmin.from("departments").select("id").eq("code", "RND").eq("is_active", true).single();
   if (departmentError) throw departmentError;
   const { data: employee, error: employeeError } = await supabaseAdmin.from("employees").upsert({
     user_id: adminUser.id,
     official_email: ADMIN_EMAIL,
-    display_name: adminUser.user_metadata?.display_name ?? "System Administrator",
+    display_name: adminUser.user_metadata?.display_name ?? "Platform Owner",
     employment_status: "ACTIVE",
     primary_department_id: rAndDDepartment.id,
-    default_role_id: systemAdminRole.id,
+    default_role_id: platformOwnerRole.id,
   }, { onConflict: "user_id" }).select("id").single();
   if (employeeError) throw employeeError;
 
@@ -177,7 +168,7 @@ export async function bootstrapSsmOne() {
 
   const { error: employeeRoleError } = await supabaseAdmin.from("employee_access_roles").upsert({
     employee_id: employee.id,
-    role_id: systemAdminRole.id,
+    role_id: platformOwnerRole.id,
     assigned_by_user_id: adminUser.id,
   }, { onConflict: "employee_id,role_id" });
   if (employeeRoleError) throw employeeRoleError;

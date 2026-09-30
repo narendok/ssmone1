@@ -1,12 +1,12 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  BadgeDollarSign, Boxes, BriefcaseBusiness, Building2, ClipboardCheck, ClipboardList, FileCog,
+  BadgeDollarSign, Boxes, BriefcaseBusiness, Building2, ClipboardCheck, ClipboardList,
   FileSearch, FileSpreadsheet, FileText, FolderKanban, Gauge, GraduationCap, Handshake, HardHat,
-  PackageCheck, PlaneTakeoff, ReceiptText, ScanLine, Search, Send, Settings2, ShieldCheck, ShoppingCart,
+  PackageCheck, PlaneTakeoff, ReceiptText, Search, Send, ShieldCheck, ShoppingCart,
   Truck, Users, WalletCards, Wrench,
 } from "lucide-react";
 
-export type WorkspaceKind = "rnd" | "procurement" | "production" | "facility" | "operations" | "hr" | "sales" | "finance" | "administration";
+export type WorkspaceKind = "rnd" | "procurement" | "production" | "facility" | "operations" | "hr" | "sales" | "finance";
 export type WorkspaceNavItem = { label: string; to: string; icon: LucideIcon; permission?: string };
 
 export type WorkspaceDefinition = {
@@ -18,7 +18,7 @@ export type WorkspaceDefinition = {
 };
 
 export const workspaceDefinitions: WorkspaceDefinition[] = [
-  { id: "rnd", terms: ["rnd", "hardware", "r&d", "research & development", "embedded software", "software", "hw"], label: "Hardware / R&D", summary: "Requirements, engineering disciplines, validation, and release evidence.", items: [
+  { id: "rnd", terms: ["rnd", "hardware & r&d"], label: "Hardware & R&D", summary: "Requirements, engineering disciplines, validation, and release evidence.", items: [
     { label: "Projects & requirements", to: "/projects", icon: FolderKanban, permission: "projects.view" }, { label: "Engineering workspace", to: "/", icon: HardHat, permission: "engineering.view" }, { label: "BOM sourcing", to: "/bom", icon: FileSpreadsheet, permission: "engineering.edit" }, { label: "Validation & repair", to: "/pcb", icon: Wrench, permission: "engineering.edit" }, { label: "Engineering assignments", to: "/assignments", icon: ClipboardList, permission: "engineering.view" }, { label: "Release documents", to: "/drive", icon: FileText, permission: "documents.view" },
   ] },
   { id: "procurement", terms: ["proc", "procurement", "purchase", "stores", "incoming quality", "qa"], label: "Procurement", summary: "Supplier data, sourcing, orders, incoming quality, Stores records, and controlled BOM sourcing.", items: [
@@ -36,14 +36,11 @@ export const workspaceDefinitions: WorkspaceDefinition[] = [
   { id: "hr", terms: ["hr", "human resources"], label: "HR", summary: "Employee, recruitment, onboarding, policy, and training documents.", items: [
     { label: "HR overview", to: "/hr", icon: Users, permission: "hr.view" }, { label: "Employees & access", to: "/hr/access", icon: ShieldCheck, permission: "admin.view" }, { label: "Recruitment", to: "/hr/recruitment", icon: ClipboardList, permission: "recruitment.manage" }, { label: "Onboarding", to: "/hr/onboarding", icon: PlaneTakeoff, permission: "training.manage" }, { label: "Training", to: "/hr/training", icon: GraduationCap, permission: "training.manage" }, { label: "Policies", to: "/hr/policies", icon: FileText, permission: "hr.view" },
   ] },
-  { id: "sales", terms: ["sal", "sales", "marketing", "business development", "customer support"], label: "Sales", summary: "Customer requirements, quotations, commercial handover, and client documents.", items: [
+  { id: "sales", terms: ["sal", "sales"], label: "Sales", summary: "Customer requirements, quotations, commercial handover, and client documents.", items: [
     { label: "Sales overview", to: "/sales", icon: BriefcaseBusiness, permission: "sales.view" }, { label: "Customers", to: "/customers", icon: Building2, permission: "sales.view" }, { label: "Customer service", to: "/customer-service", icon: Handshake, permission: "customer_service.view" }, { label: "Commercial records", to: "/records", icon: FileSearch, permission: "documents.view" }, { label: "Client documents", to: "/drive", icon: FileText, permission: "documents.view" },
   ] },
   { id: "finance", terms: ["fin", "finance"], label: "Finance", summary: "Payment, expense, and finance-only commercial records.", items: [
     { label: "Expenses", to: "/finance/expenses", icon: ReceiptText, permission: "finance.view" }, { label: "Payment milestones", to: "/finance/payment-plans", icon: WalletCards, permission: "finance.view" }, { label: "Finance records", to: "/records", icon: FileSearch, permission: "documents.view" }, { label: "Finance documents", to: "/drive", icon: FileText, permission: "documents.view" },
-  ] },
-  { id: "administration", terms: ["adm", "administration"], label: "Administration", summary: "Controlled templates, access configuration, and the document-control register.", items: [
-    { label: "Administration", to: "/admin", icon: Settings2, permission: "admin.view" }, { label: "Employees & access", to: "/hr/access", icon: ShieldCheck, permission: "admin.view" }, { label: "Controlled templates", to: "/drive", icon: FileCog, permission: "documents.view" }, { label: "Document register", to: "/records", icon: FileText, permission: "documents.view" }, { label: "Workspace records", to: "/records", icon: ScanLine, permission: "documents.view" },
   ] },
 ];
 

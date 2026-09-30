@@ -103,3 +103,4 @@
 
 - [x] Make administrator workspace context switching primary; remove redundant My Day switching and add all-departments task visibility.
 - [x] Focus navigation and quick work links on the selected administrator department workspace without altering authorization.
+- [ ] Complete department cleanup, governed acceptance records, and department-scoped Drive/project workflow.

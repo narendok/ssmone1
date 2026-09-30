@@ -1884,8 +1884,10 @@ export type Database = {
           created_at: string
           created_by: string | null
           current_version: number
+          department_id: string | null
           file_size_bytes: number | null
           file_type: string | null
+          folder_kind: string
           id: string
           is_locked: boolean
           is_starred: boolean
@@ -1907,8 +1909,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           current_version?: number
+          department_id?: string | null
           file_size_bytes?: number | null
           file_type?: string | null
+          folder_kind?: string
           id?: string
           is_locked?: boolean
           is_starred?: boolean
@@ -1930,8 +1934,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           current_version?: number
+          department_id?: string | null
           file_size_bytes?: number | null
           file_type?: string | null
+          folder_kind?: string
           id?: string
           is_locked?: boolean
           is_starred?: boolean
@@ -1950,6 +1956,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "drive_nodes_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "drive_nodes_parent_id_fkey"
             columns: ["parent_id"]
@@ -7504,7 +7517,9 @@ export type Database = {
           completion_notes: string | null
           created_at: string
           customer_id: string | null
+          department_id: string | null
           design_link: string | null
+          drive_project_class: string
           engineering_lead_employee_id: string | null
           health_status: string
           id: string
@@ -7532,7 +7547,9 @@ export type Database = {
           completion_notes?: string | null
           created_at?: string
           customer_id?: string | null
+          department_id?: string | null
           design_link?: string | null
+          drive_project_class?: string
           engineering_lead_employee_id?: string | null
           health_status?: string
           id?: string
@@ -7560,7 +7577,9 @@ export type Database = {
           completion_notes?: string | null
           created_at?: string
           customer_id?: string | null
+          department_id?: string | null
           design_link?: string | null
+          drive_project_class?: string
           engineering_lead_employee_id?: string | null
           health_status?: string
           id?: string
@@ -7586,6 +7605,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
           {
@@ -11126,6 +11152,10 @@ export type Database = {
         }
         Returns: Json
       }
+      can_access_department_drive: {
+        Args: { _department_id: string; _project_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_inward: { Args: { _uid: string }; Returns: boolean }
       can_manage_leave: { Args: { _uid: string }; Returns: boolean }
       can_manage_onboarding: { Args: { _uid: string }; Returns: boolean }
@@ -11238,6 +11268,10 @@ export type Database = {
         Args: { _bom_id: string; _required_date?: string }
         Returns: string
       }
+      current_employee_department_ids: {
+        Args: { _user_id: string }
+        Returns: string[]
+      }
       decide_incoming_inspection: {
         Args: { _findings?: string; _inspection_id: string; _status: string }
         Returns: undefined
@@ -11345,6 +11379,7 @@ export type Database = {
         Args: { _employee_id: string; _user_id: string }
         Returns: boolean
       }
+      is_platform_owner: { Args: { _user_id: string }; Returns: boolean }
       manage_component_location: {
         Args: {
           _approved_by: string
@@ -11455,6 +11490,10 @@ export type Database = {
       project_task_notification_recipient: {
         Args: { _member_id: string }
         Returns: string
+      }
+      provision_department_drive_template: {
+        Args: { p_department_id: string }
+        Returns: undefined
       }
       provision_drive_for_project: {
         Args: { p_project_id: string }
