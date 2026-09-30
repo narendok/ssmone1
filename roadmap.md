@@ -100,3 +100,5 @@
 - [x] Deliver and apply the approved department/access redesign: HW canonicalization, hierarchy, least-privilege inventory permissions, reconciled helpers/RLS, and guarded inventory routes. Verified with focused tests; no stock, credentials, users, or publishing changes.
 
 - [ ] Apply approved access redesign: backend department canonicalization, RBAC/RLS reconciliation, and inventory route guards; verify denied and authorized access paths.
+
+- [x] Make administrator workspace context switching primary; remove redundant My Day switching and add all-departments task visibility.
