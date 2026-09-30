@@ -4,6 +4,7 @@ import { DriveBrowser } from "@/components/drive/DriveBrowser";
 export const Route = createFileRoute("/_authenticated/drive")({
   validateSearch: (search: Record<string, unknown>) => ({
     node: typeof search.node === "string" ? search.node : undefined,
+    department: typeof search.department === "string" ? search.department : undefined,
   }),
   head: () => ({
     meta: [
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/_authenticated/drive")({
 });
 
 function DrivePage() {
-  const { node } = Route.useSearch();
+  const { node, department } = Route.useSearch();
   return (
     <div className="space-y-4">
       <div>
@@ -34,7 +35,7 @@ function DrivePage() {
           Browse the existing controlled project and department folder hierarchy available to your account.
         </p>
       </div>
-      <DriveBrowser initialNodeId={node} />
+      <DriveBrowser initialNodeId={node} departmentId={department} />
     </div>
   );
 }
