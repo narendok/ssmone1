@@ -129,7 +129,7 @@ export async function bootstrapSsmOne() {
   let invitationSent = false;
   if (!adminUser) {
     const invite = await supabaseAdmin.auth.admin.inviteUserByEmail(ADMIN_EMAIL, {
-      data: { display_name: "System Administrator" },
+      data: { display_name: "Platform Owner" },
       redirectTo: `${process.env['PUBLIC_APP_URL'] ?? 'https://id-preview--33eca6ac-b01a-4598-8314-5c773b2b8543.lovable.app'}/auth`,
     });
     if (invite.error || !invite.data.user) throw new Error(invite.error?.message ?? "Could not invite the initial administrator");
@@ -140,7 +140,7 @@ export async function bootstrapSsmOne() {
   const { error: profileError } = await supabaseAdmin.from("profiles").upsert({
     id: adminUser.id,
     email: ADMIN_EMAIL,
-    display_name: adminUser.user_metadata?.display_name ?? "System Administrator",
+    display_name: adminUser.user_metadata?.display_name ?? "Platform Owner",
   }, { onConflict: "id" });
   if (profileError) throw profileError;
 
@@ -152,7 +152,7 @@ export async function bootstrapSsmOne() {
   const { data: employee, error: employeeError } = await supabaseAdmin.from("employees").upsert({
     user_id: adminUser.id,
     official_email: ADMIN_EMAIL,
-    display_name: adminUser.user_metadata?.display_name ?? "System Administrator",
+    display_name: adminUser.user_metadata?.display_name ?? "Platform Owner",
     employment_status: "ACTIVE",
     primary_department_id: rAndDDepartment.id,
     default_role_id: platformOwnerRole.id,

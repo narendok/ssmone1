@@ -39,9 +39,9 @@ function AppLayout() {
               <div className="flex items-center gap-1"><NotificationCenter />
              <div className="hidden sm:flex flex-col items-end leading-tight">
                <span className="text-xs font-medium">{displayName ?? user?.email}</span>
-               <span className="text-[11px] text-muted-foreground">{employeeStatus === "SUSPENDED" ? "Access suspended" : role === "admin" ? "System Admin" : "Employee"}</span>
+               <span className="text-[11px] text-muted-foreground">{employeeStatus === "SUSPENDED" ? "Access suspended" : role === "admin" ? "Platform Owner" : "Employee"}</span>
              </div>
-             {role === "admin" && <Button asChild size="icon" variant="ghost" title="Administration" aria-label="Administration">
+             {role === "admin" && <Button asChild size="icon" variant="ghost" title="System controls" aria-label="System controls">
                <Link to="/admin"><Settings className="h-4 w-4" /></Link>
               </Button>}</div>
              <Button size="icon" variant="ghost" onClick={signOut} title="Sign out" aria-label="Sign out">
