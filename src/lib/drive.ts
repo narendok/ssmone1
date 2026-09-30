@@ -13,10 +13,12 @@ export type DriveFileType =
 export interface DriveNode {
   id: string;
   project_id: string | null;
+  department_id: string | null;
   parent_id: string | null;
   name: string;
   slug: string;
   node_type: NodeType;
+  folder_kind: string;
   file_type: DriveFileType | null;
   mime_type: string | null;
   file_size_bytes: number;
@@ -32,6 +34,21 @@ export interface DriveNode {
   created_by: string | null;
 
 
+  created_at: string;
+  updated_at: string;
+}
+
+export type DriveCategoryPlacement = "COMMON" | "INTERNAL_PROJECT" | "CLIENT_PROJECT";
+
+export interface DriveCategoryTemplate {
+  id: string;
+  department_id: string;
+  placement: DriveCategoryPlacement;
+  label: string;
+  slug: string;
+  linked_work_area: string | null;
+  sort_order: number;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -130,6 +147,19 @@ export async function fetchChildren(parentId: string | null, projectId?: string 
   const { data, error } = await q.order("node_type").order("name");
   if (error) throw error;
   return (data ?? []) as DriveNode[];
+}
+
+export async function fetchDriveCategoryTemplates(departmentId?: string | null): Promise<DriveCategoryTemplate[]> {
+  let query = sb
+    .from("drive_category_templates")
+    .select("*")
+    .order("placement")
+    .order("sort_order")
+    .order("label");
+  if (departmentId) query = query.eq("department_id", departmentId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as DriveCategoryTemplate[];
 }
 
 export async function fetchAllNodes(projectId?: string | null): Promise<DriveNode[]> {
