@@ -1835,6 +1835,53 @@ export type Database = {
         }
         Relationships: []
       }
+      drive_category_templates: {
+        Row: {
+          created_at: string
+          department_id: string
+          id: string
+          is_active: boolean
+          label: string
+          linked_work_area: string | null
+          placement: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department_id: string
+          id?: string
+          is_active?: boolean
+          label: string
+          linked_work_area?: string | null
+          placement: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department_id?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          linked_work_area?: string | null
+          placement?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "drive_category_templates_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       drive_node_revisions: {
         Row: {
           change_summary: string | null
@@ -11493,6 +11540,15 @@ export type Database = {
       }
       provision_department_drive_template: {
         Args: { p_department_id: string }
+        Returns: undefined
+      }
+      provision_drive_category_template: {
+        Args: {
+          p_department_id: string
+          p_parent_id: string
+          p_placement: string
+          p_project_id?: string
+        }
         Returns: undefined
       }
       provision_drive_for_project: {
