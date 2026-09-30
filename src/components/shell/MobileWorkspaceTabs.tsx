@@ -45,7 +45,7 @@ export function MobileWorkspaceTabs() {
           <SheetContent side="bottom" className="rounded-t-lg">
               <SheetHeader><SheetTitle>{workspace ? `${workspace.label} work` : "More workspace areas"}</SheetTitle></SheetHeader>
             <div className="mt-5 grid gap-2">
-               {workspace ? workspace.items.map((item) => <MoreLink key={item.to + item.label} to={item.to} label={item.label} onClick={() => setMoreOpen(false)} />) : <><MoreLink to="/dashboards" label="Department dashboard" onClick={() => setMoreOpen(false)} /><MoreLink to="/tasks" label="Tasks" onClick={() => setMoreOpen(false)} /><MoreLink to="/records" label="Records search" onClick={() => setMoreOpen(false)} />{(role === "admin" || permissions.includes("admin.view")) && <MoreLink to="/admin" label="Administration" onClick={() => setMoreOpen(false)} />}</>}
+               {workspace ? workspace.items.map((item) => <MoreLink key={item.to + item.label} to={item.to} label={item.label} onClick={() => setMoreOpen(false)} />) : <><MoreLink to="/dashboards" label="Department dashboard" onClick={() => setMoreOpen(false)} /><MoreLink to="/tasks" label="Tasks" onClick={() => setMoreOpen(false)} /><MoreLink to="/records" label="Records search" onClick={() => setMoreOpen(false)} />{(role === "admin" || permissions.includes("admin.view")) && <MoreLink to="/admin" label="System controls" onClick={() => setMoreOpen(false)} />}</>}
             </div>
           </SheetContent>
         </Sheet>

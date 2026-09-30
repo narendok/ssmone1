@@ -3,7 +3,7 @@ import { fetchTasks, OPEN_TASK_STATUSES, type ProjectTask } from "@/lib/tasks";
 
 const sb = supabase as any;
 
-export type DashboardDepartment = "rnd" | "procurement" | "production" | "facility" | "operations" | "sales" | "hr" | "finance" | "administration";
+export type DashboardDepartment = "rnd" | "procurement" | "production" | "facility" | "operations" | "sales" | "hr" | "finance";
 
 export const departmentDefinitions: { id: DashboardDepartment; label: string; permission: string }[] = [
   { id: "rnd", label: "Hardware & R&D", permission: "engineering.view" },
@@ -14,7 +14,6 @@ export const departmentDefinitions: { id: DashboardDepartment; label: string; pe
   { id: "sales", label: "Sales", permission: "sales.view" },
   { id: "hr", label: "Human Resources", permission: "hr.view" },
   { id: "finance", label: "Finance", permission: "finance.view" },
-  { id: "administration", label: "Administration", permission: "admin.view" },
 ];
 
 export function getPermittedDepartments(role: string | null, permissions: string[]) {
@@ -72,7 +71,6 @@ const departmentTaskMap: Record<DashboardDepartment, string[]> = {
   hr: [],
   sales: ["executive"],
   finance: [],
-  administration: [],
 };
 
 function taskPulse(tasks: ProjectTask[]) {
@@ -272,7 +270,7 @@ export async function fetchDepartmentDashboard(department: DashboardDepartment):
     };
   }
 
-  if (department === "finance" || department === "administration") {
+  if (department === "finance") {
     return {
       metrics: [
         { label: "Open work", value: pulse.open.length, detail: "Work visible to this department" },

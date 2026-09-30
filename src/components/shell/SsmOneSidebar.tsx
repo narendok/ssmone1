@@ -30,13 +30,13 @@ const groups: NavGroup[] = [
     { label: "Customers", to: "/customers", icon: Building2, permission: "sales.view" },
   ] },
   { label: "Engineering", collapsible: true, department: "engineering", items: [
-    { label: "R&D / PartsBench", to: "/", icon: CircuitBoard, permission: "engineering.view" },
+    { label: "Engineering", to: "/", icon: CircuitBoard, permission: "engineering.view" },
     { label: "Inventory", to: "/locations", icon: MapPin, permission: "engineering.view" },
     { label: "BOM import", to: "/bom", icon: FileSpreadsheet, permission: "engineering.edit" },
     { label: "Drive", to: "/drive", icon: FolderOpen, permission: "documents.view" },
     { label: "PCB repair", to: "/pcb", icon: Wrench, permission: "engineering.edit" },
     { label: "Assignments", to: "/assignments", icon: ClipboardList, permission: "engineering.view" },
-    { label: "R&D team", to: "/rd-team", icon: Users, permission: "engineering.view" },
+    { label: "Engineering team", to: "/rd-team", icon: Users, permission: "engineering.view" },
   ] },
   { label: "Operations", collapsible: true, department: "operations", items: [
     { label: "Purchase requests", to: "/procurement/requests", icon: ClipboardList, permission: "procurement.view" },
@@ -82,7 +82,7 @@ const groups: NavGroup[] = [
   ] },
    { label: "System", collapsible: true, items: [
     { label: "PartsBench history", to: "/history", icon: History, permission: "engineering.view" },
-    { label: "Administration", to: "/admin", icon: Settings2, permission: "admin.view" },
+    { label: "System controls", to: "/admin", icon: Settings2, permission: "admin.view" },
   ] },
 ];
 

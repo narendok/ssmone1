@@ -34,7 +34,7 @@ export function CommandCenter() {
   return <div className="mx-auto max-w-7xl space-y-6">
     <section className="border-b pb-6">
       <div>
-        <p className="text-sm font-medium text-primary">{isAdmin ? "Administrator workspace" : "Department workspace"}</p>
+        <p className="text-sm font-medium text-primary">{isAdmin ? "Platform oversight" : "Department workspace"}</p>
         <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h1 className="text-2xl font-semibold">{workspaceLabel} tasks</h1><p className="mt-2 max-w-3xl text-sm text-muted-foreground">{selectedDepartment && workspace ? workspace.summary : isAdmin ? "Select a department to focus its approved work, or keep every department visible for a complete task picture." : "Complete the tasks needing attention today, then review the department’s later work."}</p></div><DepartmentSelector departments={availableDepartments} isAdmin={isAdmin} value={selectedDepartmentId} onChange={(departmentId) => { setSelectedDepartmentId(departmentId); setWorkspaceDepartmentId(departmentId); }} /></div>
       </div>
     </section>
