@@ -109,7 +109,11 @@ export function SsmOneSidebar() {
   }, []);
   const selectedDepartment = (departments.data ?? []).find((department: CanonicalDepartment) => department.id === workspaceDepartmentId) ?? null;
   const selectedWorkspace = workspaceForDepartment(selectedDepartment);
-  const visibleGroups = selectedWorkspace ? [{ label: `${selectedWorkspace.label} workspace`, collapsible: false, items: selectedWorkspace.items }] : groups;
+  const visibleGroups = selectedWorkspace ? [
+    { label: "Daily work", items: [{ label: "My day", to: "/command-center", icon: LayoutGrid }, { label: "Department workspace", to: "/dashboards", icon: ChartColumnIncreasing }] },
+    { label: `${selectedWorkspace.label} work`, collapsible: false, items: selectedWorkspace.items },
+    { label: "System", collapsible: true, items: groups.find((group) => group.label === "System")!.items },
+  ] : groups;
 
   return (
     <Sidebar collapsible="icon">

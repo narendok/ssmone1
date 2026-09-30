@@ -16,7 +16,7 @@ import { workspaceForDepartment } from "@/lib/department-workspace-navigation";
 import { useAuth } from "@/hooks/useAuth";
 
 export function WorkspaceSwitcher() {
-  const { role } = useAuth();
+  const { role, permissions, employeeStatus } = useAuth();
   const departments = useQuery({ queryKey: ["active-departments"], queryFn: fetchCanonicalDepartments });
   const [departmentId, setDepartmentId] = useState<string | null>(() => readWorkspaceDepartmentId());
 
@@ -32,6 +32,8 @@ export function WorkspaceSwitcher() {
 
   const selectedDepartment = (departments.data ?? []).find((department) => department.id === departmentId) ?? null;
   const workspace = workspaceForDepartment(selectedDepartment);
+  const hasWorkspaceAccess = (department: CanonicalDepartment) => role === "admin" || Boolean(workspaceForDepartment(department)?.items.some((item) => !item.permission || permissions.includes(item.permission)));
+  const availableDepartments = (departments.data ?? []).filter(hasWorkspaceAccess);
   const triggerLabel = workspace?.label ?? "All workspaces";
   const chooseWorkspace = (nextDepartmentId: string | null) => {
     setWorkspaceDepartmentId(nextDepartmentId);
@@ -50,7 +52,7 @@ export function WorkspaceSwitcher() {
         <DropdownMenuLabel>Department workspace</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {role === "admin" && <WorkspaceItem label="All workspaces" active={!departmentId} onSelect={() => chooseWorkspace(null)} icon={<Layers3 className="size-4" />} />}
-        {(departments.data ?? []).map((department) => (
+        {availableDepartments.map((department) => (
           <WorkspaceItem
             key={department.id}
             label={workspaceForDepartment(department)?.label ?? department.name}
