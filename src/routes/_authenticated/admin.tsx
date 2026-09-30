@@ -22,8 +22,8 @@ const areas = [
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({ meta: [
-    { title: "Administration — SSM One" }, { name: "description", content: "Organization administration for SSM One." },
-    { property: "og:title", content: "Administration — SSM One" }, { property: "og:description", content: "Organization administration for SSM One." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+    { title: "System controls — SSM One" }, { name: "description", content: "Organization system controls for SSM One." },
+    { property: "og:title", content: "System controls — SSM One" }, { property: "og:description", content: "Organization system controls for SSM One." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
   ] }),
   component: AdminHome,
 });

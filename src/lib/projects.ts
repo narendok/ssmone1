@@ -9,6 +9,8 @@ export interface Project {
   revision: string | null;
   design_link: string | null;
   project_type: string;
+  department_id: string | null;
+  drive_project_class: "INTERNAL" | "CLIENT";
   customer_id: string | null;
   opportunity_id: string | null;
   requirement_baseline_id: string | null;
