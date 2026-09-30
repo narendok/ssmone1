@@ -165,7 +165,7 @@ export async function fetchDepartmentAvailability(departmentId: string): Promise
     designation: employee.designation ?? null,
     availability: onLeaveIds.has(employee.id) ? "on_leave" as const : "available" as const,
   }));
-  const onLeave = availability.filter((employee) => employee.availability === "on_leave").length;
+  const onLeave = availability.filter((employee: { availability: "available" | "on_leave" }) => employee.availability === "on_leave").length;
   return { total: availability.length, available: availability.length - onLeave, onLeave, team: availability };
 }
 
