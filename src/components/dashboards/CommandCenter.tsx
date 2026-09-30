@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CalendarDays, ChevronDown, FileText, Layers3, Loader2, UserRound, Wrench } from "lucide-react";
@@ -12,7 +12,7 @@ import { fetchCanonicalDepartments, fetchTasks, OPEN_TASK_STATUSES, updateTask, 
 import { departmentWorkTarget } from "@/lib/department-workspace";
 import { groupWorkspaceTasks, taskDueLabel } from "@/lib/task-workspace";
 import { workspaceForDepartment } from "@/lib/department-workspace-navigation";
-import { setWorkspaceDepartmentId } from "@/lib/workspace-context";
+import { readWorkspaceDepartmentId, setWorkspaceDepartmentId, WORKSPACE_CONTEXT_EVENT } from "@/lib/workspace-context";
 import { useAuth } from "@/hooks/useAuth";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -22,7 +22,16 @@ export function CommandCenter() {
   const departments = useQuery({ queryKey: ["active-departments"], queryFn: fetchCanonicalDepartments });
   const isAdmin = role === "admin";
   const availableDepartments = departments.data ?? [];
-  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(isAdmin ? null : availableDepartments[0]?.id ?? null);
+  const [selectedDepartmentId, setSelectedDepartmentId] = useState<string | null>(() => readWorkspaceDepartmentId() ?? (isAdmin ? null : availableDepartments[0]?.id ?? null));
+  useEffect(() => {
+    const syncWorkspace = () => setSelectedDepartmentId(readWorkspaceDepartmentId());
+    window.addEventListener(WORKSPACE_CONTEXT_EVENT, syncWorkspace);
+    window.addEventListener("storage", syncWorkspace);
+    return () => {
+      window.removeEventListener(WORKSPACE_CONTEXT_EVENT, syncWorkspace);
+      window.removeEventListener("storage", syncWorkspace);
+    };
+  }, []);
   const liveTasks = (tasks.data ?? []).filter((task) => OPEN_TASK_STATUSES.includes(task.status));
   const filteredTasks = selectedDepartmentId ? liveTasks.filter((task) => task.department_id === selectedDepartmentId) : liveTasks;
   const groupedTasks = groupWorkspaceTasks(filteredTasks, []);
