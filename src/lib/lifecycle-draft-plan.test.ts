@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createLifecycleDraftPlan } from "./lifecycle-draft-plan";
 
 describe("lifecycle draft planner", () => {
-  it("keeps a complete source set as a non-executable draft", () => {
+  it("keeps a complete source set as a non-executable draft with provenance", () => {
     const plan = createLifecycleDraftPlan({
       projectId: "project-1",
       departmentId: "department-1",
@@ -15,7 +15,15 @@ describe("lifecycle draft planner", () => {
       linkedBomCount: 1,
     });
 
-    expect(plan).toMatchObject({ state: "DRAFT", canGenerate: false, missingInputs: [] });
+    expect(plan).toMatchObject({
+      state: "DRAFT",
+      canGenerate: false,
+      missingInputs: [],
+      autofillState: "ABSENT",
+    });
+    
+    expect(plan.governanceNotice).toContain("notifications and client feedback are explicitly absent");
+    expect(plan.requiredInputs.find(i => i.name === "Owning department")?.provenance).toBe("Project organizational master data");
     expect(plan.proposedActions.find((action) => action.key === "CREATE_HANDOFF_TASKS")?.reason).toContain("no task was created");
   });
 
@@ -39,6 +47,9 @@ describe("lifecycle draft planner", () => {
       "Provenance-linked design input",
       "Revision-linked BOM source",
     ]);
+    
+    const missingItems = plan.requiredInputs.filter(i => i.status === "MISSING");
+    expect(missingItems.length).toBe(5);
     expect(plan.proposedActions.every((action) => action.state === "DRAFT")).toBe(true);
   });
 });
