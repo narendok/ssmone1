@@ -509,3 +509,36 @@
 ## Known backend gaps for mobile
 
 See `BACKEND_GAPS.md`. Stage 5 stock posting and procurement/stores safe-read gaps are remediated; legacy migration reconciliation, environment separation, outbound webhook delivery, and full live-session acceptance evidence remain documented gaps.
+
+## OEM audit traceability handoff — 2026-10-01
+
+### Controlled-document read model
+
+- `document_control_registers` remains the single controlled-document register. Every row is anchored to `drive_node_id`; `source_revision_id` and `source_revision_number` identify the recorded Drive revision when available.
+- Revision context is stored in `drive_node_revisions`: `node_id`, `version`, `storage_path`, checksum, file size, change summary, uploader, and timestamp. A controlled source revision must belong to the registered Drive file.
+- The register now includes `project_id`, owner/reviewer/approver employee links, reviewer decision/timestamp, release timestamp, change reason, linked task, evidence Drive file, and a self-reference for supersession. Existing records may legitimately have these fields unset; this is reported as a gap rather than treated as approval evidence.
+- Read `controlled_document_audit_timeline` for chronological decisions and `controlled_document_audit_gaps` for honest missing-source, owner, reviewer, approver, reason, task, or evidence flags. Both run with caller RLS and do not widen departmental or project access.
+
+### Company process taxonomy and lifecycle links
+
+- `company_process_stages` contains the internal HW_01–HW_37 taxonomy only. It is not evidence of APQP compliance, certification, customer applicability, or audit completion.
+- `project_process_stage_records` maps a project to the taxonomy with `NOT_STARTED`, `IN_PROGRESS`, `IN_REVIEW`, `BLOCKED`, `HANDED_OVER`, `COMPLETE`, or `REDESIGN_REQUIRED`; it may link an owner/reviewer, predecessor, task, Drive evidence, and engineering change request.
+- Existing `project_stage_gates`, `project_change_requests`, `project_engineering_registers`, and `project_tasks` remain authoritative for their own domains. The new record links rather than duplicates them.
+
+### BOM source traceability
+
+- `project_boms` now optionally holds `source_drive_node_id` and `source_drive_revision_id`. The source file must belong to the BOM project and the revision must belong to that file.
+- `source_filename` and free-text `revision` remain legacy display fields. They are not proof of a source file or released revision without the Drive links.
+
+### Controlled actions and mobile boundary
+
+- The protected `transition_document_control(p_register_id uuid, p_action text, p_expected_status text, p_note text, p_change_reason text, p_request_key uuid)` action supports `SUBMIT_REVIEW`, `REVIEW_APPROVE`, `REVIEW_REJECT`, `APPROVE`, `RELEASE`, and `SUPERSEDE`.
+- It requires an authenticated, permitted caller in the document's department/project scope; assigned reviewer/approver checks apply when assignments exist. It locks the register row, enforces expected-status concurrency, records an action receipt by UUID request key, writes the existing event history, and writes `activity_log`.
+- Android has no dedicated mobile mutation wrapper for this action yet. Treat document decisions, release, and supersession as **ONLINE_REQUIRED / WEB_ONLY** until an Android-specific authenticated server action and session-scoped acceptance test are approved.
+- Private Drive files remain private. Current mobile consumers must use a separately authorized signed-delivery flow; no general mobile signed-file endpoint for controlled records is documented by this handoff.
+
+### Verified gaps and acceptance limits
+
+- No real reviewer/approver assignments, controlled-document records, customer applicability matrix, certificates, KPI targets, or OEM audit results were invented or seeded.
+- Signed-in session/RLS acceptance for this new workflow and Android delivery has not been executed because dedicated test identities/environment support is unavailable.
+- Legacy register rows can be read but need source-revision, owner/reviewer/approver, change-reason, task, and evidence completion before they form a complete audit trail.
