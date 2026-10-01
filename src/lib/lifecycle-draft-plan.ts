@@ -13,7 +13,11 @@ export type LifecycleDraftInput = {
 export type DraftLifecyclePlan = {
   state: "DRAFT";
   projectId: string;
-  requiredInputs: string[];
+  requiredInputs: Array<{
+    name: string;
+    provenance: string;
+    status: "LINKED" | "MISSING";
+  }>;
   missingInputs: string[];
   proposedActions: Array<{
     key: "CREATE_STAGE_PLAN" | "CREATE_HANDOFF_TASKS" | "REQUEST_FEEDBACK_REVISION";
@@ -22,6 +26,9 @@ export type DraftLifecyclePlan = {
     reason: string;
   }>;
   canGenerate: false;
+  autofillState: "ABSENT";
+  governanceNotice: string;
+  unavailableGovernedOutputs: string[];
 };
 
 /**
@@ -35,6 +42,34 @@ export function createLifecycleDraftPlan(input: LifecycleDraftInput): DraftLifec
   if (!input.projectDriveNodeId) missingInputs.push("Project Drive root");
   if (input.designInputCount === 0) missingInputs.push("Provenance-linked design input");
   if (input.linkedBomCount === 0) missingInputs.push("Revision-linked BOM source");
+
+  const requiredInputs: DraftLifecyclePlan["requiredInputs"] = [
+    {
+      name: "Owning department",
+      provenance: "Project organizational master data",
+      status: input.departmentId ? "LINKED" : "MISSING",
+    },
+    {
+      name: "Approved requirement baseline",
+      provenance: "Sales & Engineering frozen requirement snapshot",
+      status: input.requirementBaselineId ? "LINKED" : "MISSING",
+    },
+    {
+      name: "Project Drive root",
+      provenance: "Governed document control tree",
+      status: input.projectDriveNodeId ? "LINKED" : "MISSING",
+    },
+    {
+      name: "Provenance-linked design input",
+      provenance: "Shared Product Requirement Specification (PRS)",
+      status: input.designInputCount > 0 ? "LINKED" : "MISSING",
+    },
+    {
+      name: "Revision-linked BOM source",
+      provenance: "Production-ready engineering bill of materials",
+      status: input.linkedBomCount > 0 ? "LINKED" : "MISSING",
+    },
+  ];
 
   const proposedActions: DraftLifecyclePlan["proposedActions"] = [
     {
@@ -66,9 +101,16 @@ export function createLifecycleDraftPlan(input: LifecycleDraftInput): DraftLifec
   return {
     state: "DRAFT",
     projectId: input.projectId,
-    requiredInputs: ["Owning department", "Approved requirement baseline", "Project Drive root", "Provenance-linked design input", "Revision-linked BOM source"],
+    requiredInputs,
     missingInputs,
     proposedActions,
     canGenerate: false,
+    autofillState: "ABSENT",
+    governanceNotice: "Governed notifications and client feedback are explicitly absent in this DRAFT plan to maintain audit integrity.",
+    unavailableGovernedOutputs: [
+      "Template document auto-fill is not implemented",
+      "Governed notification creation is not implemented",
+      "Revisioned client feedback creation is not implemented",
+    ],
   };
 }
