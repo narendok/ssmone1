@@ -1,7 +1,7 @@
 # Pending lifecycle schema patch
 
 **Prepared:** 2026-10-01 UTC  
-**Security revision:** 2026-10-01 UTC  
+**Security revision:** 2026-10-01 UTC — final rendered-SQL review recorded  
 **Status:** deliberately **UNAPPLIED**. This is review material only. No migration, live data, roles, access, ownership, notifications, publishing, approval, stock, or finance change has been made.
 
 ## Final pending scope
@@ -16,6 +16,10 @@ This proposal is strictly additive: immutable, versioned department templates; p
 4. Dependency traversal omitted `project_process_stage_records.predecessor_record_id`, did not safely exclude an old edge on update, and did not serialize competing reverse-edge inserts.
 5. Feedback baseline and source-Drive validation were incomplete; an unqualified identifier could bind the wrong column.
 6. Defaults were not sufficient to establish server-owned actor/time provenance.
+7. Stage immutability did not cover `INSERT` and checked only the new template container on update, allowing an ACTIVE stage to be moved to a DRAFT template.
+8. Blanket rejection of ACTIVE template updates prevents a reviewed retirement or successor-version activation flow; those contracts do not yet exist.
+9. Legacy `project_process_stage_records.predecessor_record_id` writes do not acquire the same project lock or execute the mixed-graph cycle guard.
+10. The proposal has not yet proved the required `created_by` source columns, `pgcrypto` availability for `digest`/`gen_random_uuid`, or hardened function search paths in the target database.
 
 ## Exact proposed SQL — still unapplied
 
@@ -179,6 +183,9 @@ $$;
 CREATE OR REPLACE FUNCTION public.enforce_lifecycle_template_stage_immutability()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
+  -- PENDING CORRECTION: INSERT must validate NEW.template_id. UPDATE must validate
+  -- both OLD.template_id and NEW.template_id so an ACTIVE/RETIRED stage cannot be
+  -- moved into a DRAFT template. DELETE must validate OLD.template_id.
   PERFORM public.lifecycle_assert_template_mutable(COALESCE(NEW.template_id, OLD.template_id));
   IF TG_OP = 'UPDATE' AND NEW.created_by <> OLD.created_by THEN RAISE EXCEPTION 'Stage actor provenance is immutable'; END IF;
   RETURN COALESCE(NEW, OLD);
@@ -219,6 +226,10 @@ END;
 $$;
 CREATE TRIGGER lifecycle_dependency_dag BEFORE INSERT OR UPDATE OF project_stage_record_id, predecessor_stage_record_id
 ON public.project_stage_dependencies FOR EACH ROW EXECUTE FUNCTION public.enforce_project_stage_dependency_dag();
+
+-- PENDING CORRECTION: predecessor_record_id on project_process_stage_records is an
+-- existing edge source and must use the same per-project advisory lock and complete
+-- mixed-edge cycle validation before INSERT or UPDATE. It is not protected here.
 
 CREATE OR REPLACE FUNCTION public.generate_project_lifecycle_draft(p_project_id uuid, p_template_id uuid, p_request_key uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -286,6 +297,15 @@ EXISTS (
 
 Generation consumes one immutable ACTIVE template `id + version` exactly once per project source company stage. A newer template version is **not** regenerated automatically; if it maps to a source stage already present, it fails. Any migration, supersession, or task reassignment requires a distinct reviewed lineage contract. This prevents silent rewrites of used records and extra tasks.
 
+## Additional unresolved defects — final review
+
+The SQL above remains intentionally incomplete and **must not be migrated** until all of the following are designed, rendered, and independently tested:
+
+1. **Stage container integrity:** replace the stage trigger with `BEFORE INSERT OR UPDATE OR DELETE`; validate the new container for INSERT, both old and new containers for UPDATE, and the old container for DELETE. An ACTIVE/RETIRED stage must never be inserted into, changed within, or moved out of/in to a mutable container through direct DML.
+2. **Reviewed state-transition contracts:** replace the blanket ACTIVE update block with distinct protected clone, activate, and retire contracts. They must be the only paths permitted to change template state; direct DML remains unavailable. Activation must verify a complete immutable version and single-active-version constraint, and retirement must preserve all used references. Neither contract is specified yet.
+3. **One graph guard:** attach the same project-scoped advisory lock and full cycle evaluation to legacy `project_process_stage_records.predecessor_record_id` INSERT/UPDATE writes as well as dependency-edge INSERT/UPDATE. The traversal must include both edge stores, remove the OLD edge on replacement, and serialize competing writes for the project.
+4. **Database prerequisites:** verify actual column definitions and ownership for every referenced `created_by` field; verify installed `pgcrypto` before relying on `gen_random_uuid` or `digest`; and review every `SECURITY DEFINER` function for a safe, explicit `search_path` with all object references qualified. The rendered proposal alone is not proof.
+
 ## Pending integration tests required before migration
 
 1. Authentication and scope denial occur before any receipt read/return.
@@ -296,7 +316,16 @@ Generation consumes one immutable ACTIVE template `id + version` exactly once pe
 6. Existing `predecessor_record_id` plus new dependency edges reject mixed cycles; inserts, updates, and concurrent reverse edges all reject correctly.
 7. Feedback RLS checks the fully qualified baseline relationship and Drive node project/department association.
 8. Department-scoped RLS is proven with non-administrator identities; administrator switching is not acceptance evidence.
+9. Stage INSERT/UPDATE/DELETE cannot mutate or relocate a stage when either its OLD or NEW container is ACTIVE/RETIRED; created_by/time cannot be caller-spoofed.
+10. Clone, activation, and retirement contracts allow only reviewed state transitions, retain immutable used versions, and preserve the one-active-version invariant.
+11. Direct writes to legacy `predecessor_record_id` acquire the same project lock and reject cycles spanning legacy and new edges, including concurrent reverse writes and edge replacement.
+12. Target-database checks prove `created_by` columns, `pgcrypto` functions, and `SECURITY DEFINER` search-path hardening before any migration is submitted.
 
 ## Current web panel status
 
 The web lifecycle panel is read-only. It explicitly lists visible provenance and missing fields. Template-document auto-fill, governed notifications, and revisioned client feedback are absent and no records are created.
+
+## Validation evidence recorded separately
+
+- Android build and tests: reported passed by the requester; this proposal does not treat that as database/RLS acceptance evidence.
+- Administrator Drive department scopes: verified. Least-privilege, non-administrator acceptance remains pending and is explicitly required above.
