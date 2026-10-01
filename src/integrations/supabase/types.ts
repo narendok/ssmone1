@@ -764,6 +764,63 @@ export type Database = {
           },
         ]
       }
+      company_process_stages: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          owning_department_id: string | null
+          requires_gated_handover: boolean
+          reviewer_department_id: string | null
+          sort_order: number
+          stage_code: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          owning_department_id?: string | null
+          requires_gated_handover?: boolean
+          reviewer_department_id?: string | null
+          sort_order: number
+          stage_code: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          owning_department_id?: string | null
+          requires_gated_handover?: boolean
+          reviewer_department_id?: string | null
+          sort_order?: number
+          stage_code?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_process_stages_owning_department_id_fkey"
+            columns: ["owning_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_process_stages_reviewer_department_id_fkey"
+            columns: ["reviewer_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       component_projects: {
         Row: {
           component_id: string
@@ -1819,37 +1876,97 @@ export type Database = {
           },
         ]
       }
+      document_control_action_requests: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          payload_hash: string
+          register_id: string
+          request_key: string
+          requested_by: string
+          result: Json
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          payload_hash: string
+          register_id: string
+          request_key: string
+          requested_by: string
+          result: Json
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          payload_hash?: string
+          register_id?: string
+          request_key?: string
+          requested_by?: string
+          result?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_control_action_requests_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "controlled_document_audit_gaps"
+            referencedColumns: ["register_id"]
+          },
+          {
+            foreignKeyName: "document_control_action_requests_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "document_control_registers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       document_control_events: {
         Row: {
+          action_request_key: string | null
           actor_id: string
+          change_reason: string | null
           created_at: string
+          decision: string | null
           event_type: string
           from_status: string | null
           id: string
           note: string | null
           register_id: string
+          revision_id: string | null
           to_status: string | null
           version: number | null
         }
         Insert: {
+          action_request_key?: string | null
           actor_id?: string
+          change_reason?: string | null
           created_at?: string
+          decision?: string | null
           event_type: string
           from_status?: string | null
           id?: string
           note?: string | null
           register_id: string
+          revision_id?: string | null
           to_status?: string | null
           version?: number | null
         }
         Update: {
+          action_request_key?: string | null
           actor_id?: string
+          change_reason?: string | null
           created_at?: string
+          decision?: string | null
           event_type?: string
           from_status?: string | null
           id?: string
           note?: string | null
           register_id?: string
+          revision_id?: string | null
           to_status?: string | null
           version?: number | null
         }
@@ -1858,7 +1975,21 @@ export type Database = {
             foreignKeyName: "document_control_events_register_id_fkey"
             columns: ["register_id"]
             isOneToOne: false
+            referencedRelation: "controlled_document_audit_gaps"
+            referencedColumns: ["register_id"]
+          },
+          {
+            foreignKeyName: "document_control_events_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
             referencedRelation: "document_control_registers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_events_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "drive_node_revisions"
             referencedColumns: ["id"]
           },
         ]
@@ -1868,6 +1999,8 @@ export type Database = {
           approval_note: string | null
           approved_at: string | null
           approved_by: string | null
+          approver_employee_id: string | null
+          change_reason: string | null
           controlled_version: number
           created_at: string
           created_by: string
@@ -1875,7 +2008,18 @@ export type Database = {
           document_number: string
           document_status: string
           drive_node_id: string
+          evidence_drive_node_id: string | null
           id: string
+          linked_task_id: string | null
+          owner_employee_id: string | null
+          project_id: string | null
+          released_at: string | null
+          reviewer_decided_at: string | null
+          reviewer_decision: string | null
+          reviewer_employee_id: string | null
+          source_revision_id: string | null
+          source_revision_number: number | null
+          superseded_by_register_id: string | null
           title: string
           updated_at: string
         }
@@ -1883,6 +2027,8 @@ export type Database = {
           approval_note?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          approver_employee_id?: string | null
+          change_reason?: string | null
           controlled_version?: number
           created_at?: string
           created_by?: string
@@ -1890,7 +2036,18 @@ export type Database = {
           document_number: string
           document_status?: string
           drive_node_id: string
+          evidence_drive_node_id?: string | null
           id?: string
+          linked_task_id?: string | null
+          owner_employee_id?: string | null
+          project_id?: string | null
+          released_at?: string | null
+          reviewer_decided_at?: string | null
+          reviewer_decision?: string | null
+          reviewer_employee_id?: string | null
+          source_revision_id?: string | null
+          source_revision_number?: number | null
+          superseded_by_register_id?: string | null
           title: string
           updated_at?: string
         }
@@ -1898,6 +2055,8 @@ export type Database = {
           approval_note?: string | null
           approved_at?: string | null
           approved_by?: string | null
+          approver_employee_id?: string | null
+          change_reason?: string | null
           controlled_version?: number
           created_at?: string
           created_by?: string
@@ -1905,11 +2064,29 @@ export type Database = {
           document_number?: string
           document_status?: string
           drive_node_id?: string
+          evidence_drive_node_id?: string | null
           id?: string
+          linked_task_id?: string | null
+          owner_employee_id?: string | null
+          project_id?: string | null
+          released_at?: string | null
+          reviewer_decided_at?: string | null
+          reviewer_decision?: string | null
+          reviewer_employee_id?: string | null
+          source_revision_id?: string | null
+          source_revision_number?: number | null
+          superseded_by_register_id?: string | null
           title?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "document_control_registers_approver_employee_id_fkey"
+            columns: ["approver_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "document_control_registers_department_id_fkey"
             columns: ["department_id"]
@@ -1922,6 +2099,62 @@ export type Database = {
             columns: ["drive_node_id"]
             isOneToOne: true
             referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_evidence_drive_node_id_fkey"
+            columns: ["evidence_drive_node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_linked_task_id_fkey"
+            columns: ["linked_task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_source_revision_id_fkey"
+            columns: ["source_revision_id"]
+            isOneToOne: false
+            referencedRelation: "drive_node_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_superseded_by_register_id_fkey"
+            columns: ["superseded_by_register_id"]
+            isOneToOne: false
+            referencedRelation: "controlled_document_audit_gaps"
+            referencedColumns: ["register_id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_superseded_by_register_id_fkey"
+            columns: ["superseded_by_register_id"]
+            isOneToOne: false
+            referencedRelation: "document_control_registers"
             referencedColumns: ["id"]
           },
         ]
@@ -6962,6 +7195,8 @@ export type Database = {
           notes: string | null
           project_id: string
           revision: string | null
+          source_drive_node_id: string | null
+          source_drive_revision_id: string | null
           source_filename: string | null
           total_cost: number | null
           updated_at: string
@@ -6976,6 +7211,8 @@ export type Database = {
           notes?: string | null
           project_id: string
           revision?: string | null
+          source_drive_node_id?: string | null
+          source_drive_revision_id?: string | null
           source_filename?: string | null
           total_cost?: number | null
           updated_at?: string
@@ -6990,6 +7227,8 @@ export type Database = {
           notes?: string | null
           project_id?: string
           revision?: string | null
+          source_drive_node_id?: string | null
+          source_drive_revision_id?: string | null
           source_filename?: string | null
           total_cost?: number | null
           updated_at?: string
@@ -7000,6 +7239,20 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_boms_source_drive_node_id_fkey"
+            columns: ["source_drive_node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_boms_source_drive_revision_id_fkey"
+            columns: ["source_drive_revision_id"]
+            isOneToOne: false
+            referencedRelation: "drive_node_revisions"
             referencedColumns: ["id"]
           },
         ]
@@ -7289,6 +7542,117 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_process_stage_records: {
+        Row: {
+          change_request_id: string | null
+          company_process_stage_id: string
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          evidence_drive_node_id: string | null
+          handover_note: string | null
+          id: string
+          linked_task_id: string | null
+          owner_employee_id: string | null
+          predecessor_record_id: string | null
+          project_id: string
+          reviewer_employee_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          change_request_id?: string | null
+          company_process_stage_id: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          evidence_drive_node_id?: string | null
+          handover_note?: string | null
+          id?: string
+          linked_task_id?: string | null
+          owner_employee_id?: string | null
+          predecessor_record_id?: string | null
+          project_id: string
+          reviewer_employee_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          change_request_id?: string | null
+          company_process_stage_id?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          evidence_drive_node_id?: string | null
+          handover_note?: string | null
+          id?: string
+          linked_task_id?: string | null
+          owner_employee_id?: string | null
+          predecessor_record_id?: string | null
+          project_id?: string
+          reviewer_employee_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_process_stage_records_change_request_id_fkey"
+            columns: ["change_request_id"]
+            isOneToOne: false
+            referencedRelation: "project_change_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_process_stage_records_company_process_stage_id_fkey"
+            columns: ["company_process_stage_id"]
+            isOneToOne: false
+            referencedRelation: "company_process_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_process_stage_records_evidence_drive_node_id_fkey"
+            columns: ["evidence_drive_node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_process_stage_records_linked_task_id_fkey"
+            columns: ["linked_task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_process_stage_records_owner_employee_id_fkey"
+            columns: ["owner_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_process_stage_records_predecessor_record_id_fkey"
+            columns: ["predecessor_record_id"]
+            isOneToOne: false
+            referencedRelation: "project_process_stage_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_process_stage_records_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_process_stage_records_reviewer_employee_id_fkey"
+            columns: ["reviewer_employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
@@ -10983,6 +11347,162 @@ export type Database = {
       }
     }
     Views: {
+      controlled_document_audit_gaps: {
+        Row: {
+          controlled_version: number | null
+          department_id: string | null
+          document_number: string | null
+          document_status: string | null
+          drive_node_id: string | null
+          evidence_drive_node_id: string | null
+          gap_codes: string[] | null
+          linked_task_id: string | null
+          project_id: string | null
+          register_id: string | null
+          source_revision_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          controlled_version?: number | null
+          department_id?: string | null
+          document_number?: string | null
+          document_status?: string | null
+          drive_node_id?: string | null
+          evidence_drive_node_id?: string | null
+          gap_codes?: never
+          linked_task_id?: string | null
+          project_id?: string | null
+          register_id?: string | null
+          source_revision_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          controlled_version?: number | null
+          department_id?: string | null
+          document_number?: string | null
+          document_status?: string | null
+          drive_node_id?: string | null
+          evidence_drive_node_id?: string | null
+          gap_codes?: never
+          linked_task_id?: string | null
+          project_id?: string | null
+          register_id?: string | null
+          source_revision_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_control_registers_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_drive_node_id_fkey"
+            columns: ["drive_node_id"]
+            isOneToOne: true
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_evidence_drive_node_id_fkey"
+            columns: ["evidence_drive_node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_linked_task_id_fkey"
+            columns: ["linked_task_id"]
+            isOneToOne: false
+            referencedRelation: "project_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_source_revision_id_fkey"
+            columns: ["source_revision_id"]
+            isOneToOne: false
+            referencedRelation: "drive_node_revisions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      controlled_document_audit_timeline: {
+        Row: {
+          actor_id: string | null
+          change_reason: string | null
+          created_at: string | null
+          decision: string | null
+          department_id: string | null
+          document_number: string | null
+          drive_node_id: string | null
+          event_type: string | null
+          from_status: string | null
+          id: string | null
+          note: string | null
+          project_id: string | null
+          register_id: string | null
+          revision_id: string | null
+          title: string | null
+          to_status: string | null
+          version: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_control_events_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "controlled_document_audit_gaps"
+            referencedColumns: ["register_id"]
+          },
+          {
+            foreignKeyName: "document_control_events_register_id_fkey"
+            columns: ["register_id"]
+            isOneToOne: false
+            referencedRelation: "document_control_registers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_events_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "drive_node_revisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_drive_node_id_fkey"
+            columns: ["drive_node_id"]
+            isOneToOne: true
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_control_registers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operational_po_shipments: {
         Row: {
           awb_number: string | null
@@ -11752,6 +12272,10 @@ export type Database = {
         }
         Returns: Json
       }
+      resolve_document_control_revision: {
+        Args: { p_node_id: string; p_revision_number: number }
+        Returns: string
+      }
       review_phase6_record: {
         Args: {
           _decision: string
@@ -11803,6 +12327,17 @@ export type Database = {
             Returns: Json
           }
       toggle_node_star: { Args: { p_node_id: string }; Returns: boolean }
+      transition_document_control: {
+        Args: {
+          p_action: string
+          p_change_reason: string
+          p_expected_status: string
+          p_note: string
+          p_register_id: string
+          p_request_key: string
+        }
+        Returns: Json
+      }
       transition_phase7_work_order: {
         Args: { _notes?: string; _status: string; _work_order_id: string }
         Returns: undefined
