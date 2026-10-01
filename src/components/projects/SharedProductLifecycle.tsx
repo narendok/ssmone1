@@ -69,7 +69,7 @@ export function SharedProductLifecycle({ project }: { project: Project }) {
           <Metric label="Design inputs" value={snapshot?.inputs.length ?? 0} detail="Shared PRS analysis inputs" />
           <Metric label="Open changes" value={snapshot?.changes.filter((change: any) => !["closed", "implemented"].includes(String(change.status).toLowerCase())).length ?? 0} detail="Controlled change notes" />
         </div>
-        <div className="mt-4 flex flex-wrap gap-2"><Button asChild size="sm" variant="outline"><Link to="/tasks"><ClipboardList className="size-3.5" /> Open task queue</Link></Button><Button asChild size="sm" variant="outline"><Link to="/sales"><GitPullRequest className="size-3.5" /> Requirement & handover</Link></Button></div>
+        <div className="mt-4 flex flex-wrap gap-2"><Button asChild size="sm" variant="outline"><Link to="/tasks" search={{ assignee: undefined, task: undefined }}><ClipboardList className="size-3.5" /> Open task queue</Link></Button><Button asChild size="sm" variant="outline"><Link to="/sales"><GitPullRequest className="size-3.5" /> Requirement & handover</Link></Button></div>
       </Card>
       <Card className="p-5">
         <div className="flex items-center gap-2"><PackageSearch className="size-4 text-primary" /><h3 className="font-semibold">Source-controlled delivery inputs</h3></div>
