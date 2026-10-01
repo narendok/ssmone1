@@ -105,12 +105,6 @@ function BomPage() {
   const loadFn = useServerFn(loadProjectBom);
   const saveFn = useServerFn(saveProjectBom);
 
-  const { data: projectBomFiles = [] } = useQuery({
-    queryKey: ["project_bom_source_files", activeProject?.id],
-    queryFn: () => fetchProjectFilesByType(activeProject?.id ?? "", ["BOM", "SPREADSHEET"]),
-    enabled: Boolean(activeProject?.id),
-  });
-
   useEffect(() => {
     if (!loadBomId) return;
     let cancelled = false;
@@ -237,6 +231,12 @@ function BomPage() {
   });
 
   const activeProject = projects.find((p) => p.id === projectId) ?? null;
+
+  const { data: projectBomFiles = [] } = useQuery({
+    queryKey: ["project_bom_source_files", activeProject?.id],
+    queryFn: () => fetchProjectFilesByType(activeProject?.id ?? "", ["BOM", "SPREADSHEET"]),
+    enabled: Boolean(activeProject?.id),
+  });
 
   const partById = useMemo(() => new Map(parts.map((p) => [p.id, p])), [parts]);
 
