@@ -49,6 +49,7 @@ import { Route as AuthenticatedCustomerServiceIndexRouteImport } from './routes/
 import { Route as AuthenticatedCalibrationIndexRouteImport } from './routes/_authenticated/calibration.index'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets.index'
 import { Route as ApiPublicDatasheetProxyRouteImport } from './routes/api/public/datasheet-proxy'
+import { Route as AuthenticatedWorkspaceProjectsRouteImport } from './routes/_authenticated/workspace.projects'
 import { Route as AuthenticatedTasksDepartmentsRouteImport } from './routes/_authenticated/tasks.departments'
 import { Route as AuthenticatedStoresInventoryRouteImport } from './routes/_authenticated/stores.inventory'
 import { Route as AuthenticatedSettingsProjectsRouteImport } from './routes/_authenticated/settings.projects'
@@ -319,6 +320,12 @@ const ApiPublicDatasheetProxyRoute = ApiPublicDatasheetProxyRouteImport.update({
   path: '/api/public/datasheet-proxy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedWorkspaceProjectsRoute =
+  AuthenticatedWorkspaceProjectsRouteImport.update({
+    id: '/workspace/projects',
+    path: '/workspace/projects',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedTasksDepartmentsRoute =
   AuthenticatedTasksDepartmentsRouteImport.update({
     id: '/tasks/departments',
@@ -733,6 +740,7 @@ export interface FileRoutesByFullPath {
   '/settings/projects': typeof AuthenticatedSettingsProjectsRoute
   '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
+  '/workspace/projects': typeof AuthenticatedWorkspaceProjectsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
   '/assets/': typeof AuthenticatedAssetsIndexRoute
   '/calibration/': typeof AuthenticatedCalibrationIndexRoute
@@ -829,6 +837,7 @@ export interface FileRoutesByTo {
   '/settings/projects': typeof AuthenticatedSettingsProjectsRoute
   '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
+  '/workspace/projects': typeof AuthenticatedWorkspaceProjectsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
   '/assets': typeof AuthenticatedAssetsIndexRoute
   '/calibration': typeof AuthenticatedCalibrationIndexRoute
@@ -929,6 +938,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/projects': typeof AuthenticatedSettingsProjectsRoute
   '/_authenticated/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/_authenticated/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
+  '/_authenticated/workspace/projects': typeof AuthenticatedWorkspaceProjectsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
   '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
   '/_authenticated/calibration/': typeof AuthenticatedCalibrationIndexRoute
@@ -1029,6 +1039,7 @@ export interface FileRouteTypes {
     | '/settings/projects'
     | '/stores/inventory'
     | '/tasks/departments'
+    | '/workspace/projects'
     | '/api/public/datasheet-proxy'
     | '/assets/'
     | '/calibration/'
@@ -1125,6 +1136,7 @@ export interface FileRouteTypes {
     | '/settings/projects'
     | '/stores/inventory'
     | '/tasks/departments'
+    | '/workspace/projects'
     | '/api/public/datasheet-proxy'
     | '/assets'
     | '/calibration'
@@ -1224,6 +1236,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/projects'
     | '/_authenticated/stores/inventory'
     | '/_authenticated/tasks/departments'
+    | '/_authenticated/workspace/projects'
     | '/api/public/datasheet-proxy'
     | '/_authenticated/assets/'
     | '/_authenticated/calibration/'
@@ -1538,6 +1551,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/public/datasheet-proxy'
       preLoaderRoute: typeof ApiPublicDatasheetProxyRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/workspace/projects': {
+      id: '/_authenticated/workspace/projects'
+      path: '/workspace/projects'
+      fullPath: '/workspace/projects'
+      preLoaderRoute: typeof AuthenticatedWorkspaceProjectsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tasks/departments': {
       id: '/_authenticated/tasks/departments'
@@ -2049,6 +2069,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsProjectsRoute: typeof AuthenticatedSettingsProjectsRoute
   AuthenticatedStoresInventoryRoute: typeof AuthenticatedStoresInventoryRoute
   AuthenticatedTasksDepartmentsRoute: typeof AuthenticatedTasksDepartmentsRoute
+  AuthenticatedWorkspaceProjectsRoute: typeof AuthenticatedWorkspaceProjectsRoute
   AuthenticatedAssetsIndexRoute: typeof AuthenticatedAssetsIndexRoute
   AuthenticatedCalibrationIndexRoute: typeof AuthenticatedCalibrationIndexRoute
   AuthenticatedCustomerServiceIndexRoute: typeof AuthenticatedCustomerServiceIndexRoute
@@ -2141,6 +2162,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsProjectsRoute: AuthenticatedSettingsProjectsRoute,
   AuthenticatedStoresInventoryRoute: AuthenticatedStoresInventoryRoute,
   AuthenticatedTasksDepartmentsRoute: AuthenticatedTasksDepartmentsRoute,
+  AuthenticatedWorkspaceProjectsRoute: AuthenticatedWorkspaceProjectsRoute,
   AuthenticatedAssetsIndexRoute: AuthenticatedAssetsIndexRoute,
   AuthenticatedCalibrationIndexRoute: AuthenticatedCalibrationIndexRoute,
   AuthenticatedCustomerServiceIndexRoute:
