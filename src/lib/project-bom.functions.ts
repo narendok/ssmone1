@@ -29,6 +29,8 @@ export interface ProjectBomSummary {
   line_count: number;
   total_cost: number | null;
   created_at: string;
+  source_drive_node_id?: string | null;
+  source_drive_revision_id?: string | null;
 }
 
 export interface DriveProjectBomSummary extends ProjectBomSummary {
@@ -67,6 +69,8 @@ const saveSchema = z.object({
   source_filename: z.string().nullable(),
   revision: z.string().max(40).nullable(),
   notes: z.string().nullable(),
+  source_drive_node_id: z.string().uuid().nullable().optional(),
+  source_drive_revision_id: z.string().uuid().nullable().optional(),
   items: z.array(itemSchema).min(1),
 });
 
@@ -97,6 +101,8 @@ export const saveProjectBom = createServerFn({ method: "POST" })
           source_filename: data.source_filename,
           revision: data.revision,
           notes: data.notes,
+          source_drive_node_id: data.source_drive_node_id ?? null,
+          source_drive_revision_id: data.source_drive_revision_id ?? null,
         })
         .eq("id", bom_id);
       if (error) throw new Error(error.message);
@@ -114,6 +120,8 @@ export const saveProjectBom = createServerFn({ method: "POST" })
           source_filename: data.source_filename,
           revision: data.revision,
           notes: data.notes,
+          source_drive_node_id: data.source_drive_node_id ?? null,
+          source_drive_revision_id: data.source_drive_revision_id ?? null,
           created_by: userId,
         })
         .select("id")
@@ -165,7 +173,7 @@ export const fetchProjectBoms = createServerFn({ method: "GET" })
     const sb = context.supabase as any;
     const { data: rows, error } = await sb
       .from("project_boms")
-      .select("id, bom_number, name, source_filename, revision, notes, line_count, total_cost, created_at")
+      .select("id, bom_number, name, source_filename, revision, notes, line_count, total_cost, created_at, source_drive_node_id, source_drive_revision_id")
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
@@ -179,7 +187,7 @@ export const fetchDriveProjectBoms = createServerFn({ method: "GET" })
     const sb = context.supabase as any;
     const { data: rows, error } = await sb
       .from("project_boms")
-      .select("id, bom_number, name, source_filename, revision, notes, line_count, total_cost, created_at, project_id, project:projects(name, code)")
+      .select("id, bom_number, name, source_filename, revision, notes, line_count, total_cost, created_at, project_id, source_drive_node_id, source_drive_revision_id, project:projects(name, code)")
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
     return ((rows ?? []) as any[]).map((row) => ({
@@ -192,6 +200,8 @@ export const fetchDriveProjectBoms = createServerFn({ method: "GET" })
       line_count: row.line_count,
       total_cost: row.total_cost,
       created_at: row.created_at,
+      source_drive_node_id: row.source_drive_node_id,
+      source_drive_revision_id: row.source_drive_revision_id,
       project_id: row.project_id,
       project_name: row.project?.name ?? "Untitled project",
       project_code: row.project?.code ?? null,
