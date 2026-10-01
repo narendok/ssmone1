@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Upload, FileSpreadsheet, Download, Link2, Search, RotateCcw, Copy, Share2, ShoppingCart, Sparkles, FolderPlus, Save, Loader2, ClipboardCheck } from "lucide-react";
 import { saveProjectBom, loadProjectBom } from "@/lib/project-bom.functions";
-import { fetchProjectFilesByType, type DriveNode } from "@/lib/drive";
+import { fetchProjectFilesByType } from "@/lib/drive";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -680,6 +680,17 @@ function BomPage() {
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">Revision (optional)</div>
               <Input value={saveRevision} onChange={(e) => setSaveRevision(e.target.value)} placeholder="e.g. A, B, Rev 2" />
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">Authoritative Drive source (optional)</div>
+              <Select value={sourceDriveNodeId} onValueChange={setSourceDriveNodeId}>
+                <SelectTrigger><SelectValue placeholder="Choose a project file" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Drive file linked</SelectItem>
+                  {projectBomFiles.map((file) => <SelectItem key={file.id} value={file.id}>{file.name} · v{file.current_version}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <div className="text-[11px] text-muted-foreground">Links this saved BOM to the existing project file without copying its source.</div>
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">

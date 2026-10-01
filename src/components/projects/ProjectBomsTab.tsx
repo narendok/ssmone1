@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { FileSpreadsheet, FolderInput, ChevronRight, ArrowLeft, Upload } from "lucide-react";
+import { FileSpreadsheet, FolderInput, ChevronRight, ArrowLeft, Upload, FolderOpen } from "lucide-react";
 import { fetchProjectBoms, fetchProjectBomItems, type ProjectBomSummary, type ProjectBomItemRow } from "@/lib/project-bom.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,9 @@ export function ProjectBomsTab({ projectId }: { projectId: string }) {
             <Button size="sm" onClick={() => navigate({ to: "/bom", search: { loadBom: h.id } as any })}>
               <FolderInput className="h-4 w-4" /> Load in BOM tool
             </Button>
+            {h.source_drive_node_id && <Button size="sm" variant="outline" onClick={() => navigate({ to: "/drive", search: { node: h.source_drive_node_id } as any })}>
+              <FolderOpen className="h-4 w-4" /> Open source file
+            </Button>}
           </div>
         </Card>
         <Card className="overflow-x-auto">
@@ -150,6 +153,7 @@ export function ProjectBomsTab({ projectId }: { projectId: string }) {
                 <div className="text-xs text-muted-foreground mt-0.5">
                   {b.line_count} line items · {money(b.total_cost)} total
                   {b.source_filename ? ` · ${b.source_filename}` : ""}
+                  {b.source_drive_node_id ? " · linked to Drive" : ""}
                   {" · saved " + new Date(b.created_at).toLocaleString()}
                 </div>
               </div>

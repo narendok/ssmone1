@@ -12,3 +12,5 @@
 - Department workspaces are read-only RLS queues; approvals stay in established workflows and priorities remain department-scoped with admin oversight.
 - Department projects provision their controlled Drive hierarchy by trigger; regular users cannot invoke it.
 - Drive categories are department-owned templates: common categories belong under the department standards branch, project categories are provisioned only for new internal/client projects, and Platform Owners manage templates through the settings page.
+- Controlled-document decisions use the protected, replay-safe transition action and remain linked to the existing register and Drive revision history; no client-side status mutation or duplicate register is allowed.
+- Engineering BOM records may reference an authoritative project Drive file and its revision; preserve that source link instead of copying the authoritative file.

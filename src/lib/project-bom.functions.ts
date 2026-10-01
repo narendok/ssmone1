@@ -130,6 +130,27 @@ export const saveProjectBom = createServerFn({ method: "POST" })
       bom_id = inserted.id;
     }
 
+    if (data.source_drive_node_id) {
+      const { data: sourceFile, error: sourceError } = await sb
+        .from("drive_nodes")
+        .select("id, project_id, current_version")
+        .eq("id", data.source_drive_node_id)
+        .maybeSingle();
+      if (sourceError || !sourceFile || sourceFile.project_id !== data.project_id) {
+        throw new Error("The selected Drive file does not belong to this project.");
+      }
+      if (data.source_drive_revision_id) {
+        const { data: sourceRevision, error: revisionError } = await sb
+          .from("drive_node_revisions")
+          .select("id, node_id")
+          .eq("id", data.source_drive_revision_id)
+          .maybeSingle();
+        if (revisionError || !sourceRevision || sourceRevision.node_id !== data.source_drive_node_id) {
+          throw new Error("The selected Drive revision does not belong to the source file.");
+        }
+      }
+    }
+
     // 2. Replace the line items
     const { error: delErr } = await sb.from("project_bom_items").delete().eq("bom_id", bom_id);
     if (delErr) throw new Error(delErr.message);
