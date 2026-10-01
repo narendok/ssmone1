@@ -32,10 +32,15 @@ export interface Project {
 
 const sb = supabase as any;
 
-export async function fetchProjects(departmentId?: string | null): Promise<Project[]> {
+export async function fetchProjects(): Promise<Project[]> {
   let query = sb.from("projects").select("*").order("status").order("name");
-  if (departmentId) query = query.eq("department_id", departmentId);
   const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as Project[];
+}
+
+export async function fetchDepartmentProjects(departmentId: string): Promise<Project[]> {
+  const { data, error } = await sb.from("projects").select("*").eq("department_id", departmentId).order("status").order("name");
   if (error) throw error;
   return (data ?? []) as Project[];
 }
