@@ -2,6 +2,7 @@
 
 ## Maintenance
 
+- [ ] Repair department-scoped Drive entry points and stale workspace state without changing backend access controls.
 - [x] Apply the approved consolidated department-to-role mapping, preserve inactive legacy aliases, align Drive management permissions, and verify existing mobile contracts.
 - [x] Publish the exact verified Android client contract for notification inbox state and read actions.
 - [x] Provision governed, idempotent project Drive templates with approved empty folders while preserving existing project files and access controls.
