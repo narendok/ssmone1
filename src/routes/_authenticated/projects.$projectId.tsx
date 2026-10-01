@@ -14,6 +14,7 @@ import { ProjectBomsTab } from "@/components/projects/ProjectBomsTab";
 import { TaskBoard } from "@/components/tasks/TaskBoard";
 import { ProjectTeamTab } from "@/components/projects/ProjectTeamTab";
 import { ProjectOperationalTab } from "@/components/projects/ProjectOperationalTabs";
+import { SharedProductLifecycle } from "@/components/projects/SharedProductLifecycle";
 import type { Project } from "@/lib/projects";
 import { ProjectDialog } from "@/components/projects/ProjectDialog";
 import { useAuth } from "@/hooks/useAuth";
@@ -90,6 +91,7 @@ function ProjectDetailPage() {
       <Tabs defaultValue="overview">
         <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="lifecycle">Lifecycle</TabsTrigger>
           <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="inputs">Inputs</TabsTrigger>
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
@@ -131,6 +133,8 @@ function ProjectDetailPage() {
           <Card className="p-4 space-y-3"><div><p className="text-sm font-medium">Delivery snapshot</p><p className="text-sm text-muted-foreground">Use the Delivery and Engineering tabs to control gates, issues, changes and release records.</p></div><div className="flex flex-wrap gap-2"><Badge variant="outline">{project.status}</Badge><Badge variant="secondary">{project.health_status}</Badge></div></Card>
           </div>
         </TabsContent>
+
+        <TabsContent value="lifecycle" className="pt-4"><SharedProductLifecycle project={project} /></TabsContent>
 
         <TabsContent value="team" className="pt-4"><ProjectTeamTab projectId={projectId} /></TabsContent>
         <TabsContent value="inputs" className="pt-4 space-y-8"><ProjectOperationalTab projectId={projectId} kind="design" /><ProjectOperationalTab projectId={projectId} kind="research" /></TabsContent>

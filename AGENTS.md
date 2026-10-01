@@ -14,3 +14,4 @@
 - Drive categories are department-owned templates: common categories belong under the department standards branch, project categories are provisioned only for new internal/client projects, and Platform Owners manage templates through the settings page.
 - Controlled-document decisions use the protected, replay-safe transition action and remain linked to the existing register and Drive revision history; no client-side status mutation or duplicate register is allowed.
 - Engineering BOM records may reference an authoritative project Drive file and its revision; preserve that source link instead of copying the authoritative file.
+- Present shared product-lifecycle status as a read-only composition of governed records; lifecycle screens must not infer approvals, ownership, releases, or external publication.
