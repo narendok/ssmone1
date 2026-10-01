@@ -140,7 +140,7 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
     for (const file of Array.from(files)) {
       try {
         setBusy(`Uploading ${file.name}…`);
-        await uploadFile({ file, parentId: folderId, projectId, departmentId: activeDepartmentId, onProgress: (l) => setBusy(`${file.name}: ${l}`) });
+        await uploadFile({ file, parentId: folderId, projectId: projectId ?? initialNode?.project_id ?? null, departmentId: activeDepartmentId, onProgress: (l) => setBusy(`${file.name}: ${l}`) });
         toast.success(`${file.name} uploaded`);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : `Could not upload ${file.name}`);
@@ -154,7 +154,7 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
     const name = window.prompt("Folder name");
     if (!name?.trim()) return;
     try {
-      await createFolder({ name: name.trim(), parentId: folderId, projectId, departmentId: activeDepartmentId });
+      await createFolder({ name: name.trim(), parentId: folderId, projectId: projectId ?? initialNode?.project_id ?? null, departmentId: activeDepartmentId });
       toast.success("Folder created");
       refresh();
     } catch (e) {
