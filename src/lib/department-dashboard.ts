@@ -42,6 +42,9 @@ export type DepartmentDashboardData = {
   metrics: DashboardMetric[];
   actions: DashboardAction[];
   workload: { label: string; open: number; blocked: number; overdue: number }[];
+  recentDocuments: { id: string; name: string; updatedAt: string }[];
+  documentCount: number;
+  departmentId: string | null;
 };
 
 export type DepartmentAvailability = {
@@ -93,7 +96,29 @@ function taskPulse(tasks: ProjectTask[]) {
 
 export function tasksForDepartment(tasks: ProjectTask[], department: DashboardDepartment) {
   const taskDepartments = departmentTaskMap[department];
-  return taskDepartments.length ? tasks.filter((task) => taskDepartments.includes(task.department)) : tasks;
+  return taskDepartments.length ? tasks.filter((task) => taskDepartments.includes(task.department)) : [];
+}
+
+const departmentMatches: Record<DashboardDepartment, string[]> = {
+  rnd: ["rnd", "research", "engineering", "hardware"], procurement: ["procurement", "purchase", "stores"], production: ["production"],
+  facility: ["facility", "maintenance"], operations: ["operations", "qms", "quality"], sales: ["sales"], hr: ["hr", "human"], finance: ["finance"],
+};
+
+export async function resolveDepartmentId(workspace: DashboardDepartment): Promise<string | null> {
+  const { data, error } = await sb.from("departments").select("id,name,code,aliases").eq("is_active", true);
+  if (error) return null;
+  const terms = departmentMatches[workspace];
+  const match = (data ?? []).find((row: any) => [row.name, row.code, ...(row.aliases ?? [])].filter(Boolean).some((value: string) => terms.some((term) => value.toLowerCase().includes(term))));
+  return match?.id ?? null;
+}
+
+async function documentSummary(departmentId: string | null) {
+  if (!departmentId) return { documentCount: 0, recentDocuments: [] };
+  const [{ count: total }, { data }] = await Promise.all([
+    sb.from("drive_nodes").select("id", { count: "exact", head: true }).eq("department_id", departmentId).eq("node_type", "FILE").eq("is_trashed", false),
+    sb.from("drive_nodes").select("id,name,updated_at").eq("department_id", departmentId).eq("node_type", "FILE").eq("is_trashed", false).order("updated_at", { ascending: false }).limit(5),
+  ]);
+  return { documentCount: total ?? 0, recentDocuments: (data ?? []).map((item: any) => ({ id: item.id, name: item.name, updatedAt: item.updated_at })) };
 }
 
 export function departmentTaskFocus(tasks: ProjectTask[], focus: DepartmentTaskFocus, today = new Date().toISOString().slice(0, 10)): DepartmentTaskItem[] {
@@ -178,10 +203,12 @@ async function count(table: string, apply?: (query: any) => any) {
 }
 
 export async function fetchDepartmentDashboard(department: DashboardDepartment): Promise<DepartmentDashboardData> {
-  const allTasks = await fetchTasks();
+  const [allTasks, departmentId] = await Promise.all([fetchTasks(), resolveDepartmentId(department)]);
   const scopedTasks = tasksForDepartment(allTasks, department);
   const pulse = taskPulse(scopedTasks);
   const sharedWorkload = [{ label: "Work queue", open: pulse.open.length, blocked: pulse.blocked.length, overdue: pulse.overdue.length }];
+  const documents = await documentSummary(departmentId);
+  const base = { ...documents, departmentId };
 
   if (department === "rnd") {
     const lowStock = await count("components", (query) => query.eq("needs_review", true));
@@ -198,7 +225,7 @@ export async function fetchDepartmentDashboard(department: DashboardDepartment):
         { label: "Review inventory", detail: "Check parts, bins and engineering stock.", to: "/locations" },
         { label: "Open BOM workspace", detail: "Import or review a project bill of materials.", to: "/bom" },
       ],
-      workload: sharedWorkload,
+      workload: sharedWorkload, ...base,
     };
   }
 
@@ -221,7 +248,7 @@ export async function fetchDepartmentDashboard(department: DashboardDepartment):
         { label: "Receive deliveries", detail: "Complete inwarding for delivered order lines.", to: "/procurement/inward" },
         { label: "Check stores inventory", detail: "Review availability and stock locations.", to: "/stores/inventory" },
       ],
-      workload: sharedWorkload,
+      workload: sharedWorkload, ...base,
     };
   }
 
@@ -244,7 +271,7 @@ export async function fetchDepartmentDashboard(department: DashboardDepartment):
         { label: "Review finished goods", detail: "Manage controlled finished-goods release.", to: "/production/release" },
         { label: "Review tasks", detail: "Assign production work and resolve blockers.", to: "/tasks" },
       ],
-      workload: sharedWorkload,
+      workload: sharedWorkload, ...base,
     };
   }
 
@@ -262,7 +289,7 @@ export async function fetchDepartmentDashboard(department: DashboardDepartment):
         { label: "Review assets", detail: "Track custodianship and asset status.", to: "/assets" },
         { label: "Review security", detail: "Open controlled security operations.", to: "/security" },
       ],
-      workload: sharedWorkload,
+      workload: sharedWorkload, ...base,
     };
   }
 
@@ -285,7 +312,7 @@ export async function fetchDepartmentDashboard(department: DashboardDepartment):
         { label: "Review leave desk", detail: "Action leave requests and balances.", to: "/hr/leave" },
         { label: "Manage learning", detail: "Review training assignments and completion.", to: "/hr/training" },
       ],
-      workload: sharedWorkload,
+      workload: sharedWorkload, ...base,
     };
   }
 
@@ -307,7 +334,7 @@ export async function fetchDepartmentDashboard(department: DashboardDepartment):
         { label: "Manage customers", detail: "Open the customer master and contacts.", to: "/customers" },
         { label: "Review tasks", detail: "Assign commercial follow-ups and due work.", to: "/tasks" },
       ],
-      workload: sharedWorkload,
+      workload: sharedWorkload, ...base,
     };
   }
 
@@ -324,7 +351,7 @@ export async function fetchDepartmentDashboard(department: DashboardDepartment):
         { label: "Open projects", detail: "Review project context and delivery work.", to: "/projects" },
         { label: "Open documents", detail: "Open controlled project files and links.", to: "/drive" },
       ],
-      workload: sharedWorkload,
+      workload: sharedWorkload, ...base,
     };
   }
 
@@ -346,6 +373,6 @@ export async function fetchDepartmentDashboard(department: DashboardDepartment):
       { label: "Customer quality", detail: "Manage complaints, returns and field issues.", to: "/customer-service" },
       { label: "Review tasks", detail: "Assign quality work and resolve blockers.", to: "/tasks" },
     ],
-    workload: sharedWorkload,
+    workload: sharedWorkload, ...base,
   };
 }

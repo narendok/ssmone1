@@ -1,26 +1,18 @@
-import type { CanonicalDepartment } from "@/lib/tasks";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
-export type DepartmentWorkTarget = "/projects" | "/hr" | "/procurement/requests" | "/production" | "/qms" | "/sales" | "/tasks";
+const sb = supabase as any;
+export type WorkspacePreference = Database["public"]["Tables"]["department_workspace_preferences"]["Row"];
 
-function normalizedTerms(department: CanonicalDepartment) {
-  return [department.name, department.code ?? "", ...department.aliases].map((value) => value.trim().toLowerCase());
+export async function fetchWorkspacePreference(departmentId: string): Promise<WorkspacePreference | null> {
+  const { data, error } = await sb.from("department_workspace_preferences").select("*").eq("department_id", departmentId).maybeSingle();
+  if (error) throw error;
+  return data as WorkspacePreference | null;
 }
 
-function includesAny(terms: string[], values: string[]) {
-  return values.some((value) => terms.includes(value));
-}
-
-export function departmentWorkTarget(department: CanonicalDepartment): DepartmentWorkTarget {
-  const terms = normalizedTerms(department);
-  if (includesAny(terms, ["human resources", "hr"])) return "/hr";
-  if (includesAny(terms, ["procurement, stores & incoming quality", "proc"])) return "/procurement/requests";
-  if (includesAny(terms, ["production & calibration", "prod"])) return "/production";
-  if (includesAny(terms, ["operations & qms", "ops", "operations", "qms", "management review"])) return "/qms";
-  if (includesAny(terms, ["sales", "sal"])) return "/sales";
-  if (includesAny(terms, ["hardware & r&d", "rnd"])) return "/projects";
-  return "/tasks";
-}
-
-export function taskMatchesCanonicalDepartment(taskDepartmentId: string | null, selectedDepartmentId: string) {
-  return taskDepartmentId === selectedDepartmentId;
+export async function saveWorkspacePreference(departmentId: string, patch: Partial<Pick<WorkspacePreference, "drive_default_filter" | "show_dashboard_documents" | "project_tracker_view" | "lead_digest_enabled">>) {
+  const { data: userResult, error: userError } = await supabase.auth.getUser();
+  if (userError || !userResult.user) throw new Error("Sign in required");
+  const { error } = await sb.from("department_workspace_preferences").upsert({ user_id: userResult.user.id, department_id: departmentId, ...patch }, { onConflict: "user_id,department_id" });
+  if (error) throw error;
 }

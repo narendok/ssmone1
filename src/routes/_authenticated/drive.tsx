@@ -2,10 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { DriveBrowser } from "@/components/drive/DriveBrowser";
 
 export const Route = createFileRoute("/_authenticated/drive")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    node: typeof search.node === "string" ? search.node : undefined,
-    department: typeof search.department === "string" ? search.department : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const result: { node?: string; department?: string } = {};
+    if (typeof search.node === "string") result.node = search.node;
+    if (typeof search.department === "string") result.department = search.department;
+    return result;
+  },
   head: () => ({
     meta: [
       { title: "Drive — PartsBench document vault" },
