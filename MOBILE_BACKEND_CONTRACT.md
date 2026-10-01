@@ -1,6 +1,6 @@
 # MOBILE BACKEND CONTRACT
 
-**Generated:** 2026-09-26 UTC; refreshed after Mobile Stage 5 safe projection and controlled test-seed addition.  
+**Generated:** 2026-10-01 UTC; refreshed for controlled-document, company-process, and BOM source-traceability handoff.  
 **Authority:** live managed backend inventory, current migration history, and `src/integrations/supabase/types.ts`. This contract does not create a mobile backend or mobile UI. Object classifications below describe handoff suitability, not a blanket confirmation that every mobile user can read every object; RLS and purpose-specific permissions remain authoritative.
 
 ## Environment strategy
@@ -51,6 +51,10 @@
 | Engineering & R&D | `datasheet_cache` | id | — | — | MOBILE_READ_SAFE |
 | Identity & access | `departments` | id | — | — | MOBILE_READ_SAFE |
 | Platform support | `document_numbering_config` | id | — | — | MOBILE_READ_SAFE |
+| Common work & documents | `document_control_registers` | id | document_number + drive_node_id | document_status | MOBILE_READ_SAFE |
+| Common work & documents | `document_control_events` | id | register_id + created_at | event_type | MOBILE_READ_SAFE |
+| Common work & documents | `controlled_document_audit_gaps` | register_id | — | — | MOBILE_READ_SAFE |
+| Common work & documents | `controlled_document_audit_timeline` | id | register_id + created_at | event_type | MOBILE_READ_SAFE |
 | Common work & documents | `drive_node_revisions` | id | — | — | MOBILE_READ_SAFE |
 | Common work & documents | `drive_nodes` | id | — | — | MOBILE_READ_SAFE |
 | Common work & documents | `drive_share_links` | id | — | — | MOBILE_READ_SAFE |
@@ -140,6 +144,8 @@
 | Engineering & R&D | `project_issues` | id | — | — | MOBILE_READ_SAFE |
 | Engineering & R&D | `project_research_records` | id | — | — | MOBILE_READ_SAFE |
 | Engineering & R&D | `project_stage_gates` | id | — | — | MOBILE_READ_SAFE |
+| Engineering & R&D | `company_process_stages` | id | stage_code | is_active | MOBILE_READ_SAFE |
+| Engineering & R&D | `project_process_stage_records` | id | project_id + company_process_stage_id | status | MOBILE_READ_SAFE |
 | Common work & documents | `project_task_activity` | id | — | — | MOBILE_READ_SAFE |
 | Common work & documents | `project_task_checklists` | id | — | — | MOBILE_READ_SAFE |
 | Common work & documents | `project_tasks` | id | — | status | MOBILE_READ_SAFE |
@@ -442,6 +448,7 @@
 | `short_close_po_item` | See generated type signature; server/database function. |
 | `submit_public_job_application` | See generated type signature; server/database function. |
 | `toggle_node_star` | See generated type signature; server/database function. |
+| `transition_document_control` | Protected controlled-document action. Web-only server action currently wraps this RPC; Android must not call it until a dedicated mobile contract is approved. |
 | `transition_phase7_work_order` | Controlled work-order lifecycle transition; server-side only. |
 | `try_acquire_automation_lease` | See generated type signature; server/database function. |
 
