@@ -37,7 +37,7 @@ export function MobileWorkspaceTabs() {
         <TabLink to="/command-center" label="Dashboard" active={isActive("/command-center")}><LayoutDashboard className="size-5" /></TabLink>
         <TabLink to={work} label="Work" active={isActive(work)}><Wrench className="size-5" /></TabLink>
         <GlobalSearch mobile canScan={canScan} />
-        <TabLink to="/drive" label="Drive" active={isActive("/drive")}><FolderOpen className="size-5" /></TabLink>
+        <TabLink to="/drive" departmentId={selectedDepartment?.id} label="Drive" active={isActive("/drive")}><FolderOpen className="size-5" /></TabLink>
         <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
           <SheetTrigger asChild>
             <Button variant="ghost" className="h-full flex-col gap-1 rounded-none px-1 text-xs"><Menu className="size-5" />More</Button>
@@ -45,7 +45,7 @@ export function MobileWorkspaceTabs() {
           <SheetContent side="bottom" className="rounded-t-lg">
               <SheetHeader><SheetTitle>{workspace ? `${workspace.label} work` : "More workspace areas"}</SheetTitle></SheetHeader>
             <div className="mt-5 grid gap-2">
-               {workspace ? workspace.items.map((item) => <MoreLink key={item.to + item.label} to={item.to} label={item.label} onClick={() => setMoreOpen(false)} />) : <><MoreLink to="/dashboards" label="Department dashboard" onClick={() => setMoreOpen(false)} /><MoreLink to="/tasks" label="Tasks" onClick={() => setMoreOpen(false)} /><MoreLink to="/records" label="Records search" onClick={() => setMoreOpen(false)} />{(role === "admin" || permissions.includes("admin.view")) && <MoreLink to="/admin" label="System controls" onClick={() => setMoreOpen(false)} />}</>}
+               {workspace ? workspace.items.map((item) => <MoreLink key={item.to + item.label} to={item.to} departmentId={item.to === "/drive" ? selectedDepartment?.id : undefined} label={item.label} onClick={() => setMoreOpen(false)} />) : <><MoreLink to="/dashboards" label="Department dashboard" onClick={() => setMoreOpen(false)} /><MoreLink to="/tasks" label="Tasks" onClick={() => setMoreOpen(false)} /><MoreLink to="/records" label="Records search" onClick={() => setMoreOpen(false)} />{(role === "admin" || permissions.includes("admin.view")) && <MoreLink to="/admin" label="System controls" onClick={() => setMoreOpen(false)} />}</>}
             </div>
           </SheetContent>
         </Sheet>
@@ -54,10 +54,10 @@ export function MobileWorkspaceTabs() {
   );
 }
 
-function TabLink({ to, label, active, children }: { to: string; label: string; active: boolean; children: React.ReactNode }) {
-  return <Button asChild variant="ghost" className={`h-full flex-col gap-1 rounded-none px-1 text-xs ${active ? "text-primary" : "text-muted-foreground"}`}><Link to={to}>{children}{label}</Link></Button>;
+function TabLink({ to, departmentId, label, active, children }: { to: string; departmentId?: string; label: string; active: boolean; children: React.ReactNode }) {
+  return <Button asChild variant="ghost" className={`h-full flex-col gap-1 rounded-none px-1 text-xs ${active ? "text-primary" : "text-muted-foreground"}`}>{to === "/drive" && departmentId ? <Link to="/drive" search={{ department: departmentId }}>{children}{label}</Link> : <Link to={to}>{children}{label}</Link>}</Button>;
 }
 
-function MoreLink({ to, label, onClick }: { to: string; label: string; onClick: () => void }) {
-  return <Button asChild variant="outline" className="justify-start"><Link to={to} onClick={onClick}>{label}</Link></Button>;
+function MoreLink({ to, departmentId, label, onClick }: { to: string; departmentId?: string; label: string; onClick: () => void }) {
+  return <Button asChild variant="outline" className="justify-start">{to === "/drive" && departmentId ? <Link to="/drive" search={{ department: departmentId }} onClick={onClick}>{label}</Link> : <Link to={to} onClick={onClick}>{label}</Link>}</Button>;
 }
