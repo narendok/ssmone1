@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Upload, FileSpreadsheet, Download, Link2, Search, RotateCcw, Copy, Share2, ShoppingCart, Sparkles, FolderPlus, Save, Loader2, ClipboardCheck } from "lucide-react";
 import { saveProjectBom, loadProjectBom } from "@/lib/project-bom.functions";
+import { fetchProjectFilesByType, type DriveNode } from "@/lib/drive";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -95,6 +96,7 @@ function BomPage() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [saveRevision, setSaveRevision] = useState("");
+  const [sourceDriveNodeId, setSourceDriveNodeId] = useState("none");
   const [saving, setSaving] = useState(false);
   const [savedLink, setSavedLink] = useState<{ bom_number: string; project_id: string } | null>(null);
 
@@ -102,6 +104,12 @@ function BomPage() {
   const projectFromSearch = (useSearch({ strict: false }) as any)?.projectId as string | undefined;
   const loadFn = useServerFn(loadProjectBom);
   const saveFn = useServerFn(saveProjectBom);
+
+  const { data: projectBomFiles = [] } = useQuery({
+    queryKey: ["project_bom_source_files", activeProject?.id],
+    queryFn: () => fetchProjectFilesByType(activeProject?.id ?? "", ["BOM", "SPREADSHEET"]),
+    enabled: Boolean(activeProject?.id),
+  });
 
   useEffect(() => {
     if (!loadBomId) return;
@@ -171,12 +179,13 @@ function BomPage() {
           source_filename: fileName || null,
           revision: saveRevision.trim() || null,
           notes: null,
+          source_drive_node_id: sourceDriveNodeId === "none" ? null : sourceDriveNodeId,
           items,
         },
       });
       toast.success(`Saved ${res.bom_number} to ${activeProject.name}`);
       setSavedLink({ bom_number: res.bom_number, project_id: activeProject.id });
-      setSaveOpen(false);
+      setSaveOpen(false); setSourceDriveNodeId("none");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not save the BOM");
     } finally {
