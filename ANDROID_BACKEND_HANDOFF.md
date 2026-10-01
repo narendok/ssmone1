@@ -39,3 +39,13 @@ A single existing managed backend is evidenced by the current project configurat
 ## Storage pattern
 
 Private buckets remain private. Download delivery uses an authorized signed URL when needed. External staged files use a server-issued signed upload token and remain quarantined until reviewed.
+
+## Controlled-document and OEM traceability boundary — 2026-10-01
+
+- Mobile may read RLS-permitted controlled-document records from `document_control_registers`, their `document_control_events`, and the security-invoker audit views `controlled_document_audit_timeline` and `controlled_document_audit_gaps`.
+- Drive revision context is read from `drive_nodes` and `drive_node_revisions`. A register's source revision must belong to the registered Drive file. Do not infer approval from a free-text filename or revision.
+- `company_process_stages` contains the company HW_01–HW_37 taxonomy. `project_process_stage_records` links a project to a stage, optional predecessor, owner/reviewer, task, evidence Drive file, and engineering change. This is an internal taxonomy, not a certification or customer-approval claim.
+- `project_boms` may expose `source_drive_node_id` and `source_drive_revision_id` for an authoritative project source file. Legacy filename/revision fields are descriptive only.
+- Document status transitions use `transition_document_control` with a UUID request key and expected status. Android must not invoke it directly yet: the approved caller today is a web server action with an authenticated session. Treat review, approval, release, and supersession as online, web-only until a dedicated Android action and session-scoped acceptance evidence exist.
+- No general Android endpoint for controlled-file signed delivery is approved by this handoff. Use only an authorized delivery flow that preserves caller RLS; never expose a Drive object URL or privileged key.
+- Existing records can have missing owner, reviewer, approver, source revision, task, evidence, or change reason. Render these as audit gaps, not as completed compliance evidence.

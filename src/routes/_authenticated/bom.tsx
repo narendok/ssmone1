@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Upload, FileSpreadsheet, Download, Link2, Search, RotateCcw, Copy, Share2, ShoppingCart, Sparkles, FolderPlus, Save, Loader2, ClipboardCheck } from "lucide-react";
 import { saveProjectBom, loadProjectBom } from "@/lib/project-bom.functions";
+import { fetchProjectFilesByType } from "@/lib/drive";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -95,6 +96,7 @@ function BomPage() {
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [saveRevision, setSaveRevision] = useState("");
+  const [sourceDriveNodeId, setSourceDriveNodeId] = useState("none");
   const [saving, setSaving] = useState(false);
   const [savedLink, setSavedLink] = useState<{ bom_number: string; project_id: string } | null>(null);
 
@@ -171,12 +173,13 @@ function BomPage() {
           source_filename: fileName || null,
           revision: saveRevision.trim() || null,
           notes: null,
+          source_drive_node_id: sourceDriveNodeId === "none" ? null : sourceDriveNodeId,
           items,
         },
       });
       toast.success(`Saved ${res.bom_number} to ${activeProject.name}`);
       setSavedLink({ bom_number: res.bom_number, project_id: activeProject.id });
-      setSaveOpen(false);
+      setSaveOpen(false); setSourceDriveNodeId("none");
     } catch (e: any) {
       toast.error(e?.message ?? "Could not save the BOM");
     } finally {
@@ -228,6 +231,12 @@ function BomPage() {
   });
 
   const activeProject = projects.find((p) => p.id === projectId) ?? null;
+
+  const { data: projectBomFiles = [] } = useQuery({
+    queryKey: ["project_bom_source_files", activeProject?.id],
+    queryFn: () => fetchProjectFilesByType(activeProject?.id ?? "", ["BOM", "SPREADSHEET"]),
+    enabled: Boolean(activeProject?.id),
+  });
 
   const partById = useMemo(() => new Map(parts.map((p) => [p.id, p])), [parts]);
 
@@ -671,6 +680,17 @@ function BomPage() {
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground">Revision (optional)</div>
               <Input value={saveRevision} onChange={(e) => setSaveRevision(e.target.value)} placeholder="e.g. A, B, Rev 2" />
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-muted-foreground">Authoritative Drive source (optional)</div>
+              <Select value={sourceDriveNodeId} onValueChange={setSourceDriveNodeId}>
+                <SelectTrigger><SelectValue placeholder="Choose a project file" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Drive file linked</SelectItem>
+                  {projectBomFiles.map((file) => <SelectItem key={file.id} value={file.id}>{file.name} · v{file.current_version}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <div className="text-[11px] text-muted-foreground">Links this saved BOM to the existing project file without copying its source.</div>
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">

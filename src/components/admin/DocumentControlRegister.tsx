@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { toast } from "sonner";
 import { FileCheck2, Plus } from "lucide-react";
@@ -11,10 +12,11 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { transitionDocumentControl } from "@/lib/document-control.functions";
 
 const sb = supabase as any;
-const statuses = ["DRAFT", "IN_REVIEW", "APPROVED", "OBSOLETE"] as const;
-type Register = { id: string; drive_node_id: string; department_id: string; document_number: string; title: string; document_status: string; controlled_version: number; approved_at: string | null; approval_note: string | null; drive_node?: { name: string } | null; department?: { name: string } | null };
+type Register = { id: string; drive_node_id: string; department_id: string; document_number: string; title: string; document_status: "DRAFT" | "IN_REVIEW" | "APPROVED" | "OBSOLETE"; controlled_version: number; approved_at: string | null; approval_note: string | null; reviewer_decision: string | null; released_at: string | null; drive_node?: { name: string } | null; department?: { name: string } | null };
 
 export function DocumentControlRegister() {
   const client = useQueryClient();
@@ -33,9 +35,16 @@ function RegisterDialog({ open, onOpenChange, onSaved }: { open: boolean; onOpen
 }
 
 function HistoryDialog({ record, onClose, onSaved }: { record: Register | null; onClose: () => void; onSaved: () => void }) {
-  const [status, setStatus] = useState(record?.document_status ?? "DRAFT"); const [note, setNote] = useState(""); const [saving, setSaving] = useState(false);
+  const transition = useServerFn(transitionDocumentControl);
+  const [note, setNote] = useState(""); const [changeReason, setChangeReason] = useState(""); const [saving, setSaving] = useState(false);
   const events = useQuery({ queryKey: ["document_control_events", record?.id], queryFn: async () => { const { data, error } = await sb.from("document_control_events").select("*").eq("register_id", record?.id ?? "").order("created_at", { ascending: false }); if (error) throw error; return data ?? []; }, enabled: Boolean(record) });
-  const update = async () => { if (!record) return; setSaving(true); const patch: any = { document_status: status, approval_note: note || null }; if (status === "APPROVED") { patch.approved_at = new Date().toISOString(); const { data } = await supabase.auth.getUser(); patch.approved_by = data.user?.id ?? null; } const { error } = await sb.from("document_control_registers").update(patch).eq("id", record.id); setSaving(false); if (error) return toast.error(error.message); toast.success("Document control updated"); onSaved(); void events.refetch(); };
+  const nextActions: Record<Register["document_status"], Array<{ label: string; action: "SUBMIT_REVIEW" | "REVIEW_APPROVE" | "REVIEW_REJECT" | "APPROVE" | "RELEASE" | "SUPERSEDE" }>> = {
+    DRAFT: [{ label: "Submit for review", action: "SUBMIT_REVIEW" }],
+    IN_REVIEW: [{ label: "Approve review", action: "REVIEW_APPROVE" }, { label: "Return to draft", action: "REVIEW_REJECT" }, { label: "Approve document", action: "APPROVE" }],
+    APPROVED: [{ label: "Release document", action: "RELEASE" }, { label: "Supersede document", action: "SUPERSEDE" }],
+    OBSOLETE: [],
+  };
+  const progress = async (action: "SUBMIT_REVIEW" | "REVIEW_APPROVE" | "REVIEW_REJECT" | "APPROVE" | "RELEASE" | "SUPERSEDE") => { if (!record) return; setSaving(true); try { await transition({ data: { registerId: record.id, action, expectedStatus: record.document_status, note: note.trim() || null, changeReason: changeReason.trim() || null, requestKey: crypto.randomUUID() } }); toast.success("Document control updated"); onSaved(); void events.refetch(); } catch (error: any) { toast.error(error?.message ?? "Could not update document control"); } finally { setSaving(false); } };
   if (!record) return null;
-  return <Dialog open={Boolean(record)} onOpenChange={(open) => !open && onClose()}><DialogContent><DialogHeader><DialogTitle>{record.title}</DialogTitle></DialogHeader><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2"><div><Label>Status</Label><Select value={status} onValueChange={setStatus}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{statuses.map((item) => <SelectItem key={item} value={item}>{item.replaceAll("_", " ")}</SelectItem>)}</SelectContent></Select></div><div><Label>Approval note</Label><Input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Decision note" /></div></div><div><p className="mb-2 text-sm font-medium">Approval history</p>{events.data?.length ? <div className="space-y-2">{events.data.map((event: any) => <div key={event.id} className="border p-3 text-sm"><p className="font-medium">{event.event_type.replaceAll("_", " ")} · v{event.version ?? record.controlled_version}</p><p className="mt-1 text-xs text-muted-foreground">{event.note ?? "No note"} · {new Date(event.created_at).toLocaleString()}</p></div>)}</div> : <p className="text-sm text-muted-foreground">No recorded events yet.</p>}</div><Button asChild variant="outline" size="sm"><Link to="/drive" search={{ node: record.drive_node_id, department: record.department_id }}>Open source file</Link></Button></div><DialogFooter><Button variant="outline" onClick={onClose}>Close</Button><Button disabled={saving} onClick={() => void update()}>{saving ? "Saving…" : "Save control"}</Button></DialogFooter></DialogContent></Dialog>;
+  return <Dialog open={Boolean(record)} onOpenChange={(open) => !open && onClose()}><DialogContent><DialogHeader><DialogTitle>{record.title}</DialogTitle></DialogHeader><div className="space-y-4"><div className="grid gap-3 sm:grid-cols-2"><div><Label>Status</Label><p className="mt-2 text-sm font-medium">{record.document_status.replaceAll("_", " ")}</p></div><div><Label>Release</Label><p className="mt-2 text-sm font-medium">{record.released_at ? new Date(record.released_at).toLocaleString() : "Not released"}</p></div></div><div><Label>Decision note</Label><Textarea value={note} onChange={(event) => setNote(event.target.value)} placeholder="Recorded with the controlled action" /></div><div><Label>Change reason</Label><Textarea value={changeReason} onChange={(event) => setChangeReason(event.target.value)} placeholder="Required evidence for a complete audit trail" /></div><div><p className="mb-2 text-sm font-medium">Approval history</p>{events.data?.length ? <div className="space-y-2">{events.data.map((event: any) => <div key={event.id} className="border p-3 text-sm"><p className="font-medium">{event.event_type.replaceAll("_", " ")} · v{event.version ?? record.controlled_version}</p><p className="mt-1 text-xs text-muted-foreground">{event.note ?? "No note"} · {new Date(event.created_at).toLocaleString()}</p></div>)}</div> : <p className="text-sm text-muted-foreground">No recorded events yet.</p>}</div><Button asChild variant="outline" size="sm"><Link to="/drive" search={{ node: record.drive_node_id, department: record.department_id }}>Open source file</Link></Button></div><DialogFooter><Button variant="outline" onClick={onClose}>Close</Button>{nextActions[record.document_status].map((item) => <Button key={item.action} disabled={saving} onClick={() => void progress(item.action)}>{saving ? "Saving…" : item.label}</Button>)}</DialogFooter></DialogContent></Dialog>;
 }
