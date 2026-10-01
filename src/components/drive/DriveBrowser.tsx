@@ -56,6 +56,15 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
   const [shareFor, setShareFor] = useState<DriveNode | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
 
+  const { data: initialNode } = useQuery({
+    queryKey: ["drive_node", initialNodeId],
+    queryFn: async () => {
+      const { data, error } = await (await import("@/integrations/supabase/client")).supabase.from("drive_nodes").select("*").eq("id", initialNodeId ?? "").maybeSingle();
+      if (error) throw error;
+      return data as DriveNode | null;
+    },
+    enabled: Boolean(initialNodeId),
+  });
   const activeDepartmentId = departmentId ?? workspaceDepartmentId ?? initialNode?.department_id ?? null;
   const canBrowseAllWorkspaces = role === "admin" && !activeDepartmentId;
   const childrenKey = ["drive_children", projectId, activeDepartmentId, folderId];
@@ -74,18 +83,9 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
     queryFn: fetchFavorites,
   });
   const { data: projectBoms = [], isLoading: bomsLoading, isError: bomsError, error: bomsErrorDetail } = useQuery({
-    queryKey: ["drive_project_boms"],
+    queryKey: ["drive_project_boms", activeDepartmentId],
     queryFn: () => fetchBoms(),
-    enabled: filter === "boms",
-  });
-  const { data: initialNode } = useQuery({
-    queryKey: ["drive_node", initialNodeId],
-    queryFn: async () => {
-      const { data, error } = await (await import("@/integrations/supabase/client")).supabase.from("drive_nodes").select("*").eq("id", initialNodeId ?? "").maybeSingle();
-      if (error) throw error;
-      return data as DriveNode | null;
-    },
-    enabled: Boolean(initialNodeId),
+    enabled: filter === "boms" && Boolean(activeDepartmentId || projectId || canBrowseAllWorkspaces),
   });
   const { data: categories = [] } = useQuery({
     queryKey: ["drive_category_templates", activeDepartmentId],
