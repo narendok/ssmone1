@@ -1,8 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { workspaceForDepartment } from "@/lib/department-workspace-navigation";
 
 const sb = supabase as any;
 export type WorkspacePreference = Database["public"]["Tables"]["department_workspace_preferences"]["Row"];
+
+export function departmentWorkTarget(department: { name: string; code: string | null; aliases: string[] }) {
+  return workspaceForDepartment(department) ? "/workspace/projects" : "/command-center";
+}
 
 export async function fetchWorkspacePreference(departmentId: string): Promise<WorkspacePreference | null> {
   const { data, error } = await sb.from("department_workspace_preferences").select("*").eq("department_id", departmentId).maybeSingle();
