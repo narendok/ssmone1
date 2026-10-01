@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Project } from "@/lib/projects";
+import { createLifecycleDraftPlan } from "@/lib/lifecycle-draft-plan";
 
 const sb = supabase as any;
 
@@ -38,6 +39,17 @@ export function SharedProductLifecycle({ project }: { project: Project }) {
   const openTasks = snapshot?.tasks.filter((task: any) => task.status !== "done").length ?? 0;
   const linkedBoms = snapshot?.boms.filter((bom: any) => bom.source_drive_node_id && bom.source_drive_revision_id).length ?? 0;
   const hasBaseline = Boolean(project.requirement_baseline_id);
+  const draftPlan = snapshot ? createLifecycleDraftPlan({
+    projectId: project.id,
+    departmentId: project.department_id,
+    requirementBaselineId: project.requirement_baseline_id,
+    projectDriveNodeId: project.project_drive_node_id,
+    tasks: snapshot.tasks,
+    processRecords: snapshot.process,
+    designInputCount: snapshot.inputs.length,
+    researchCount: snapshot.research.length,
+    linkedBomCount: linkedBoms,
+  }) : null;
   const statuses = [
     hasBaseline ? "linked" : "missing",
     hasBaseline ? "frozen source linked" : "customer confirmation required",
@@ -78,6 +90,11 @@ export function SharedProductLifecycle({ project }: { project: Project }) {
         <div className="mt-4 flex flex-wrap gap-2"><Button asChild size="sm" variant="outline"><Link to="/bom" search={{ projectId: project.id } as any}><FileText className="size-3.5" /> Review BOMs</Link></Button><Button asChild size="sm" variant="outline"><Link to="/drive" search={{ node: project.project_drive_node_id ?? undefined, department: project.department_id ?? undefined } as any}><FolderOpen className="size-3.5" /> Open project files</Link></Button></div>
       </Card>
     </div>
+
+    <Card className="p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-sm font-medium">Draft lifecycle automation plan</p><p className="mt-1 text-sm text-muted-foreground">Prepared from visible governed records only. Nothing is created, assigned, notified, approved, or shared from this panel.</p></div><Badge variant="secondary">DRAFT ONLY</Badge></div>
+      {draftPlan ? <div className="mt-4 grid gap-4 lg:grid-cols-[0.8fr_1.2fr]"><div><p className="text-xs font-medium text-muted-foreground">Required source inputs</p><div className="mt-2 flex flex-wrap gap-2">{draftPlan.requiredInputs.map((input) => <Badge key={input} variant={draftPlan.missingInputs.includes(input) ? "secondary" : "outline"}>{input}{draftPlan.missingInputs.includes(input) ? " · missing" : " · linked"}</Badge>)}</div></div><div className="space-y-2">{draftPlan.proposedActions.map((action) => <div key={action.key} className="border-l-2 border-muted pl-3"><div className="flex flex-wrap items-center gap-2"><p className="text-sm font-medium">{action.title}</p><Badge variant="outline">{action.state}</Badge></div><p className="mt-1 text-xs text-muted-foreground">{action.reason}</p></div>)}</div></div> : <p className="mt-4 text-sm text-muted-foreground">Loading available governed records…</p>}
+    </Card>
 
     <Card className="p-5"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" /><div><h3 className="font-semibold">Template and external-sharing safeguards</h3><p className="mt-1 text-sm text-muted-foreground">Department leads continue to use existing Drive templates and controlled document settings. Client sharing remains governed by the existing restricted, expiring access workflow; no link is published from this view.</p></div><ArrowRight className="ml-auto mt-1 size-4 text-muted-foreground" /></div></Card>
   </div>;

@@ -2,7 +2,7 @@
 
 ## Maintenance
 
-- [ ] Extend the shared product lifecycle from requirements through delivery using existing governed records and controls. **In progress:** reversible project lifecycle view added; no lifecycle approvals, production release, sharing, or backend ownership changes are implied.
+- [ ] Extend the shared product lifecycle from requirements through delivery using existing governed records and controls. **In progress:** reversible read-only draft planner added with missing-provenance reporting; versioned templates, feedback revisions, dependency DAG, materialization, handoff tasks, and notifications remain blocked pending an approved security contract and unapplied schema patch.
 - [ ] Verify the served development preview contains the department-scoped Drive repair and diagnose stale preview delivery without publishing production. **In progress:** user reports an older `/drive` surface at `preview--ssmone1.lovable.app`.
 - [x] Repair department-scoped Drive entry points and stale workspace state without changing backend access controls.
 - [x] Apply the approved consolidated department-to-role mapping, preserve inactive legacy aliases, align Drive management permissions, and verify existing mobile contracts.
