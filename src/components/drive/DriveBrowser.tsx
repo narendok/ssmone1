@@ -25,6 +25,8 @@ import { FilePreviewDialog } from "./FilePreviewDialog";
 import { RevisionsDialog } from "./RevisionsDialog";
 import { ShareNodeDialog } from "./ShareNodeDialog";
 import { fetchDriveProjectBoms, type DriveProjectBomSummary } from "@/lib/project-bom.functions";
+import { readWorkspaceDepartmentId, WORKSPACE_CONTEXT_EVENT } from "@/lib/workspace-context";
+import { useAuth } from "@/hooks/useAuth";
 
 type Filter = "all" | "common" | "internal" | "client" | "starred" | "ppap" | "boms";
 
@@ -41,7 +43,9 @@ function iconFor(node: DriveNode) {
 
 export function DriveBrowser({ projectId = null, departmentId = null, initialNodeId }: { projectId?: string | null; departmentId?: string | null; initialNodeId?: string }) {
   const qc = useQueryClient();
+  const { role } = useAuth();
   const fetchBoms = useServerFn(fetchDriveProjectBoms);
+  const [workspaceDepartmentId, setWorkspaceDepartmentId] = useState<string | null>(() => readWorkspaceDepartmentId());
   const [folderId, setFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -52,10 +56,22 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
   const [shareFor, setShareFor] = useState<DriveNode | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
 
-  const childrenKey = ["drive_children", projectId, folderId];
+  const { data: initialNode } = useQuery({
+    queryKey: ["drive_node", initialNodeId],
+    queryFn: async () => {
+      const { data, error } = await (await import("@/integrations/supabase/client")).supabase.from("drive_nodes").select("*").eq("id", initialNodeId ?? "").maybeSingle();
+      if (error) throw error;
+      return data as DriveNode | null;
+    },
+    enabled: Boolean(initialNodeId),
+  });
+  const activeDepartmentId = departmentId ?? workspaceDepartmentId ?? initialNode?.department_id ?? null;
+  const canBrowseAllWorkspaces = role === "admin" && !activeDepartmentId;
+  const childrenKey = ["drive_children", projectId, activeDepartmentId, folderId];
   const { data: nodes = [], isLoading, isError, error } = useQuery({
     queryKey: childrenKey,
-    queryFn: () => fetchChildren(folderId, projectId, departmentId),
+    queryFn: () => fetchChildren(folderId, projectId, activeDepartmentId),
+    enabled: Boolean(projectId || activeDepartmentId || canBrowseAllWorkspaces),
   });
   const { data: crumbs = [] } = useQuery({
     queryKey: ["drive_crumbs", folderId],
@@ -67,20 +83,10 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
     queryFn: fetchFavorites,
   });
   const { data: projectBoms = [], isLoading: bomsLoading, isError: bomsError, error: bomsErrorDetail } = useQuery({
-    queryKey: ["drive_project_boms"],
+    queryKey: ["drive_project_boms", activeDepartmentId],
     queryFn: () => fetchBoms(),
-    enabled: filter === "boms",
+    enabled: filter === "boms" && Boolean(activeDepartmentId || projectId || canBrowseAllWorkspaces),
   });
-  const { data: initialNode } = useQuery({
-    queryKey: ["drive_node", initialNodeId],
-    queryFn: async () => {
-      const { data, error } = await (await import("@/integrations/supabase/client")).supabase.from("drive_nodes").select("*").eq("id", initialNodeId ?? "").maybeSingle();
-      if (error) throw error;
-      return data as DriveNode | null;
-    },
-    enabled: Boolean(initialNodeId),
-  });
-  const activeDepartmentId = departmentId ?? initialNode?.department_id ?? null;
   const { data: categories = [] } = useQuery({
     queryKey: ["drive_category_templates", activeDepartmentId],
     queryFn: () => fetchDriveCategoryTemplates(activeDepartmentId),
@@ -93,17 +99,36 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
   });
 
   useEffect(() => {
+    const syncWorkspace = () => setWorkspaceDepartmentId(readWorkspaceDepartmentId());
+    window.addEventListener(WORKSPACE_CONTEXT_EVENT, syncWorkspace);
+    window.addEventListener("storage", syncWorkspace);
+    return () => {
+      window.removeEventListener(WORKSPACE_CONTEXT_EVENT, syncWorkspace);
+      window.removeEventListener("storage", syncWorkspace);
+    };
+  }, []);
+
+  useEffect(() => {
+    setFolderId(null);
+    setSearch("");
+    setFilter("all");
+    setPreview(null);
+    setRevisionsFor(null);
+    setShareFor(null);
+  }, [departmentId, workspaceDepartmentId, projectId]);
+
+  useEffect(() => {
     if (!initialNode) return;
     if (initialNode.node_type === "FOLDER") setFolderId(initialNode.id);
     else setPreview(initialNode);
-  }, [initialNode]);
+  }, [initialNode, departmentId]);
 
   useEffect(() => {
-    if (!departmentId || projectId || folderId || filter === "all" || filter === "starred" || filter === "ppap" || filter === "boms") return;
+    if (!activeDepartmentId || projectId || folderId || filter === "all" || filter === "starred" || filter === "ppap" || filter === "boms") return;
     const folderKind = filter === "common" ? "DEPARTMENT_STANDARDS" : filter === "internal" ? "INTERNAL_PROJECTS" : "CLIENT_PROJECTS";
     const target = departmentRoots.find((root) => root.folder_kind === folderKind);
     if (target) setFolderId(target.id);
-  }, [departmentId, departmentRoots, filter, folderId, projectId]);
+  }, [activeDepartmentId, departmentRoots, filter, folderId, projectId]);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["drive_children"] });
@@ -354,6 +379,7 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
         ))}
       </div>
 
+      {!projectId && !activeDepartmentId && !canBrowseAllWorkspaces ? <Card className="p-8 text-center text-muted-foreground">Select a department workspace to open its Drive.</Card> : <>
       {busy && <p className="text-xs text-muted-foreground">{busy}</p>}
 
        {filter === "boms" ? (
@@ -431,6 +457,7 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
         onChanged={refresh}
       />
       <ShareNodeDialog node={shareFor} onOpenChange={(o) => !o && setShareFor(null)} />
+       </>}
     </div>
   );
 }

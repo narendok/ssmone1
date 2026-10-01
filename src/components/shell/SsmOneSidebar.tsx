@@ -138,13 +138,13 @@ export function SsmOneSidebar() {
                 {group.collapsible ? <SidebarMenuSub>{visibleItems.map((item) => {
                   const active = item.to === "/" ? pathname === "/" : pathname === item.to || pathname.startsWith(`${item.to}/`);
                   return <SidebarMenuSubItem key={`${group.label}-${item.label}`}><SidebarMenuSubButton asChild isActive={active}>
-                    <Link to={item.to}><item.icon /><span>{item.label}</span></Link>
+                    {item.to === "/drive" && selectedDepartment ? <Link to="/drive" search={{ department: selectedDepartment.id }}><item.icon /><span>{item.label}</span></Link> : <Link to={item.to}><item.icon /><span>{item.label}</span></Link>}
                   </SidebarMenuSubButton></SidebarMenuSubItem>;
                 })}</SidebarMenuSub> : visibleItems.map((item) => {
                   const active = item.to === "/" ? pathname === "/" : pathname === item.to || pathname.startsWith(`${item.to}/`);
                   return <SidebarMenuItem key={`${group.label}-${item.label}`}>
                     <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
-                      <Link to={item.to}><item.icon /><span>{item.label}</span></Link>
+                      {item.to === "/drive" && selectedDepartment ? <Link to="/drive" search={{ department: selectedDepartment.id }}><item.icon /><span>{item.label}</span></Link> : <Link to={item.to}><item.icon /><span>{item.label}</span></Link>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>;
                 })}
