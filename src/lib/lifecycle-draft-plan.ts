@@ -28,6 +28,7 @@ export type DraftLifecyclePlan = {
   canGenerate: false;
   autofillState: "ABSENT";
   governanceNotice: string;
+  unavailableGovernedOutputs: string[];
 };
 
 /**
@@ -106,5 +107,10 @@ export function createLifecycleDraftPlan(input: LifecycleDraftInput): DraftLifec
     canGenerate: false,
     autofillState: "ABSENT",
     governanceNotice: "Governed notifications and client feedback are explicitly absent in this DRAFT plan to maintain audit integrity.",
+    unavailableGovernedOutputs: [
+      "Template document auto-fill is not implemented",
+      "Governed notification creation is not implemented",
+      "Revisioned client feedback creation is not implemented",
+    ],
   };
 }

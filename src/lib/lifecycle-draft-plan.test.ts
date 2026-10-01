@@ -25,6 +25,11 @@ describe("lifecycle draft planner", () => {
     expect(plan.governanceNotice).toContain("notifications and client feedback are explicitly absent");
     expect(plan.requiredInputs.find(i => i.name === "Owning department")?.provenance).toBe("Project organizational master data");
     expect(plan.proposedActions.find((action) => action.key === "CREATE_HANDOFF_TASKS")?.reason).toContain("no task was created");
+    expect(plan.unavailableGovernedOutputs).toEqual([
+      "Template document auto-fill is not implemented",
+      "Governed notification creation is not implemented",
+      "Revisioned client feedback creation is not implemented",
+    ]);
   });
 
   it("reports missing authoritative provenance instead of inferring it", () => {
@@ -50,6 +55,7 @@ describe("lifecycle draft planner", () => {
     
     const missingItems = plan.requiredInputs.filter(i => i.status === "MISSING");
     expect(missingItems.length).toBe(5);
+    expect(missingItems.map(i => i.name)).toEqual(plan.missingInputs);
     expect(plan.proposedActions.every((action) => action.state === "DRAFT")).toBe(true);
   });
 });
