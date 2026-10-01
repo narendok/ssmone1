@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { saveDepartment, saveNumberingRule, saveOrganizationSettings } from "@/lib/admin.functions";
 import { confirmProvenance, updateAutomationRule } from "@/lib/automation.functions";
 import { bootstrapSsmOneFoundation } from "@/lib/ssm-admin.functions";
+import { DocumentControlRegister } from "@/components/admin/DocumentControlRegister";
 import { toast } from "sonner";
 
 const areas = [
@@ -29,12 +30,12 @@ export const Route = createFileRoute("/_authenticated/admin")({
 });
 
 function AdminHome() {
-  const [tab, setTab] = useState<"overview" | "organization" | "departments" | "numbering" | "automation">("overview");
+  const [tab, setTab] = useState<"overview" | "organization" | "departments" | "numbering" | "automation" | "documents">("overview");
   return <PermissionGate permission="admin.view" fallback={<AccessDenied />}>
     <section className="mx-auto max-w-6xl space-y-8">
       <div><p className="text-sm font-medium text-primary">System</p><h1 className="mt-1 text-2xl font-semibold">System controls</h1><p className="mt-2 max-w-2xl text-sm text-muted-foreground">Manage the organization foundation, access model, and configuration for SSM One.</p></div>
-      <div className="flex flex-wrap gap-1 border-b"><Button variant={tab === "overview" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("overview")}>Overview</Button><Button variant={tab === "organization" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("organization")}>Organization</Button><Button variant={tab === "departments" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("departments")}>Departments</Button><Button variant={tab === "numbering" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("numbering")}>Numbering rules</Button><Button variant={tab === "automation" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("automation")}>Automation</Button></div>
-      {tab === "organization" ? <OrganizationSettings /> : tab === "departments" ? <DepartmentSettings /> : tab === "numbering" ? <NumberingRules /> : tab === "automation" ? <AutomationCenter /> : <AdminOverview />}
+       <div className="flex flex-wrap gap-1 border-b"><Button variant={tab === "overview" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("overview")}>Overview</Button><Button variant={tab === "organization" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("organization")}>Organization</Button><Button variant={tab === "departments" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("departments")}>Departments</Button><Button variant={tab === "documents" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("documents")}>Document control</Button><Button variant={tab === "numbering" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("numbering")}>Numbering rules</Button><Button variant={tab === "automation" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("automation")}>Automation</Button></div>
+       {tab === "organization" ? <OrganizationSettings /> : tab === "departments" ? <DepartmentSettings /> : tab === "documents" ? <DocumentControlRegister /> : tab === "numbering" ? <NumberingRules /> : tab === "automation" ? <AutomationCenter /> : <AdminOverview />}
     </section>
   </PermissionGate>;
 }
