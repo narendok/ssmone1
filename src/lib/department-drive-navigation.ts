@@ -5,7 +5,7 @@ export type DepartmentDriveTaxonomyEntry = {
   key: DepartmentDriveTaxonomyKey;
   label: string;
   description: string;
-  rootFolderKind: "DEPARTMENT_STANDARDS" | "INTERNAL_PROJECTS" | "CLIENT_PROJECTS";
+  rootFolderKind: "DEPARTMENT_STANDARDS" | "INTERNAL_PROJECTS";
   categoryCount: number;
   categoryIds: string[];
   mappedFolderId: string | null;
@@ -22,7 +22,7 @@ const taxonomy: Array<Omit<DepartmentDriveTaxonomyEntry, "categoryCount" | "cate
   {
     key: "reviews",
     label: "Periodic and Conditional Reviews",
-    description: "Recurring and event-driven review evidence held with controlled department records.",
+    description: "Recurring and event-driven review evidence; no authoritative Drive mapping exists yet.",
     rootFolderKind: "DEPARTMENT_STANDARDS",
   },
   {
@@ -40,14 +40,15 @@ export function buildDepartmentDriveTaxonomy(
   const common = categories.filter((category) => category.placement === "COMMON" && category.is_active);
   const project = categories.filter((category) => category.placement === "INTERNAL_PROJECT" || category.placement === "CLIENT_PROJECT");
   return taxonomy.map((entry) => {
-    const scoped = entry.key === "deliverables" ? project.filter((category) => category.is_active) : common;
+    const scoped = entry.key === "reviews" ? [] : entry.key === "deliverables" ? project.filter((category) => category.is_active) : common;
     const root = roots.find((candidate) => candidate.folder_kind === entry.rootFolderKind);
+    const hasVerifiedMapping = entry.key !== "reviews" && Boolean(root);
     return {
       ...entry,
       categoryCount: scoped.length,
       categoryIds: scoped.map((category) => category.id),
-      mappedFolderId: root?.id ?? null,
-      mappingState: root ? "mapped" : "unmapped",
+      mappedFolderId: hasVerifiedMapping ? root?.id ?? null : null,
+      mappingState: hasVerifiedMapping ? "mapped" : "unmapped",
     };
   });
 }

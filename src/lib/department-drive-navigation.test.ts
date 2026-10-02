@@ -20,6 +20,7 @@ describe("department Drive final taxonomy", () => {
       "Periodic and Conditional Reviews",
       "Project Deliverables",
     ]);
+    expect(result[1]).toMatchObject({ mappingState: "unmapped", categoryIds: [] });
     expect(result[2]).toMatchObject({ mappedFolderId: "internal-root", categoryIds: ["internal", "client"] });
   });
 
