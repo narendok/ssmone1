@@ -34,6 +34,7 @@ import { Route as ExternalPortalTokenRouteImport } from './routes/external-porta
 import { Route as FileTokenRouteImport } from './routes/file.$token'
 import { Route as PortalTokenRouteImport } from './routes/portal.$token'
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminDriveOwnershipRouteImport } from './routes/_authenticated/admin.drive-ownership'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets.index'
 import { Route as AuthenticatedCalibrationIndexRouteImport } from './routes/_authenticated/calibration.index'
@@ -235,6 +236,11 @@ const ShareTokenRoute = ShareTokenRouteImport.update({
   id: '/share/$token',
   path: '/share/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedAdminRoute,
 } as any)
 const AuthenticatedAdminDriveOwnershipRoute =
   AuthenticatedAdminDriveOwnershipRouteImport.update({
@@ -758,6 +764,7 @@ export interface FileRoutesByFullPath {
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
   '/workspace/projects': typeof AuthenticatedWorkspaceProjectsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
   '/assets/': typeof AuthenticatedAssetsIndexRoute
   '/calibration/': typeof AuthenticatedCalibrationIndexRoute
   '/customer-service/': typeof AuthenticatedCustomerServiceIndexRoute
@@ -780,7 +787,6 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/careers': typeof CareersRouteWithChildren
   '/external-portal': typeof ExternalPortalRouteWithChildren
-  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
   '/command-center': typeof AuthenticatedCommandCenterRoute
@@ -857,6 +863,7 @@ export interface FileRoutesByTo {
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
   '/workspace/projects': typeof AuthenticatedWorkspaceProjectsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
   '/assets': typeof AuthenticatedAssetsIndexRoute
   '/calibration': typeof AuthenticatedCalibrationIndexRoute
   '/customer-service': typeof AuthenticatedCustomerServiceIndexRoute
@@ -960,6 +967,7 @@ export interface FileRoutesById {
   '/_authenticated/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
   '/_authenticated/workspace/projects': typeof AuthenticatedWorkspaceProjectsRoute
   '/api/public/datasheet-proxy': typeof ApiPublicDatasheetProxyRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/assets/': typeof AuthenticatedAssetsIndexRoute
   '/_authenticated/calibration/': typeof AuthenticatedCalibrationIndexRoute
   '/_authenticated/customer-service/': typeof AuthenticatedCustomerServiceIndexRoute
@@ -1063,6 +1071,7 @@ export interface FileRouteTypes {
     | '/tasks/departments'
     | '/workspace/projects'
     | '/api/public/datasheet-proxy'
+    | '/admin/'
     | '/assets/'
     | '/calibration/'
     | '/customer-service/'
@@ -1085,7 +1094,6 @@ export interface FileRouteTypes {
     | '/auth'
     | '/careers'
     | '/external-portal'
-    | '/admin'
     | '/assignments'
     | '/bom'
     | '/command-center'
@@ -1162,6 +1170,7 @@ export interface FileRouteTypes {
     | '/tasks/departments'
     | '/workspace/projects'
     | '/api/public/datasheet-proxy'
+    | '/admin'
     | '/assets'
     | '/calibration'
     | '/customer-service'
@@ -1264,6 +1273,7 @@ export interface FileRouteTypes {
     | '/_authenticated/tasks/departments'
     | '/_authenticated/workspace/projects'
     | '/api/public/datasheet-proxy'
+    | '/_authenticated/admin/'
     | '/_authenticated/assets/'
     | '/_authenticated/calibration/'
     | '/_authenticated/customer-service/'
@@ -1472,6 +1482,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/share/$token'
       preLoaderRoute: typeof ShareTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/admin/drive-ownership': {
       id: '/_authenticated/admin/drive-ownership'
@@ -2003,10 +2020,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDriveOwnershipRoute: typeof AuthenticatedAdminDriveOwnershipRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminDriveOwnershipRoute: AuthenticatedAdminDriveOwnershipRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
 const AuthenticatedAdminRouteWithChildren =
