@@ -1773,6 +1773,113 @@ export type Database = {
         }
         Relationships: []
       }
+      department_process_template_stages: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          required: boolean
+          sort_order: number
+          source_company_process_stage_id: string
+          stage_key: string
+          task_department: Database["public"]["Enums"]["department_type"]
+          template_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          required?: boolean
+          sort_order: number
+          source_company_process_stage_id: string
+          stage_key: string
+          task_department: Database["public"]["Enums"]["department_type"]
+          template_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          required?: boolean
+          sort_order?: number
+          source_company_process_stage_id?: string
+          stage_key?: string
+          task_department?: Database["public"]["Enums"]["department_type"]
+          template_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_process_template_s_source_company_process_stage_fkey"
+            columns: ["source_company_process_stage_id"]
+            isOneToOne: false
+            referencedRelation: "company_process_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "department_process_template_stages_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "department_process_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      department_process_templates: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          created_by: string
+          department_id: string
+          description: string | null
+          id: string
+          retired_at: string | null
+          status: string
+          template_key: string
+          title: string
+          version: number
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          created_by: string
+          department_id: string
+          description?: string | null
+          id?: string
+          retired_at?: string | null
+          status?: string
+          template_key: string
+          title: string
+          version: number
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          created_by?: string
+          department_id?: string
+          description?: string | null
+          id?: string
+          retired_at?: string | null
+          status?: string
+          template_key?: string
+          title?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_process_templates_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       department_workspace_preferences: {
         Row: {
           created_at: string
@@ -7480,6 +7587,73 @@ export type Database = {
           },
         ]
       }
+      project_feedback_revisions: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          created_by: string
+          feedback_text: string
+          id: string
+          project_id: string
+          requirement_baseline_id: string
+          revision_number: number
+          source_drive_node_id: string | null
+          status: string
+          submitted_at: string | null
+          superseded_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          created_by: string
+          feedback_text: string
+          id?: string
+          project_id: string
+          requirement_baseline_id: string
+          revision_number: number
+          source_drive_node_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          superseded_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          created_by?: string
+          feedback_text?: string
+          id?: string
+          project_id?: string
+          requirement_baseline_id?: string
+          revision_number?: number
+          source_drive_node_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          superseded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_feedback_revisions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_feedback_revisions_requirement_baseline_id_fkey"
+            columns: ["requirement_baseline_id"]
+            isOneToOne: false
+            referencedRelation: "requirement_baselines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_feedback_revisions_source_drive_node_id_fkey"
+            columns: ["source_drive_node_id"]
+            isOneToOne: false
+            referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_issues: {
         Row: {
           closed_at: string | null
@@ -7546,6 +7720,54 @@ export type Database = {
           },
         ]
       }
+      project_lifecycle_generation_requests: {
+        Row: {
+          created_at: string
+          payload_hash: string
+          project_id: string
+          request_key: string
+          requested_by: string
+          result: Json
+          template_id: string
+          template_version: number
+        }
+        Insert: {
+          created_at?: string
+          payload_hash: string
+          project_id: string
+          request_key: string
+          requested_by: string
+          result: Json
+          template_id: string
+          template_version: number
+        }
+        Update: {
+          created_at?: string
+          payload_hash?: string
+          project_id?: string
+          request_key?: string
+          requested_by?: string
+          result?: Json
+          template_id?: string
+          template_version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_lifecycle_generation_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_lifecycle_generation_requests_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "department_process_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_process_stage_records: {
         Row: {
           change_request_id: string | null
@@ -7556,6 +7778,9 @@ export type Database = {
           evidence_drive_node_id: string | null
           handover_note: string | null
           id: string
+          lifecycle_template_id: string | null
+          lifecycle_template_stage_id: string | null
+          lifecycle_template_version: number | null
           linked_task_id: string | null
           owner_employee_id: string | null
           predecessor_record_id: string | null
@@ -7573,6 +7798,9 @@ export type Database = {
           evidence_drive_node_id?: string | null
           handover_note?: string | null
           id?: string
+          lifecycle_template_id?: string | null
+          lifecycle_template_stage_id?: string | null
+          lifecycle_template_version?: number | null
           linked_task_id?: string | null
           owner_employee_id?: string | null
           predecessor_record_id?: string | null
@@ -7590,6 +7818,9 @@ export type Database = {
           evidence_drive_node_id?: string | null
           handover_note?: string | null
           id?: string
+          lifecycle_template_id?: string | null
+          lifecycle_template_stage_id?: string | null
+          lifecycle_template_version?: number | null
           linked_task_id?: string | null
           owner_employee_id?: string | null
           predecessor_record_id?: string | null
@@ -7618,6 +7849,20 @@ export type Database = {
             columns: ["evidence_drive_node_id"]
             isOneToOne: false
             referencedRelation: "drive_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_process_stage_records_lifecycle_template_id_fkey"
+            columns: ["lifecycle_template_id"]
+            isOneToOne: false
+            referencedRelation: "department_process_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_process_stage_records_lifecycle_template_stage_id_fkey"
+            columns: ["lifecycle_template_stage_id"]
+            isOneToOne: false
+            referencedRelation: "department_process_template_stages"
             referencedColumns: ["id"]
           },
           {
@@ -7730,6 +7975,45 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_stage_dependencies: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          predecessor_stage_record_id: string
+          project_stage_record_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          predecessor_stage_record_id: string
+          project_stage_record_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          predecessor_stage_record_id?: string
+          project_stage_record_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_stage_dependencies_predecessor_stage_record_id_fkey"
+            columns: ["predecessor_stage_record_id"]
+            isOneToOne: false
+            referencedRelation: "project_process_stage_records"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_stage_dependencies_project_stage_record_id_fkey"
+            columns: ["project_stage_record_id"]
+            isOneToOne: false
+            referencedRelation: "project_process_stage_records"
             referencedColumns: ["id"]
           },
         ]
@@ -7883,6 +8167,7 @@ export type Database = {
           due_date: string | null
           estimated_hours: number | null
           id: string
+          lifecycle_source_key: string | null
           logged_hours: number
           pcb_task_id: string | null
           ppap_element: string | null
@@ -7907,6 +8192,7 @@ export type Database = {
           due_date?: string | null
           estimated_hours?: number | null
           id?: string
+          lifecycle_source_key?: string | null
           logged_hours?: number
           pcb_task_id?: string | null
           ppap_element?: string | null
@@ -7931,6 +8217,7 @@ export type Database = {
           due_date?: string | null
           estimated_hours?: number | null
           id?: string
+          lifecycle_source_key?: string | null
           logged_hours?: number
           pcb_task_id?: string | null
           ppap_element?: string | null
@@ -11852,6 +12139,10 @@ export type Database = {
       }
     }
     Functions: {
+      activate_department_process_template: {
+        Args: { p_template_id: string }
+        Returns: undefined
+      }
       approve_inventory_csv_row: {
         Args: {
           _approved_by: string
@@ -11880,6 +12171,10 @@ export type Database = {
       can_manage_recruitment: { Args: { _uid: string }; Returns: boolean }
       can_manage_training: { Args: { _uid: string }; Returns: boolean }
       can_purchase: { Args: { _uid: string }; Returns: boolean }
+      clone_department_process_template: {
+        Args: { p_template_id: string }
+        Returns: string
+      }
       complete_automation_lease: {
         Args: { _error?: string; _job_key: string; _pause?: boolean }
         Returns: undefined
@@ -11891,6 +12186,15 @@ export type Database = {
           _picked_quantity: number
         }
         Returns: Json
+      }
+      create_department_process_template: {
+        Args: {
+          p_department_id: string
+          p_description?: string
+          p_template_key: string
+          p_title: string
+        }
+        Returns: string
       }
       create_grn:
         | {
@@ -12049,6 +12353,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      generate_project_lifecycle_draft: {
+        Args: {
+          p_project_id: string
+          p_request_key: string
+          p_template_id: string
+        }
+        Returns: Json
+      }
       get_drive_breadcrumbs: {
         Args: { p_node_id: string }
         Returns: {
@@ -12098,6 +12410,24 @@ export type Database = {
         Returns: boolean
       }
       is_platform_owner: { Args: { _user_id: string }; Returns: boolean }
+      lifecycle_actor: { Args: never; Returns: string }
+      lifecycle_assert_stage_graph: {
+        Args: {
+          p_exclude_dependency_id?: string
+          p_exclude_legacy_record_id?: string
+          p_predecessor_record_id: string
+          p_target_record_id: string
+        }
+        Returns: undefined
+      }
+      lifecycle_assert_template_draft: {
+        Args: { p_template_id: string }
+        Returns: undefined
+      }
+      lifecycle_can_manage_department: {
+        Args: { p_actor: string; p_department_id: string }
+        Returns: boolean
+      }
       manage_component_location: {
         Args: {
           _approved_by: string
@@ -12276,6 +12606,10 @@ export type Database = {
         Args: { p_node_id: string; p_revision_number: number }
         Returns: string
       }
+      retire_department_process_template: {
+        Args: { p_template_id: string }
+        Returns: undefined
+      }
       review_phase6_record: {
         Args: {
           _decision: string
@@ -12345,6 +12679,20 @@ export type Database = {
       try_acquire_automation_lease: {
         Args: { _job_key: string; _lease_seconds?: number }
         Returns: boolean
+      }
+      upsert_department_process_template_stage: {
+        Args: {
+          p_description: string
+          p_required?: boolean
+          p_sort_order: number
+          p_source_company_process_stage_id: string
+          p_stage_id: string
+          p_stage_key: string
+          p_task_department: Database["public"]["Enums"]["department_type"]
+          p_template_id: string
+          p_title: string
+        }
+        Returns: string
       }
       verify_notification_contract: { Args: never; Returns: Json }
     }
