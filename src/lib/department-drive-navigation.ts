@@ -1,20 +1,60 @@
-import type { DriveCategoryPlacement, DriveCategoryTemplate } from "@/lib/drive";
+import type { DriveCategoryTemplate, DriveNode } from "@/lib/drive";
 
-export type DepartmentDriveNavigation = {
-  placement: DriveCategoryPlacement;
+export type DepartmentDriveTaxonomyKey = "controlled" | "reviews" | "deliverables";
+export type DepartmentDriveTaxonomyEntry = {
+  key: DepartmentDriveTaxonomyKey;
   label: string;
+  description: string;
+  rootFolderKind: "DEPARTMENT_STANDARDS" | "INTERNAL_PROJECTS" | "CLIENT_PROJECTS";
   categoryCount: number;
   categoryIds: string[];
+  mappedFolderId: string | null;
+  mappingState: "mapped" | "unmapped";
 };
 
-export function buildDepartmentDriveNavigation(categories: DriveCategoryTemplate[]): DepartmentDriveNavigation[] {
-  const placements: Array<[DriveCategoryPlacement, string]> = [
-    ["COMMON", "Common documents"],
-    ["INTERNAL_PROJECT", "Internal projects"],
-    ["CLIENT_PROJECT", "Client projects"],
-  ];
-  return placements.map(([placement, label]) => {
-    const scoped = categories.filter((category) => category.placement === placement && category.is_active);
-    return { placement, label, categoryCount: scoped.length, categoryIds: scoped.map((category) => category.id) };
+const taxonomy: Array<Omit<DepartmentDriveTaxonomyEntry, "categoryCount" | "categoryIds" | "mappedFolderId" | "mappingState">> = [
+  {
+    key: "controlled",
+    label: "Common Controlled Documents",
+    description: "Department rules, regulations, standards, and controlled records.",
+    rootFolderKind: "DEPARTMENT_STANDARDS",
+  },
+  {
+    key: "reviews",
+    label: "Periodic and Conditional Reviews",
+    description: "Recurring and event-driven review evidence; no authoritative Drive mapping exists yet.",
+    rootFolderKind: "DEPARTMENT_STANDARDS",
+  },
+  {
+    key: "deliverables",
+    label: "Project Deliverables",
+    description: "Project folders; use Internal or Client as a secondary project filter.",
+    rootFolderKind: "INTERNAL_PROJECTS",
+  },
+];
+
+export function buildDepartmentDriveTaxonomy(
+  roots: Pick<DriveNode, "id" | "folder_kind">[],
+  categories: DriveCategoryTemplate[],
+): DepartmentDriveTaxonomyEntry[] {
+  const common = categories.filter((category) => category.placement === "COMMON" && category.is_active);
+  const project = categories.filter((category) => category.placement === "INTERNAL_PROJECT" || category.placement === "CLIENT_PROJECT");
+  return taxonomy.map((entry) => {
+    const scoped = entry.key === "reviews" ? [] : entry.key === "deliverables" ? project.filter((category) => category.is_active) : common;
+    const root = entry.key === "deliverables"
+      ? roots.find((candidate) => candidate.folder_kind === "INTERNAL_PROJECTS") ?? roots.find((candidate) => candidate.folder_kind === "CLIENT_PROJECTS")
+      : roots.find((candidate) => candidate.folder_kind === entry.rootFolderKind);
+    const hasVerifiedMapping = entry.key !== "reviews" && Boolean(root);
+    return {
+      ...entry,
+      categoryCount: scoped.length,
+      categoryIds: scoped.map((category) => category.id),
+      mappedFolderId: hasVerifiedMapping ? root?.id ?? null : null,
+      mappingState: hasVerifiedMapping ? "mapped" : "unmapped",
+    };
   });
+}
+
+export function isAllowedDepartmentDriveRoot(kind: string): kind is DepartmentDriveTaxonomyEntry["rootFolderKind"] | "CLIENT_PROJECTS" {
+  return ["DEPARTMENT_STANDARDS", "INTERNAL_PROJECTS", "CLIENT_PROJECTS"].includes(kind);
 }
