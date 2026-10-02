@@ -14,11 +14,13 @@ describe("Drive BOM presentation policy", () => {
     for (const code of ["FIN", "HR", "FAC", "SAL", "OPS", "HR_PRIVATE", null]) expect(canPresentProjectBoms(department(code))).toBe(false);
   });
 
-  it("does not make BOM queries for an unrelated department but preserves scoped project browsing", () => {
-    expect(shouldRequestProjectBoms({ filter: "boms", department: department("FIN"), projectId: null })).toBe(false);
-    expect(shouldRequestProjectBoms({ filter: "boms", department: department("FAC"), projectId: null })).toBe(false);
-    expect(shouldRequestProjectBoms({ filter: "boms", department: department("RND"), projectId: null })).toBe(true);
-    expect(shouldRequestProjectBoms({ filter: "boms", department: department("FIN"), projectId: "project-a" })).toBe(true);
-    expect(shouldRequestProjectBoms({ filter: "all", department: department("RND"), projectId: null })).toBe(false);
+  it("does not make BOM queries outside an authorized workspace, even when a project is selected", () => {
+    for (const code of ["FIN", "HR", "FAC", "SAL", "OPS", "HR_PRIVATE", null]) {
+      expect(shouldRequestProjectBoms({ filter: "boms", department: department(code) })).toBe(false);
+    }
+    expect(shouldRequestProjectBoms({ filter: "boms", department: department("RND") })).toBe(true);
+    expect(shouldRequestProjectBoms({ filter: "boms", department: department("PROC") })).toBe(true);
+    expect(shouldRequestProjectBoms({ filter: "boms", department: department("PROD") })).toBe(true);
+    expect(shouldRequestProjectBoms({ filter: "all", department: department("RND") })).toBe(false);
   });
 });

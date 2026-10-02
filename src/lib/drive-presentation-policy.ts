@@ -6,6 +6,6 @@ export function canPresentProjectBoms(department: Pick<CanonicalDepartment, "cod
   return Boolean(department?.code && BOM_DEPARTMENT_CODES.has(department.code));
 }
 
-export function shouldRequestProjectBoms(input: { filter: string; projectId: string | null | undefined; department: Pick<CanonicalDepartment, "code"> | null | undefined }) {
-  return input.filter === "boms" && Boolean(input.projectId || canPresentProjectBoms(input.department));
+export function shouldRequestProjectBoms(input: { filter: string; department: Pick<CanonicalDepartment, "code"> | null | undefined }) {
+  return input.filter === "boms" && canPresentProjectBoms(input.department);
 }
