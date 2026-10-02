@@ -1,12 +1,14 @@
-# Pending lifecycle schema patch
+# Lifecycle foundation schema status
 
-**Prepared:** 2026-10-01 UTC  
-**Security revision:** 2026-10-01 UTC — final rendered-SQL review recorded  
-**Status:** deliberately **UNAPPLIED**. This is review material only. No migration, live data, roles, access, ownership, notifications, publishing, approval, stock, or finance change has been made.
+**Originally prepared:** 2026-10-01 UTC  
+**Applied verification:** 2026-10-02 UTC  
+**Status:** The reviewed additive schema is now **APPLIED** in the current Lovable Cloud database through migrations `20261002220916_5d158822-de77-479d-a8af-54037acc96ad.sql` and `20261002220956_e9863fb2-326a-48c2-92e7-3ecf984fadef.sql`. No project lifecycle records, notifications, feedback revisions, approvals, releases, stock, finance, roles, memberships, or ownership data were created or changed.
 
-## Final pending scope
+## Applied scope and operating boundary
 
-This proposal is strictly additive: immutable, versioned department templates; project-stage dependency edges; provenance-bound draft generation; and revisioned client feedback. Direct authenticated mutation is intentionally not granted. Every write must use a separately reviewed `SECURITY DEFINER` server contract. Notifications and client feedback creation remain absent from the current web draft view.
+The database now contains immutable, versioned department templates; project-stage dependency edges; provenance-bound draft-generation receipts; and revisioned feedback read models. Direct browser mutation remains unavailable: all six lifecycle action routines are executable only by `postgres` and `service_role` after the follow-up hardening migration. A reviewed protected server-action boundary is therefore required before a department lead can use clone/edit/activate/retire/generate from the app.
+
+The web lifecycle panel remains read-only. Template document rendering, governed notifications, and client-feedback creation have not been wired and do not create records.
 
 ## Blocking failures in the prior proposal
 
