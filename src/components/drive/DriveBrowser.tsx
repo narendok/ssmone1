@@ -70,6 +70,9 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
   });
   const activeDepartmentId = departmentId ?? workspaceDepartmentId ?? initialNode?.department_id ?? null;
   const canBrowseAllWorkspaces = role === "admin" && !activeDepartmentId;
+  const { data: departments = [] } = useQuery({ queryKey: ["active-departments"], queryFn: fetchCanonicalDepartments });
+  const activeDepartment = useMemo(() => departments.find((department) => department.id === activeDepartmentId) ?? null, [departments, activeDepartmentId]);
+  const canBrowseProjectBoms = Boolean(projectId) || canPresentProjectBoms(activeDepartment);
   const childrenKey = ["drive_children", projectId, activeDepartmentId, folderId];
   const { data: nodes = [], isLoading, isError, error } = useQuery({
     queryKey: childrenKey,
@@ -100,9 +103,6 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
     queryFn: () => fetchDepartmentDriveRoots(activeDepartmentId ?? ""),
     enabled: Boolean(activeDepartmentId && !projectId),
   });
-  const { data: departments = [] } = useQuery({ queryKey: ["active-departments"], queryFn: fetchCanonicalDepartments });
-  const activeDepartment = useMemo(() => departments.find((department) => department.id === activeDepartmentId) ?? null, [departments, activeDepartmentId]);
-  const canBrowseProjectBoms = Boolean(projectId) || canPresentProjectBoms(activeDepartment);
 
   useEffect(() => {
     const syncWorkspace = () => setWorkspaceDepartmentId(readWorkspaceDepartmentId());
