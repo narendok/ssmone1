@@ -28,6 +28,8 @@ import { fetchDriveProjectBoms, type DriveProjectBomSummary } from "@/lib/projec
 import { readWorkspaceDepartmentId, WORKSPACE_CONTEXT_EVENT } from "@/lib/workspace-context";
 import { useAuth } from "@/hooks/useAuth";
 import { buildDepartmentDriveTaxonomy } from "@/lib/department-drive-navigation";
+import { canPresentProjectBoms, shouldRequestProjectBoms } from "@/lib/drive-presentation-policy";
+import { fetchCanonicalDepartments } from "@/lib/tasks";
 
 type Filter = "all" | "common" | "internal" | "client" | "starred" | "ppap" | "boms";
 
@@ -86,7 +88,7 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
   const { data: projectBoms = [], isLoading: bomsLoading, isError: bomsError, error: bomsErrorDetail } = useQuery({
     queryKey: ["drive_project_boms", activeDepartmentId],
     queryFn: () => fetchBoms(),
-    enabled: filter === "boms" && Boolean(activeDepartmentId || projectId || canBrowseAllWorkspaces),
+    enabled: shouldRequestProjectBoms({ filter, projectId, department: activeDepartment }),
   });
   const { data: categories = [] } = useQuery({
     queryKey: ["drive_category_templates", activeDepartmentId],
@@ -98,6 +100,9 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
     queryFn: () => fetchDepartmentDriveRoots(activeDepartmentId ?? ""),
     enabled: Boolean(activeDepartmentId && !projectId),
   });
+  const { data: departments = [] } = useQuery({ queryKey: ["active-departments"], queryFn: fetchCanonicalDepartments });
+  const activeDepartment = useMemo(() => departments.find((department) => department.id === activeDepartmentId) ?? null, [departments, activeDepartmentId]);
+  const canBrowseProjectBoms = Boolean(projectId) || canPresentProjectBoms(activeDepartment);
 
   useEffect(() => {
     const syncWorkspace = () => setWorkspaceDepartmentId(readWorkspaceDepartmentId());
@@ -340,7 +345,7 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
              {!projectId && activeDepartmentId && <TabsTrigger value="client">Client projects</TabsTrigger>}
             <TabsTrigger value="ppap">PPAP</TabsTrigger>
             <TabsTrigger value="starred">Starred</TabsTrigger>
-            {!projectId && <TabsTrigger value="boms">Project BOMs</TabsTrigger>}
+            {canBrowseProjectBoms && <TabsTrigger value="boms">Project BOMs</TabsTrigger>}
           </TabsList>
         </Tabs>
         <Button variant="outline" size="icon" onClick={() => setView(view === "list" ? "grid" : "list")} disabled={filter === "boms"}>
