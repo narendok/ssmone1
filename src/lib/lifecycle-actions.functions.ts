@@ -31,6 +31,30 @@ function lifecycleError(error: { message?: string } | null, fallback: string): n
   throw new Error(error?.message ?? fallback);
 }
 
+async function requireLifecycleManager(
+  context: { supabase: any; userId: string },
+  departmentId: string,
+) {
+  const [{ data: inScope, error: scopeError }, { data: permitted, error: permissionError }] = await Promise.all([
+    context.supabase.rpc("can_access_department_drive", {
+      _user_id: context.userId,
+      _department_id: departmentId,
+      _project_id: null,
+    }),
+    context.supabase.rpc("has_any_permission", {
+      _user_id: context.userId,
+      _permission_keys: ["projects.manage", "engineering.manage", "documents.edit"],
+    }),
+  ]);
+  if (scopeError || permissionError || !inScope || !permitted) throw new Error("You do not have permission to manage this department template.");
+}
+
+async function lifecycleMutationGate() {
+  // Database action routines deliberately retain service-role-only execution.
+  // Releasing an execution bridge requires the separate DB/RLS acceptance pack.
+  throw new Error("Lifecycle mutations are disabled pending reviewed database acceptance.");
+}
+
 /**
  * Protected façade over service-role-only lifecycle routines. Each routine
  * re-authorizes in the database using the caller JWT, so the server never
@@ -40,54 +64,41 @@ export const createLifecycleTemplateDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => templateDraftSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: templateId, error } = await (supabaseAdmin as any).rpc("create_department_process_template", {
-      p_department_id: data.departmentId,
-      p_template_key: data.templateKey,
-      p_title: data.title,
-      p_description: data.description,
-    }, { headers: { Authorization: `Bearer ${context.supabase.auth.getSession ? "" : ""}` } });
-    if (error) lifecycleError(error, "Template draft could not be created.");
-    return { templateId: String(templateId), actorId: context.userId };
+    await requireLifecycleManager(context, data.departmentId);
+    await lifecycleMutationGate();
+    return { templateId: "", actorId: context.userId };
   });
 
 export const saveLifecycleTemplateStage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => templateStageSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: stageId, error } = await (supabaseAdmin as any).rpc("upsert_department_process_template_stage", {
-      p_template_id: data.templateId,
-      p_stage_id: data.stageId,
-      p_stage_key: data.stageKey,
-      p_title: data.title,
-      p_description: data.description,
-      p_sort_order: data.sortOrder,
-      p_source_company_process_stage_id: data.sourceCompanyProcessStageId,
-      p_task_department: data.taskDepartment,
-      p_required: data.required,
-    });
-    if (error) lifecycleError(error, "Template stage could not be saved.");
-    return { stageId: String(stageId), actorId: context.userId };
+    const { data: template, error } = await context.supabase.from("department_process_templates").select("department_id").eq("id", data.templateId).maybeSingle();
+    if (error || !template) lifecycleError(error, "Template was not found.");
+    await requireLifecycleManager(context, template.department_id);
+    await lifecycleMutationGate();
+    return { stageId: "", actorId: context.userId };
   });
 
 export const cloneLifecycleTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => templateIdSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: templateId, error } = await (supabaseAdmin as any).rpc("clone_department_process_template", { p_template_id: data.templateId });
-    if (error) lifecycleError(error, "Template version could not be cloned.");
-    return { templateId: String(templateId), actorId: context.userId };
+    const { data: template, error } = await context.supabase.from("department_process_templates").select("department_id").eq("id", data.templateId).maybeSingle();
+    if (error || !template) lifecycleError(error, "Template was not found.");
+    await requireLifecycleManager(context, template.department_id);
+    await lifecycleMutationGate();
+    return { templateId: "", actorId: context.userId };
   });
 
 export const activateLifecycleTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => templateIdSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await (supabaseAdmin as any).rpc("activate_department_process_template", { p_template_id: data.templateId });
-    if (error) lifecycleError(error, "Template version could not be activated.");
+    const { data: template, error } = await context.supabase.from("department_process_templates").select("department_id").eq("id", data.templateId).maybeSingle();
+    if (error || !template) lifecycleError(error, "Template was not found.");
+    await requireLifecycleManager(context, template.department_id);
+    await lifecycleMutationGate();
     return { templateId: data.templateId, actorId: context.userId, status: "ACTIVE" as const };
   });
 
@@ -95,9 +106,10 @@ export const retireLifecycleTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => templateIdSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await (supabaseAdmin as any).rpc("retire_department_process_template", { p_template_id: data.templateId });
-    if (error) lifecycleError(error, "Template version could not be retired.");
+    const { data: template, error } = await context.supabase.from("department_process_templates").select("department_id").eq("id", data.templateId).maybeSingle();
+    if (error || !template) lifecycleError(error, "Template was not found.");
+    await requireLifecycleManager(context, template.department_id);
+    await lifecycleMutationGate();
     return { templateId: data.templateId, actorId: context.userId, status: "RETIRED" as const };
   });
 
@@ -105,12 +117,9 @@ export const materializeLifecycleDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => generationSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: result, error } = await (supabaseAdmin as any).rpc("generate_project_lifecycle_draft", {
-      p_project_id: data.projectId,
-      p_template_id: data.templateId,
-      p_request_key: data.requestKey,
-    });
-    if (error) lifecycleError(error, "Lifecycle draft could not be materialized.");
-    return { result, actorId: context.userId };
+    const { data: project, error } = await context.supabase.from("projects").select("department_id").eq("id", data.projectId).maybeSingle();
+    if (error || !project?.department_id) lifecycleError(error, "Project requires an owning department.");
+    await requireLifecycleManager(context, project.department_id);
+    await lifecycleMutationGate();
+    return { result: null, actorId: context.userId };
   });
