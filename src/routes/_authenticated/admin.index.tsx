@@ -21,7 +21,7 @@ const areas = [
   { title: "Automation", detail: "Automation controls and review queue.", icon: Workflow, tab: "automation" as const },
 ];
 
-export const Route = createFileRoute("/_authenticated/admin")({
+export const Route = createFileRoute("/_authenticated/admin/")({
   head: () => ({ meta: [
     { title: "System controls — SSM One" }, { name: "description", content: "Organization system controls for SSM One." },
     { property: "og:title", content: "System controls — SSM One" }, { property: "og:description", content: "Organization system controls for SSM One." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
