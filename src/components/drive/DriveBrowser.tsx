@@ -27,6 +27,7 @@ import { ShareNodeDialog } from "./ShareNodeDialog";
 import { fetchDriveProjectBoms, type DriveProjectBomSummary } from "@/lib/project-bom.functions";
 import { readWorkspaceDepartmentId, WORKSPACE_CONTEXT_EVENT } from "@/lib/workspace-context";
 import { useAuth } from "@/hooks/useAuth";
+import { buildDepartmentDriveNavigation } from "@/lib/department-drive-navigation";
 
 type Filter = "all" | "common" | "internal" | "client" | "starred" | "ppap" | "boms";
 
@@ -149,6 +150,7 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
     if (projectId || folderId) return [];
     return categories.filter((category) => category.placement === "COMMON" && category.is_active);
   }, [categories, folderId, projectId]);
+  const departmentNavigation = useMemo(() => buildDepartmentDriveNavigation(categories), [categories]);
 
   const visibleBoms = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -378,6 +380,16 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
           </span>
         ))}
       </div>
+
+      {!projectId && activeDepartmentId && !folderId && (
+        <div className="flex flex-wrap gap-2" aria-label="Department Drive categories">
+          {departmentNavigation.map((entry) => (
+            <Badge key={entry.placement} variant="outline">
+              {entry.label} · {entry.categoryCount} configured
+            </Badge>
+          ))}
+        </div>
+      )}
 
       {!projectId && !activeDepartmentId && !canBrowseAllWorkspaces ? <Card className="p-8 text-center text-muted-foreground">Select a department workspace to open its Drive.</Card> : <>
       {busy && <p className="text-xs text-muted-foreground">{busy}</p>}

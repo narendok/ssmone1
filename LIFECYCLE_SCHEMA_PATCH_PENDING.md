@@ -23,7 +23,9 @@ The web lifecycle panel remains read-only. Template document rendering, governed
 9. Legacy `project_process_stage_records.predecessor_record_id` writes do not acquire the same project lock or execute the mixed-graph cycle guard.
 10. The proposal has not yet proved the required `created_by` source columns, `pgcrypto` availability for `digest`/`gen_random_uuid`, or hardened function search paths in the target database.
 
-## Exact proposed SQL — still unapplied
+## Historical reviewed SQL proposal
+
+The SQL below is retained as review history only. It is not a pending migration and must not be applied again: the applied sources named above, including their follow-up guard migrations, are authoritative. The operational Android contract is published in `LIFECYCLE_ANDROID_READ_CONTRACT_2026-10-02.md`.
 
 ```sql
 CREATE TABLE public.department_process_templates (
