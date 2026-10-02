@@ -17,3 +17,4 @@
 - Present shared product-lifecycle status as a read-only composition of governed records; lifecycle screens must not infer approvals, ownership, releases, or external publication.
 - Keep lifecycle draft planning as a pure read-only derivation; template materialization, feedback revisions, task creation, and notifications require separately reviewed server-side contracts.
 - Lifecycle contracts must authorize before replay, bind receipts and generated records to immutable actor/template provenance, reject duplicate source-stage regeneration, and serialize all project dependency graph writes.
+- Lifecycle action façades must authenticate and re-check department scope before any mutation bridge is enabled; the bridge remains disabled until reviewed database acceptance proves the guarded routines.
