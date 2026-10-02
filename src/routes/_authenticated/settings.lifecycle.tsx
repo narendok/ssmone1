@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { SettingsNav } from "@/components/SettingsNav";
 import { fetchCanonicalDepartments } from "@/lib/tasks";
 import { fetchLifecycleTemplateSettings, isLifecycleTemplateActionAvailable, type LifecycleTemplateStageRead } from "@/lib/lifecycle-template-settings";
+import { readWorkspaceDepartmentId, WORKSPACE_CONTEXT_EVENT } from "@/lib/workspace-context";
 
 export const Route = createFileRoute("/_authenticated/settings/lifecycle")({
   head: () => ({ meta: [{ title: "Lifecycle Templates — SSM One" }, { name: "description", content: "Department lifecycle template settings and version history." }, { property: "og:title", content: "Lifecycle Templates — SSM One" }, { property: "og:description", content: "Department lifecycle template settings and version history." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -16,8 +17,15 @@ export const Route = createFileRoute("/_authenticated/settings/lifecycle")({
 
 function LifecycleTemplateSettings() {
   const [departmentId, setDepartmentId] = useState("");
+  const [workspaceDepartmentId, setWorkspaceDepartmentId] = useState<string | null>(() => readWorkspaceDepartmentId());
+  useEffect(() => {
+    const syncWorkspace = () => setWorkspaceDepartmentId(readWorkspaceDepartmentId());
+    window.addEventListener(WORKSPACE_CONTEXT_EVENT, syncWorkspace);
+    window.addEventListener("storage", syncWorkspace);
+    return () => { window.removeEventListener(WORKSPACE_CONTEXT_EVENT, syncWorkspace); window.removeEventListener("storage", syncWorkspace); };
+  }, []);
   const { data: departments = [] } = useQuery({ queryKey: ["active-departments"], queryFn: fetchCanonicalDepartments });
-  const selectedId = departmentId || departments[0]?.id || "";
+  const selectedId = departmentId || workspaceDepartmentId || departments[0]?.id || "";
   const { data, isLoading, isError } = useQuery({ queryKey: ["lifecycle-template-settings", selectedId], queryFn: () => fetchLifecycleTemplateSettings(selectedId), enabled: Boolean(selectedId) });
   const stagesByTemplate = useMemo(() => {
     const grouped = new Map<string, LifecycleTemplateStageRead[]>();

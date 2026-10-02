@@ -5,7 +5,7 @@ export type DepartmentDriveTaxonomyEntry = {
   key: DepartmentDriveTaxonomyKey;
   label: string;
   description: string;
-  rootFolderKind: "DEPARTMENT_STANDARDS" | "INTERNAL_PROJECTS";
+  rootFolderKind: "DEPARTMENT_STANDARDS" | "INTERNAL_PROJECTS" | "CLIENT_PROJECTS";
   categoryCount: number;
   categoryIds: string[];
   mappedFolderId: string | null;
@@ -41,7 +41,9 @@ export function buildDepartmentDriveTaxonomy(
   const project = categories.filter((category) => category.placement === "INTERNAL_PROJECT" || category.placement === "CLIENT_PROJECT");
   return taxonomy.map((entry) => {
     const scoped = entry.key === "reviews" ? [] : entry.key === "deliverables" ? project.filter((category) => category.is_active) : common;
-    const root = roots.find((candidate) => candidate.folder_kind === entry.rootFolderKind);
+    const root = entry.key === "deliverables"
+      ? roots.find((candidate) => candidate.folder_kind === "INTERNAL_PROJECTS") ?? roots.find((candidate) => candidate.folder_kind === "CLIENT_PROJECTS")
+      : roots.find((candidate) => candidate.folder_kind === entry.rootFolderKind);
     const hasVerifiedMapping = entry.key !== "reviews" && Boolean(root);
     return {
       ...entry,

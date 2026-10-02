@@ -29,6 +29,11 @@ describe("department Drive final taxonomy", () => {
     expect(result.every((entry) => entry.mappingState === "unmapped")).toBe(true);
   });
 
+  it("keeps project deliverables mapped for a client-only department without treating client as a taxonomy category", () => {
+    const result = buildDepartmentDriveTaxonomy([{ id: "client-root", folder_kind: "CLIENT_PROJECTS" }], categories);
+    expect(result[2]).toMatchObject({ mappedFolderId: "client-root", mappingState: "mapped" });
+  });
+
   it("allows only the verified department/project root keys", () => {
     expect(isAllowedDepartmentDriveRoot("DEPARTMENT_STANDARDS")).toBe(true);
     expect(isAllowedDepartmentDriveRoot("CLIENT_PROJECTS")).toBe(true);
