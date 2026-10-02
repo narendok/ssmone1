@@ -106,6 +106,7 @@ import { Route as AuthenticatedCustomerServiceReturnsRouteImport } from './route
 import { Route as AuthenticatedCustomerServiceFieldFailuresRouteImport } from './routes/_authenticated/customer-service.field-failures'
 import { Route as AuthenticatedCustomerServiceComplaintsRouteImport } from './routes/_authenticated/customer-service.complaints'
 import { Route as AuthenticatedCategorySlugRouteImport } from './routes/_authenticated/category.$slug'
+import { Route as AuthenticatedAdminDriveOwnershipRouteImport } from './routes/_authenticated/admin.drive-ownership'
 import { Route as ApiPublicHooksRefreshSupplierDataRouteImport } from './routes/api/public/hooks/refresh-supplier-data'
 import { Route as ApiPublicExternalWebhookSubscriptionIdRouteImport } from './routes/api/public/external-webhook.$subscriptionId'
 
@@ -654,6 +655,12 @@ const AuthenticatedCategorySlugRoute =
     path: '/category/$slug',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminDriveOwnershipRoute =
+  AuthenticatedAdminDriveOwnershipRouteImport.update({
+    id: '/drive-ownership',
+    path: '/drive-ownership',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
 const ApiPublicHooksRefreshSupplierDataRoute =
   ApiPublicHooksRefreshSupplierDataRouteImport.update({
     id: '/api/public/hooks/refresh-supplier-data',
@@ -673,7 +680,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/careers': typeof CareersRouteWithChildren
   '/external-portal': typeof ExternalPortalRouteWithChildren
-  '/admin': typeof AuthenticatedAdminRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
   '/command-center': typeof AuthenticatedCommandCenterRoute
@@ -692,6 +699,7 @@ export interface FileRoutesByFullPath {
   '/file/$token': typeof FileTokenRoute
   '/portal/$token': typeof PortalTokenRoute
   '/share/$token': typeof ShareTokenRoute
+  '/admin/drive-ownership': typeof AuthenticatedAdminDriveOwnershipRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/customer-service/complaints': typeof AuthenticatedCustomerServiceComplaintsRoute
   '/customer-service/field-failures': typeof AuthenticatedCustomerServiceFieldFailuresRoute
@@ -772,7 +780,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/careers': typeof CareersRouteWithChildren
   '/external-portal': typeof ExternalPortalRouteWithChildren
-  '/admin': typeof AuthenticatedAdminRoute
+  '/admin': typeof AuthenticatedAdminRouteWithChildren
   '/assignments': typeof AuthenticatedAssignmentsRoute
   '/bom': typeof AuthenticatedBomRoute
   '/command-center': typeof AuthenticatedCommandCenterRoute
@@ -790,6 +798,7 @@ export interface FileRoutesByTo {
   '/portal/$token': typeof PortalTokenRoute
   '/share/$token': typeof ShareTokenRoute
   '/': typeof AuthenticatedIndexRoute
+  '/admin/drive-ownership': typeof AuthenticatedAdminDriveOwnershipRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/customer-service/complaints': typeof AuthenticatedCustomerServiceComplaintsRoute
   '/customer-service/field-failures': typeof AuthenticatedCustomerServiceFieldFailuresRoute
@@ -872,7 +881,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/careers': typeof CareersRouteWithChildren
   '/external-portal': typeof ExternalPortalRouteWithChildren
-  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/admin': typeof AuthenticatedAdminRouteWithChildren
   '/_authenticated/assignments': typeof AuthenticatedAssignmentsRoute
   '/_authenticated/bom': typeof AuthenticatedBomRoute
   '/_authenticated/command-center': typeof AuthenticatedCommandCenterRoute
@@ -892,6 +901,7 @@ export interface FileRoutesById {
   '/portal/$token': typeof PortalTokenRoute
   '/share/$token': typeof ShareTokenRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/admin/drive-ownership': typeof AuthenticatedAdminDriveOwnershipRoute
   '/_authenticated/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/_authenticated/customer-service/complaints': typeof AuthenticatedCustomerServiceComplaintsRoute
   '/_authenticated/customer-service/field-failures': typeof AuthenticatedCustomerServiceFieldFailuresRoute
@@ -994,6 +1004,7 @@ export interface FileRouteTypes {
     | '/file/$token'
     | '/portal/$token'
     | '/share/$token'
+    | '/admin/drive-ownership'
     | '/category/$slug'
     | '/customer-service/complaints'
     | '/customer-service/field-failures'
@@ -1092,6 +1103,7 @@ export interface FileRouteTypes {
     | '/portal/$token'
     | '/share/$token'
     | '/'
+    | '/admin/drive-ownership'
     | '/category/$slug'
     | '/customer-service/complaints'
     | '/customer-service/field-failures'
@@ -1193,6 +1205,7 @@ export interface FileRouteTypes {
     | '/portal/$token'
     | '/share/$token'
     | '/_authenticated/'
+    | '/_authenticated/admin/drive-ownership'
     | '/_authenticated/category/$slug'
     | '/_authenticated/customer-service/complaints'
     | '/_authenticated/customer-service/field-failures'
@@ -1964,6 +1977,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCategorySlugRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/drive-ownership': {
+      id: '/_authenticated/admin/drive-ownership'
+      path: '/drive-ownership'
+      fullPath: '/admin/drive-ownership'
+      preLoaderRoute: typeof AuthenticatedAdminDriveOwnershipRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
     '/api/public/hooks/refresh-supplier-data': {
       id: '/api/public/hooks/refresh-supplier-data'
       path: '/api/public/hooks/refresh-supplier-data'
@@ -1980,6 +2000,17 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedAdminRouteChildren {
+  AuthenticatedAdminDriveOwnershipRoute: typeof AuthenticatedAdminDriveOwnershipRoute
+}
+
+const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
+  AuthenticatedAdminDriveOwnershipRoute: AuthenticatedAdminDriveOwnershipRoute,
+}
+
+const AuthenticatedAdminRouteWithChildren =
+  AuthenticatedAdminRoute._addFileChildren(AuthenticatedAdminRouteChildren)
 
 interface AuthenticatedHrRouteChildren {
   AuthenticatedHrAccessRoute: typeof AuthenticatedHrAccessRoute
@@ -2029,7 +2060,7 @@ const AuthenticatedProductionRouteWithChildren =
   )
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRouteWithChildren
   AuthenticatedAssignmentsRoute: typeof AuthenticatedAssignmentsRoute
   AuthenticatedBomRoute: typeof AuthenticatedBomRoute
   AuthenticatedCommandCenterRoute: typeof AuthenticatedCommandCenterRoute
@@ -2106,7 +2137,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedAdminRoute: AuthenticatedAdminRouteWithChildren,
   AuthenticatedAssignmentsRoute: AuthenticatedAssignmentsRoute,
   AuthenticatedBomRoute: AuthenticatedBomRoute,
   AuthenticatedCommandCenterRoute: AuthenticatedCommandCenterRoute,
