@@ -46,3 +46,10 @@ export async function fetchLifecycleTemplateSettings(departmentId: string) {
 export function isLifecycleTemplateActionAvailable() {
   return false;
 }
+
+export function lifecycleTemplateMutationStatus() {
+  return {
+    available: isLifecycleTemplateActionAvailable(),
+    message: "Protected template actions are acceptance-pending and cannot change records from this register.",
+  } as const;
+}

@@ -72,7 +72,7 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
   const canBrowseAllWorkspaces = role === "admin" && !activeDepartmentId;
   const { data: departments = [] } = useQuery({ queryKey: ["active-departments"], queryFn: fetchCanonicalDepartments });
   const activeDepartment = useMemo(() => departments.find((department) => department.id === activeDepartmentId) ?? null, [departments, activeDepartmentId]);
-  const canBrowseProjectBoms = Boolean(projectId) || canPresentProjectBoms(activeDepartment);
+  const canBrowseProjectBoms = canPresentProjectBoms(activeDepartment);
   const childrenKey = ["drive_children", projectId, activeDepartmentId, folderId];
   const { data: nodes = [], isLoading, isError, error } = useQuery({
     queryKey: childrenKey,
@@ -91,7 +91,7 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
   const { data: projectBoms = [], isLoading: bomsLoading, isError: bomsError, error: bomsErrorDetail } = useQuery({
     queryKey: ["drive_project_boms", activeDepartmentId],
     queryFn: () => fetchBoms(),
-    enabled: shouldRequestProjectBoms({ filter, projectId, department: activeDepartment }),
+    enabled: shouldRequestProjectBoms({ filter, department: activeDepartment }),
   });
   const { data: categories = [] } = useQuery({
     queryKey: ["drive_category_templates", activeDepartmentId],
