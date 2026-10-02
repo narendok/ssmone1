@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SettingsNav } from "@/components/SettingsNav";
 import { fetchCanonicalDepartments } from "@/lib/tasks";
-import { fetchLifecycleTemplateSettings, isLifecycleTemplateActionAvailable } from "@/lib/lifecycle-template-settings";
+import { fetchLifecycleTemplateSettings, isLifecycleTemplateActionAvailable, type LifecycleTemplateStageRead } from "@/lib/lifecycle-template-settings";
 
 export const Route = createFileRoute("/_authenticated/settings/lifecycle")({
   head: () => ({ meta: [{ title: "Lifecycle Templates — SSM One" }, { name: "description", content: "Department lifecycle template settings and version history." }, { property: "og:title", content: "Lifecycle Templates — SSM One" }, { property: "og:description", content: "Department lifecycle template settings and version history." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
@@ -20,8 +20,8 @@ function LifecycleTemplateSettings() {
   const selectedId = departmentId || departments[0]?.id || "";
   const { data, isLoading, isError } = useQuery({ queryKey: ["lifecycle-template-settings", selectedId], queryFn: () => fetchLifecycleTemplateSettings(selectedId), enabled: Boolean(selectedId) });
   const stagesByTemplate = useMemo(() => {
-    const grouped = new Map<string, typeof data extends { stages: infer Stages } ? Stages : never>();
-    for (const stage of data?.stages ?? []) grouped.set(stage.template_id, [...(grouped.get(stage.template_id) ?? []), stage] as any);
+    const grouped = new Map<string, LifecycleTemplateStageRead[]>();
+    for (const stage of data?.stages ?? []) grouped.set(stage.template_id, [...(grouped.get(stage.template_id) ?? []), stage]);
     return grouped;
   }, [data]);
   const onlineActionsEnabled = isLifecycleTemplateActionAvailable();
