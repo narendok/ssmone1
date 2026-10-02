@@ -124,6 +124,10 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
   }, [departmentId, workspaceDepartmentId, projectId]);
 
   useEffect(() => {
+    if (filter === "boms" && !canBrowseProjectBoms) setFilter("all");
+  }, [filter, canBrowseProjectBoms]);
+
+  useEffect(() => {
     if (!initialNode) return;
     if (initialNode.node_type === "FOLDER") setFolderId(initialNode.id);
     else setPreview(initialNode);
