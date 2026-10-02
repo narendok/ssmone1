@@ -27,7 +27,7 @@ import { ShareNodeDialog } from "./ShareNodeDialog";
 import { fetchDriveProjectBoms, type DriveProjectBomSummary } from "@/lib/project-bom.functions";
 import { readWorkspaceDepartmentId, WORKSPACE_CONTEXT_EVENT } from "@/lib/workspace-context";
 import { useAuth } from "@/hooks/useAuth";
-import { buildDepartmentDriveNavigation } from "@/lib/department-drive-navigation";
+import { buildDepartmentDriveTaxonomy } from "@/lib/department-drive-navigation";
 
 type Filter = "all" | "common" | "internal" | "client" | "starred" | "ppap" | "boms";
 
@@ -150,7 +150,7 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
     if (projectId || folderId) return [];
     return categories.filter((category) => category.placement === "COMMON" && category.is_active);
   }, [categories, folderId, projectId]);
-  const departmentNavigation = useMemo(() => buildDepartmentDriveNavigation(categories), [categories]);
+  const departmentTaxonomy = useMemo(() => buildDepartmentDriveTaxonomy(departmentRoots, categories), [departmentRoots, categories]);
 
   const visibleBoms = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -335,9 +335,9 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
         <Tabs value={filter} onValueChange={(v) => setFilter(v as Filter)}>
           <TabsList>
             <TabsTrigger value="all">All</TabsTrigger>
-            {!projectId && activeDepartmentId && <TabsTrigger value="common">Common documents</TabsTrigger>}
+            {!projectId && activeDepartmentId && <TabsTrigger value="common">Controlled documents</TabsTrigger>}
             {!projectId && activeDepartmentId && <TabsTrigger value="internal">Internal projects</TabsTrigger>}
-            {!projectId && activeDepartmentId && <TabsTrigger value="client">Client projects</TabsTrigger>}
+             {!projectId && activeDepartmentId && <TabsTrigger value="client">Client projects</TabsTrigger>}
             <TabsTrigger value="ppap">PPAP</TabsTrigger>
             <TabsTrigger value="starred">Starred</TabsTrigger>
             {!projectId && <TabsTrigger value="boms">Project BOMs</TabsTrigger>}
@@ -382,11 +382,17 @@ export function DriveBrowser({ projectId = null, departmentId = null, initialNod
       </div>
 
       {!projectId && activeDepartmentId && !folderId && (
-        <div className="flex flex-wrap gap-2" aria-label="Department Drive categories">
-          {departmentNavigation.map((entry) => (
-            <Badge key={entry.placement} variant="outline">
-              {entry.label} · {entry.categoryCount} configured
-            </Badge>
+        <div className="grid gap-2 sm:grid-cols-3" aria-label="Department Drive taxonomy">
+          {departmentTaxonomy.map((entry) => (
+            <Card key={entry.key} className="p-3">
+              <p className="text-sm font-medium">{entry.label}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{entry.description}</p>
+              {entry.mappingState === "mapped" ? (
+                <p className="mt-2 text-xs text-muted-foreground">{entry.categoryCount} configured template{entry.categoryCount === 1 ? "" : "s"}</p>
+              ) : (
+                <p className="mt-2 text-xs text-destructive">No verified folder mapping</p>
+              )}
+            </Card>
           ))}
         </div>
       )}
