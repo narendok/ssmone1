@@ -56,9 +56,8 @@ async function lifecycleMutationGate() {
 }
 
 /**
- * Protected façade over service-role-only lifecycle routines. Each routine
- * re-authorizes in the database using the caller JWT, so the server never
- * supplies or substitutes lifecycle actor provenance.
+ * Source-only protected façade contract. Each route authenticates and proves
+ * department scope before the deliberate no-mutation deployment gate.
  */
 export const createLifecycleTemplateDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
