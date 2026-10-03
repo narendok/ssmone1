@@ -52,7 +52,7 @@ $$;
 -- invoke it in a fixture copy with `conflict_target_folder_id` supplied.
 
 -- An out-of-scope identity cannot read the bound receipt or discard its object.
-SELECT set_config('request.jwt.claim.sub', :'outsider_user_id', true);
+SELECT set_config('request.jwt.claim.sub', :'outsider_user_id', false);
 SELECT set_config('request.jwt.claim.role', 'authenticated', false);
 -- Both calls must raise the application-level "Not authorized" exception.
 SELECT * FROM public.find_lifecycle_document_draft_receipt(
