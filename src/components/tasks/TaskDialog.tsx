@@ -121,7 +121,7 @@ export function TaskDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label>Department</Label>
-              <Select value={form.department_id} onValueChange={(id) => { const selected = departments.find((item) => item.id === id); const legacy = selected?.department_type ?? form.department; setForm({ ...form, department_id: id, department: legacy }); }}>
+              <Select value={form.department_id} onValueChange={(id) => setForm({ ...form, department_id: id })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {departments.map((department) => <SelectItem key={department.id} value={department.id}>{department.code ? `${department.code} — ` : ""}{department.name}</SelectItem>)}
