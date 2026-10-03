@@ -8,7 +8,7 @@
 
 The database now contains immutable, versioned department templates; project-stage dependency edges; provenance-bound draft-generation receipts; and revisioned feedback read models. Follow-up guards reject project reassignment for any stage with incoming or outgoing lifecycle links, restrict a template-state transition to its specific template version, and make generation receipts immutable with server-owned actor/time provenance. Direct browser mutation remains unavailable: all six lifecycle action routines are executable only by `postgres` and `service_role` after the follow-up hardening migration. A reviewed protected server-action boundary is therefore required before a department lead can use clone/edit/activate/retire/generate from the app.
 
-The web lifecycle panel remains read-only. Template document rendering, governed notifications, and client-feedback creation have not been wired and do not create records.
+The web lifecycle panel remains read-only. A source-only deterministic plain-text renderer and replay/rollback orchestration contract now exist, but no accepted storage/Drive-revision/register/audit transaction exists or is deployed. The pending review proposal is `supabase/pending/20261003_lifecycle_document_draft_generation.sql`; it must not be applied until isolated authorization, rollback, concurrent replay, and non-admin RLS tests pass. Governed notifications and client-feedback creation remain unwired.
 
 ## Blocking failures in the prior proposal
 
