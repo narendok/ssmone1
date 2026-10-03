@@ -18,6 +18,23 @@ describe("lifecycle document renderer", () => {
     expect(() => renderLifecycleDocument(template, { ...fields, DEPARTMENT: null })).toThrow("DEPARTMENT");
   });
 
+  it.each(["{{project_code}}", "{{UNKNOWN-FIELD}}", "{{PROJECT_CODE", "PROJECT_CODE}}"])("rejects malformed placeholders: %s", (content) => {
+    expect(() => renderLifecycleDocument({ ...template, content }, fields)).toThrow("Invalid document template placeholder");
+  });
+
+  it.each([0, -1, 1.5, NaN, Infinity])("rejects invalid template version: %s", (version) => {
+    expect(() => renderLifecycleDocument({ ...template, version }, fields)).toThrow("positive integer");
+  });
+
+  it("preserves literal project text instead of interpreting it as template code", () => {
+    const rendered = renderLifecycleDocument(template, { ...fields, DEPARTMENT: "Hardware {{CUSTOMER_TEXT}}" });
+    expect(rendered.content).toContain("Hardware {{CUSTOMER_TEXT}}");
+  });
+
+  it("rejects empty template content", () => {
+    expect(() => renderLifecycleDocument({ ...template, content: "  " }, fields)).toThrow("required");
+  });
+
   it("replays an identical receipt and rejects a conflicting request key", async () => {
     const receipt = { requestKey: "key", nodeId: "node", revisionId: "revision", registerId: "register", auditEventId: "audit", sourceFingerprint: "same" };
     const transaction = { findReceipt: async () => receipt, persist: async () => receipt, rollback: async () => undefined };
