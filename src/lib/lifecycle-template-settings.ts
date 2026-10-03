@@ -24,6 +24,26 @@ export type LifecycleTemplateStageRead = {
   required: boolean;
 };
 
+export type LifecycleTemplateContentRead = {
+  id: string;
+  template_id: string;
+  revision_number: number;
+  content: string;
+  content_sha256: string;
+  created_at: string;
+};
+
+/** Caller-token/RLS read. Invoke only after the pending schema is accepted. */
+export async function fetchLifecycleTemplateContent(templateId: string) {
+  const { data, error } = await supabase
+    .from("department_process_template_document_revisions" as never)
+    .select("id,template_id,revision_number,content,content_sha256,created_at")
+    .eq("template_id", templateId)
+    .order("revision_number", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as LifecycleTemplateContentRead[];
+}
+
 export async function fetchLifecycleTemplateSettings(departmentId: string) {
   const { data: templates, error: templatesError } = await supabase
     .from("department_process_templates")

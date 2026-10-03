@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { loadLifecycleDocumentPreflight } from "@/lib/lifecycle-document-preflight.server";
+import type { LifecycleTransactionClient } from "@/lib/lifecycle-actor-transport.server";
 
 const uuid = z.string().uuid();
 const departmentType = z.enum(["hardware", "firmware", "mechanical", "qa", "procurement", "production", "executive"]);
@@ -72,6 +72,17 @@ async function lifecycleMutationGate() {
   throw new Error("Lifecycle mutations are disabled pending reviewed database acceptance.");
 }
 
+async function acceptedLifecycleClient(context: { userId: string }): Promise<LifecycleTransactionClient> {
+  // Resolve acceptance before instantiating any privileged client. userId is
+  // provided by verified requireSupabaseAuth context, never the input schema.
+  await lifecycleMutationGate();
+  const [{ supabaseAdmin }, { createLifecycleActorTransport }] = await Promise.all([
+    import("@/integrations/supabase/client.server"),
+    import("@/lib/lifecycle-actor-transport.server"),
+  ]);
+  return createLifecycleActorTransport(supabaseAdmin, context.userId);
+}
+
 /**
  * Source-only protected façade contract. Each route authenticates and proves
  * department scope before the deliberate no-mutation deployment gate.
@@ -108,8 +119,8 @@ export const cloneLifecycleTemplate = createServerFn({ method: "POST" })
   });
 
 /**
- * Source-only façade for the pending append-only template-content routine.
- * It deliberately performs no RPC while the lifecycle mutation gate is shut.
+ * Protected handler for the pending append-only template-content routine.
+ * It performs no privileged RPC while the lifecycle mutation gate is shut.
  */
 export const createLifecycleTemplateContentRevision = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -123,8 +134,10 @@ export const createLifecycleTemplateContentRevision = createServerFn({ method: "
     if (error || !template) lifecycleError(error, "Template was not found.");
     await requireLifecycleManager(context, template.department_id);
     if (template.status !== "DRAFT") throw new Error("Immutable content can be appended only to a DRAFT template version.");
-    await lifecycleMutationGate();
-    return { templateDocumentRevisionId: "", actorId: context.userId };
+    const client = await acceptedLifecycleClient(context);
+    const { createLifecycleTemplateContentStore } = await import("@/lib/lifecycle-template-content.server");
+    const revision = await createLifecycleTemplateContentStore(client).append(data.templateId, data.content);
+    return { templateDocumentRevisionId: revision.id, revisionNumber: revision.revisionNumber, checksum: revision.checksum, actorId: context.userId };
   });
 
 export const activateLifecycleTemplate = createServerFn({ method: "POST" })
@@ -134,7 +147,9 @@ export const activateLifecycleTemplate = createServerFn({ method: "POST" })
     const { data: template, error } = await context.supabase.from("department_process_templates").select("department_id").eq("id", data.templateId).maybeSingle();
     if (error || !template) lifecycleError(error, "Template was not found.");
     await requireLifecycleManager(context, template.department_id);
-    await lifecycleMutationGate();
+    const client = await acceptedLifecycleClient(context);
+    const { createLifecycleTemplateContentStore } = await import("@/lib/lifecycle-template-content.server");
+    await createLifecycleTemplateContentStore(client).activate(data.templateId, data.templateDocumentRevisionId);
     return { templateId: data.templateId, templateDocumentRevisionId: data.templateDocumentRevisionId, actorId: context.userId, status: "ACTIVE" as const };
   });
 
@@ -145,7 +160,9 @@ export const retireLifecycleTemplate = createServerFn({ method: "POST" })
     const { data: template, error } = await context.supabase.from("department_process_templates").select("department_id").eq("id", data.templateId).maybeSingle();
     if (error || !template) lifecycleError(error, "Template was not found.");
     await requireLifecycleManager(context, template.department_id);
-    await lifecycleMutationGate();
+    const client = await acceptedLifecycleClient(context);
+    const { createLifecycleTemplateContentStore } = await import("@/lib/lifecycle-template-content.server");
+    await createLifecycleTemplateContentStore(client).retire(data.templateId);
     return { templateId: data.templateId, actorId: context.userId, status: "RETIRED" as const };
   });
 
@@ -179,10 +196,7 @@ export const generateLifecycleDocumentDraft = createServerFn({ method: "POST" })
       throw new Error("Project Drive root and revision are required for document draft generation.");
     }
     await requireLifecycleManager(context, project.department_id);
-    // Preflight reads the immutable content revision, canonical project fields,
-    // and target scope from the caller-authorized database view. No browser
-    // content or field values are accepted. The commit RPC repeats these checks.
-    await loadLifecycleDocumentPreflight(context.supabase, data);
-    await lifecycleMutationGate();
-    return { result: null, actorId: context.userId };
+    const { runLifecycleDocumentWorkflow } = await import("@/lib/lifecycle-document-workflow.server");
+    const result = await runLifecycleDocumentWorkflow(context.supabase, data, () => acceptedLifecycleClient(context));
+    return { result, actorId: context.userId };
   });

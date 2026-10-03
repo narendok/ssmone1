@@ -10,6 +10,7 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 // replay, two-session concurrency or production acceptance.
 const prior = readFileSync(new URL("../../migrations/20261002220916_5d158822-de77-479d-a8af-54037acc96ad.sql", import.meta.url), "utf8");
 const pending = readFileSync(new URL("../20261003_lifecycle_document_draft_generation.sql", import.meta.url), "utf8");
+const transport = readFileSync(new URL("../20261004_lifecycle_document_actor_transport.sql", import.meta.url), "utf8");
 const id = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
 const actor = id(1), department = id(10), template = id(20), revision = id(21), earlier = id(22), project = id(30);
 let db;
@@ -28,8 +29,16 @@ before(async () => {
   await db.exec(`
     CREATE EXTENSION pgcrypto;
     CREATE SCHEMA auth;
+    CREATE SCHEMA storage;
+    CREATE ROLE anon;
+    CREATE ROLE authenticated;
+    CREATE ROLE service_role;
+    GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS
       $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+    CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS
+      $$ SELECT nullif(current_setting('request.jwt.claim.role', true), '') $$;
+    CREATE TABLE storage.objects (bucket_id text, name text);
     CREATE TABLE public.departments (id uuid PRIMARY KEY);
     INSERT INTO public.departments VALUES ('${department}');
     CREATE TABLE public.company_process_stages (id uuid PRIMARY KEY, is_active boolean);
@@ -50,14 +59,17 @@ before(async () => {
   await db.exec(statement(pending, "CREATE TABLE public.department_process_template_document_revisions ("));
   await db.exec(statement(pending, "ALTER TABLE public.department_process_template_document_revisions\n  ADD CONSTRAINT"));
   await db.exec(statement(pending, "ALTER TABLE public.department_process_templates"));
+  await db.exec(statement(pending, "CREATE TABLE public.lifecycle_document_storage_attempts ("));
   for (const name of ["lifecycle_actor", "lifecycle_template_guard", "activate_department_process_template", "retire_department_process_template"]) {
     await db.exec(routine(prior, name));
   }
   await db.exec(statement(prior, "CREATE TRIGGER lifecycle_template_guard_trigger"));
-  for (const name of ["lifecycle_document_template_revision_guard", "create_lifecycle_document_template_revision", "activate_lifecycle_document_template", "retire_lifecycle_document_template", "authorize_lifecycle_document_draft"]) {
+  for (const name of ["lifecycle_document_template_revision_guard", "create_lifecycle_document_template_revision", "activate_lifecycle_document_template", "retire_lifecycle_document_template", "authorize_lifecycle_document_draft", "lifecycle_document_storage_attempt_guard", "register_lifecycle_document_storage_attempt"]) {
     await db.exec(routine(pending, name));
   }
   await db.exec(statement(pending, "CREATE TRIGGER lifecycle_document_template_revision_immutable"));
+  await db.exec(statement(pending, "CREATE TRIGGER lifecycle_document_storage_attempt_immutable"));
+  await db.exec(transport);
 });
 after(async () => { if (db) await db.close(); });
 beforeEach(async () => {
@@ -156,4 +168,85 @@ test("active templates cannot receive another content revision", async () => {
 
 test("immutable content cannot be overwritten even inside a privileged fixture", async () => {
   await assert.rejects(db.query("UPDATE public.department_process_template_document_revisions SET content='Changed' WHERE id=$1", [revision]), /immutable/);
+});
+
+async function asTrustedServer() {
+  await db.query("SELECT set_config('request.jwt.claim.sub',$1,true), set_config('request.jwt.claim.role','service_role',true), set_config('request.jwt.claims',$2,true)",
+    [id(90), JSON.stringify({ sub: id(90), role: "service_role", trace: "original" })]);
+  await db.exec("SET LOCAL ROLE service_role;");
+}
+async function invoke(operation, args, verifiedActor = actor) {
+  return db.query("SELECT public.execute_lifecycle_document_action($1,$2,$3::jsonb) result", [verifiedActor, operation, JSON.stringify(args)]);
+}
+
+test("service-only append derives actual row provenance from the verified user", async () => {
+  await asTrustedServer();
+  const { rows: [response] } = await invoke("create_lifecycle_document_template_revision", { p_template_id: template, p_content: "Transport {{PROJECT_NAME}}" });
+  assert.equal(response.result.length, 1);
+  await db.exec("RESET ROLE;");
+  const { rows: [row] } = await db.query("SELECT created_by,content FROM public.department_process_template_document_revisions WHERE id=$1", [response.result[0].id]);
+  assert.equal(row.created_by, actor);
+  assert.equal(row.content, "Transport {{PROJECT_NAME}}");
+});
+
+test("transport restores original claims and transition context after activation", async () => {
+  await asTrustedServer();
+  await invoke("activate_lifecycle_document_template", { p_template_id: template, p_template_document_revision_id: revision });
+  await db.exec("RESET ROLE;");
+  const { rows: [row] } = await db.query("SELECT auth.uid() actor, auth.role() role, current_setting('request.jwt.claims') claims, current_setting('lifecycle.template_transition',true) transition");
+  assert.equal(row.actor, id(90));
+  assert.equal(row.role, "service_role");
+  assert.deepEqual(JSON.parse(row.claims), { sub: id(90), role: "service_role", trace: "original" });
+  assert.ok(!row.transition || row.transition !== "on");
+});
+
+test("ordinary database roles cannot execute the transport, even with a spoofed claim", async () => {
+  for (const role of ["anon", "authenticated"]) {
+    await db.exec("SAVEPOINT browser_denial;");
+    await db.query("SELECT set_config('request.jwt.claim.role','service_role',true)");
+    await db.exec(`SET LOCAL ROLE ${role};`);
+    await assert.rejects(invoke("retire_lifecycle_document_template", { p_template_id: template }), /permission denied for function/);
+    await db.exec("ROLLBACK TO browser_denial;");
+  }
+});
+
+test("transport does not elevate an out-of-scope verified actor", async () => {
+  await asTrustedServer();
+  await assert.rejects(invoke("activate_lifecycle_document_template", { p_template_id: template, p_template_document_revision_id: revision }, id(99)), /Not authorized/);
+});
+
+test("transport rejects missing identity, extra actor overrides and unlisted operations", async () => {
+  await asTrustedServer();
+  const cases = [
+    ["retire_lifecycle_document_template", { p_template_id: template }, null, /Verified actor/],
+    ["retire_lifecycle_document_template", { p_template_id: template, p_verified_actor_id: id(99) }, actor, /arguments do not match/],
+    ["retire_lifecycle_document_template", {}, actor, /arguments do not match/],
+    ["unrelated_admin_rpc", {}, actor, /Unsupported/],
+  ];
+  for (const [operation, args, verifiedActor, error] of cases) {
+    await db.exec("SAVEPOINT invalid_transport;");
+    await assert.rejects(invoke(operation, args, verifiedActor), error);
+    await db.exec("ROLLBACK TO invalid_transport;");
+  }
+});
+
+test("trusted role is required in addition to EXECUTE privilege", async () => {
+  await db.query("SELECT set_config('request.jwt.claim.role','authenticated',true)");
+  await assert.rejects(invoke("retire_lifecycle_document_template", { p_template_id: template }), /trusted server role/);
+});
+
+test("storage registration through transport returns a scalar UUID and verified actor", async () => {
+  await activate();
+  const path = `${project}/${id(70)}-draft.txt`;
+  await db.query("INSERT INTO storage.objects VALUES ('project-drive',$1)", [path]);
+  await asTrustedServer();
+  const { rows: [response] } = await invoke("register_lifecycle_document_storage_attempt", {
+    p_project_id: project, p_template_key: "OEM-TRACKER", p_template_version: 1,
+    p_template_document_revision_id: revision, p_request_key: id(50), p_storage_bucket: "project-drive",
+    p_storage_path: path, p_sha256_checksum: "a".repeat(64), p_size_bytes: 10,
+  });
+  assert.match(response.result, /^[a-f0-9-]{36}$/);
+  await db.exec("RESET ROLE;");
+  const { rows: [row] } = await db.query("SELECT uploaded_by FROM public.lifecycle_document_storage_attempts WHERE id=$1", [response.result]);
+  assert.equal(row.uploaded_by, actor);
 });

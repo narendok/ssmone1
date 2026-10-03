@@ -6,12 +6,14 @@ on:
     branches: [main]
     paths:
       - supabase/pending/20261003_lifecycle_document_draft_generation.sql
+      - supabase/pending/20261004_lifecycle_document_actor_transport.sql
       - supabase/pending/tests/**
       - supabase/migrations/20261002220916_5d158822-de77-479d-a8af-54037acc96ad.sql
       - .github/workflows/lifecycle-template-sql.yml
   pull_request:
     paths:
       - supabase/pending/20261003_lifecycle_document_draft_generation.sql
+      - supabase/pending/20261004_lifecycle_document_actor_transport.sql
       - supabase/pending/tests/**
       - supabase/migrations/20261002220916_5d158822-de77-479d-a8af-54037acc96ad.sql
       - .github/workflows/lifecycle-template-sql.yml

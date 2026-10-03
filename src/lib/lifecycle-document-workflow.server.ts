@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { LifecycleTransactionClient } from "./lifecycle-actor-transport.server";
 import { loadLifecycleDocumentPreflight } from "./lifecycle-document-preflight.server";
 import { createLifecycleDocumentDatabaseBridge } from "./lifecycle-document-database.server";
 import { createDocumentStorageTransaction } from "./lifecycle-document-storage.server";
@@ -13,7 +14,7 @@ export type LifecycleDocumentRequest = Parameters<typeof loadLifecycleDocumentPr
 export async function runLifecycleDocumentWorkflow(
   readClient: SupabaseClient,
   input: LifecycleDocumentRequest,
-  acceptedTransactionClient: () => Promise<SupabaseClient>,
+  acceptedTransactionClient: () => Promise<LifecycleTransactionClient>,
 ) {
   // Resolve acceptance before reading pending tables or staging any bytes.
   const transactionClient = await acceptedTransactionClient();

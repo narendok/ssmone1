@@ -13,6 +13,12 @@ and the existing template transition trigger. It checks exact activation pins,
 cross-template rejection, placeholder validation, failed-stage rollback, content
 bytes/checksums and transition behavior.
 
+It also executes the proposed service-only actor transport for content append,
+activation and storage-attempt registration. It checks actual database-role
+EXECUTE denials, argument/actor spoof rejection, fixture scope checks, stored
+actor provenance and restoration of prior claim/transition context. It does not
+verify the real Supabase HTTP/JWT path or production permission predicates.
+
 Dependency tables and permission predicates are deliberately small test fixtures,
 not an authoritative Supabase schema export. Passing this suite does **not** prove
 production RLS, signed-in actor transport, Storage policies/compensation,
@@ -27,6 +33,11 @@ fixtures, the exact activated document revision and real staged storage objects.
 The SQL fixture persists upload-attempt provenance before rolling back its
 generated metadata, matching separate registration/commit RPC transactions.
 Use disposable fixtures; do not execute these scripts against production.
+
+The unapplied transport proposal is applied after the document proposal in an
+isolated environment. Extend HTTP acceptance to call the real web handlers as
+both manager and out-of-scope users; neither a successful service-role request
+nor a locally injected actor is evidence of verified end-user authentication.
 
 Full-stack acceptance also needs an authoritative initial schema. The current
 Supabase migration history starts with changes to pre-existing application

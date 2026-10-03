@@ -1,11 +1,11 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { LifecycleRpcClient } from "./lifecycle-actor-transport.server";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Pending, service-only contract adapter. Not invoked by a live route.
- * The supplied server client must retain the verified actor's JWT context.
+/** Pending, service-only contract adapter, wired behind the acceptance gate.
+ * The supplied server transport must retain the verified actor's DB context.
  */
-export function createLifecycleTemplateContentStore(client: SupabaseClient) {
+export function createLifecycleTemplateContentStore(client: LifecycleRpcClient) {
   return {
     async append(templateId: string, content: string) {
       if (!uuid.test(templateId) || !content.trim() || content.length > 200_000) {

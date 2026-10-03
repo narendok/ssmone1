@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { LifecycleRpcClient } from "./lifecycle-actor-transport.server";
 import type { DocumentDraftReceipt, DocumentDraftTransaction } from "./lifecycle-document-persistence";
 import type { DocumentDatabaseBridge, StagedDocument } from "./lifecycle-document-storage.server";
 
@@ -51,7 +51,7 @@ function throwRpcError(error: { message?: string } | null, fallback: string): ne
  * supplied document body, template pin, or Drive provenance.
  */
 export function createLifecycleDocumentDatabaseBridge(
-  supabase: SupabaseClient,
+  supabase: LifecycleRpcClient,
   projectId: string,
   targetFolderId: string,
 ): DocumentDatabaseBridge {

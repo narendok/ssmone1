@@ -1,8 +1,14 @@
 # Document generation increment — 2026-10-03
 
-Latest follow-on: [2026-10-04 template governance checkpoint](evidence/TEMPLATE_GENERATION_CHECKPOINT_2026-10-04.md).
-191 source tests, 11 focused embedded PostgreSQL tests, TypeScript and production
+Latest follow-on: [2026-10-04 editor and actor transport checkpoint](evidence/LIFECYCLE_ACTOR_EDITOR_CHECKPOINT_2026-10-04.md).
+198 source tests, 18 focused embedded PostgreSQL tests, TypeScript and production
 build pass. This does not establish full isolated Supabase acceptance or live save.
+
+The concrete save/activate/retire and generation handlers, server-only actor
+transport proposal, and local template-body editor are now wired in source.
+The earlier entries below are historical checkpoints. Their statements that
+these components are unwired are superseded by the latest source evidence;
+deployment, automatic project/change triggers and full acceptance remain open.
 
 This increment is source implementation; live document generation remains disabled.
 
