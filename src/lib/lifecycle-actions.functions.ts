@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { renderLifecycleDocument } from "@/lib/lifecycle-document-renderer";
+import { mapLifecycleProjectDocumentFields } from "@/lib/lifecycle-document-fields";
 
 const uuid = z.string().uuid();
 const departmentType = z.enum(["hardware", "firmware", "mechanical", "qa", "procurement", "production", "executive"]);
@@ -148,7 +149,7 @@ export const generateLifecycleDocumentDraft = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: project, error } = await context.supabase
       .from("projects")
-      .select("department_id,project_drive_node_id,revision")
+      .select("id,code,name,department_id,project_drive_node_id,revision,updated_at")
       .eq("id", data.projectId)
       .maybeSingle();
     if (error || !project?.department_id) lifecycleError(error, "Project requires an owning department.");
@@ -165,6 +166,13 @@ export const generateLifecycleDocumentDraft = createServerFn({ method: "POST" })
       throw new Error("An active template with the pinned project department version is required.");
     }
     await requireLifecycleManager(context, project.department_id);
+    const { data: department, error: departmentError } = await context.supabase
+      .from("departments")
+      .select("id,name,is_active")
+      .eq("id", project.department_id)
+      .maybeSingle();
+    if (departmentError || !department) lifecycleError(departmentError, "Owning department was not found.");
+    const sourceFields = mapLifecycleProjectDocumentFields(project, department);
     // Render before crossing the mutation gate so missing mapped fields fail
     // without any persistence attempt; orchestration remains disabled below.
     const rendered = renderLifecycleDocument({
@@ -172,7 +180,7 @@ export const generateLifecycleDocumentDraft = createServerFn({ method: "POST" })
       version: data.templateVersion,
       title: data.templateKey,
       content: data.templateContent,
-    }, data.fields);
+    }, sourceFields);
     await lifecycleMutationGate();
     return { result: rendered, actorId: context.userId };
   });

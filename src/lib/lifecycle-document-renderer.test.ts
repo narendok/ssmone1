@@ -37,14 +37,14 @@ describe("lifecycle document renderer", () => {
 
   it("replays an identical receipt and rejects a conflicting request key", async () => {
     const receipt = { requestKey: "key", nodeId: "node", revisionId: "revision", registerId: "register", auditEventId: "audit", sourceFingerprint: "same" };
-    const transaction = { findReceipt: async () => receipt, persist: async () => receipt, rollback: async () => undefined };
+    const transaction = { authorize: async () => undefined, findReceipt: async () => receipt, persist: async () => receipt, rollback: async () => undefined };
     await expect(persistLifecycleDocumentDraft(transaction, { rendered: renderLifecycleDocument(template, fields), requestKey: "key", sourceFingerprint: "same" })).resolves.toMatchObject({ mode: "REPLAY" });
     await expect(persistLifecycleDocumentDraft(transaction, { rendered: renderLifecycleDocument(template, fields), requestKey: "key", sourceFingerprint: "other" })).rejects.toThrow("conflicts");
   });
 
   it("compensates persistence failure before surfacing it", async () => {
     let rolledBack = false;
-    const transaction = { findReceipt: async () => null, persist: async () => { throw new Error("register failed"); }, rollback: async () => { rolledBack = true; } };
+    const transaction = { authorize: async () => undefined, findReceipt: async () => null, persist: async () => { throw new Error("register failed"); }, rollback: async () => { rolledBack = true; } };
     await expect(persistLifecycleDocumentDraft(transaction, { rendered: renderLifecycleDocument(template, fields), requestKey: "new", sourceFingerprint: "same" })).rejects.toThrow("register failed");
     expect(rolledBack).toBe(true);
   });
