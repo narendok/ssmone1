@@ -8,7 +8,7 @@ Implemented source-only:
 - Concrete storage upload/compensation adapter: UTF-8 bytes/checksum, per-attempt immutable path, no overwrite, atomic DB bridge callback, scoped cleanup and uncertain-outcome retention.
 - Concrete server-only database bridge that maps the pending authorization, receipt lookup, atomic commit, and proven-unreferenced cleanup RPCs into the storage adapter. It does not accept browser-provided document content, source fields, or template identity.
 
-The server bridge is implemented against an unapplied RPC contract. The pending SQL proposal now contains the full atomic insert body: immutable template-revision pinning, canonical server render/checksum verification, locked target ancestry, server document numbering, FILE/revision/DRAFT-register/activity/receipt writes, and actor/project/target/template-bound replay. It remains unapplied and the mutation gate remains disabled.
+The server bridge is implemented against an unapplied RPC contract. The pending SQL proposal now contains the full atomic insert body: caller-pinned immutable template revision, canonical server render/checksum/source-fingerprint verification, locked-and-revalidated target ancestry, independently scoped business numbering, FILE/revision/DRAFT-register/activity/receipt writes, staged-object ownership receipts, and semantic actor/project/target/template-bound replay. It remains unapplied and the mutation gate remains disabled.
 
 The proposal also includes an executable isolated-environment acceptance fixture at `supabase/pending/tests/lifecycle_document_draft_acceptance.sql`. It exercises create, full-payload-bound replay, conflict, scoped receipt disclosure, and cleanup refusal; a two-session runner is still required for genuine concurrent-call proof.
 
