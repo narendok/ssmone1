@@ -5,8 +5,23 @@ export const lifecycleActionContracts = {
   activate: { rpc: "activate_department_process_template", mutation: "template state", idempotent: false },
   retire: { rpc: "retire_department_process_template", mutation: "template state", idempotent: false },
   materialize: { rpc: "generate_project_lifecycle_draft", mutation: "project draft", idempotent: true },
+  documentDraft: { rpc: "generate_lifecycle_document_draft", mutation: "Drive-backed document draft", idempotent: true },
 } as const;
 
-export function lifecycleActionMayRun(input: { approvedForDeployment: boolean; hasIsolatedDbAcceptance: boolean }) {
-  return input.approvedForDeployment && input.hasIsolatedDbAcceptance;
+export type LifecycleAcceptanceEvidence = {
+  authorization: boolean;
+  rollback: boolean;
+  replayAndConcurrency: boolean;
+  nonAdminRls: boolean;
+};
+
+export function lifecycleActionMayRun(input: {
+  approvedForDeployment: boolean;
+  evidence: LifecycleAcceptanceEvidence;
+}) {
+  return input.approvedForDeployment
+    && input.evidence.authorization
+    && input.evidence.rollback
+    && input.evidence.replayAndConcurrency
+    && input.evidence.nonAdminRls;
 }

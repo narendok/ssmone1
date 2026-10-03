@@ -1,6 +1,6 @@
 # Android lifecycle read contract
 
-**Verified date:** 2026-10-02 UTC  
+**Verified date:** 2026-10-03 UTC  
 **Scope:** authenticated read-only Android parity for lifecycle provenance. This contract does not authorize template editing, lifecycle materialization, feedback authoring, approvals, releases, notifications, or external sharing.
 
 ## Read tables
@@ -68,4 +68,4 @@ The six action routines are `SECURITY DEFINER`, use `search_path=public`, and ar
 
 ## Remaining acceptance findings
 
-No database mutation, concurrent reverse-edge, rollback, or non-administrator RLS acceptance was run. Suitable isolated database access and approved test identities are required before enabling the server-action execution bridge. The Android build may read the contract above, but does not establish least-privilege acceptance.
+No isolated database mutation, concurrent reverse-edge/replay, rollback, or non-administrator RLS acceptance was run. The six database routines remain unavailable to authenticated callers and the web server-action bridge remains deliberately disabled. Suitable isolated database access plus approved administrator and non-administrator test identities are required before enabling the bridge. The Android build may read the contract above, but does not establish least-privilege acceptance.
