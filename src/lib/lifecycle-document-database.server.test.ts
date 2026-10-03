@@ -57,7 +57,7 @@ describe("lifecycle document database bridge", () => {
     expect(f.rpc).toHaveBeenCalledWith("find_lifecycle_document_draft_receipt", {
       p_project_id: "project", p_target_folder_id: "target-folder", p_template_key: "OEM",
       p_template_version: 1, p_template_document_revision_id: "template-revision",
-      p_request_key: input.requestKey, p_source_fingerprint: "fingerprint",
+      p_request_key: input.requestKey,
     });
   });
 

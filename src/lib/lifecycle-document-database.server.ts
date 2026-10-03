@@ -63,8 +63,8 @@ export function createLifecycleDocumentDatabaseBridge(
       p_project_id: projectId,
       p_template_key: input.rendered.templatePin.templateKey,
       p_template_version: input.rendered.templatePin.version,
+      p_template_document_revision_id: templateDocumentRevisionId,
       p_request_key: input.requestKey,
-      p_source_fingerprint: input.sourceFingerprint,
     });
     if (error) throwRpcError(error, "Document draft authorization failed.");
     authorizedInput = input;
@@ -81,7 +81,6 @@ export function createLifecycleDocumentDatabaseBridge(
         p_template_version: authorizedInput.rendered.templatePin.version,
         p_template_document_revision_id: templateDocumentRevisionId,
         p_request_key: requestKey,
-        p_source_fingerprint: authorizedInput.sourceFingerprint,
       });
       if (error) throwRpcError(error, "Document draft receipt lookup failed.");
       const result = readReceipt(data);
@@ -96,7 +95,6 @@ export function createLifecycleDocumentDatabaseBridge(
         p_project_id: projectId,
         p_target_folder_id: targetFolderId,
         p_request_key: input.requestKey,
-        p_source_fingerprint: input.sourceFingerprint,
         p_template_key: input.rendered.templatePin.templateKey,
         p_template_version: input.rendered.templatePin.version,
         p_template_document_revision_id: templateDocumentRevisionId,
