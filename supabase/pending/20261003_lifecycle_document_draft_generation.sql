@@ -218,5 +218,6 @@ GRANT EXECUTE ON FUNCTION public.can_discard_lifecycle_document_object(text,text
 --    unreferenced object is removed and uncertain outcomes are retained.
 -- 3. Run concurrent identical and conflicting request-key calls; prove one
 --    immutable receipt for identical replay and a conflict for any mismatch.
--- 4. Complete the final commit RPC body only after its project/target/source
---    snapshot parameters and record-level ancestry checks are independently reviewed.
+-- 4. Complete the final commit RPC body only after its target-ancestry walk,
+--    stored-template render, server-calculated source fingerprint, and exact
+--    Drive/revision/register/audit insert ordering are independently reviewed.
