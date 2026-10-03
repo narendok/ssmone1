@@ -11,6 +11,51 @@
 -- template revision, target ancestry, numbering, and audit provenance are
 -- never authoritative.
 
+-- Every staged object gets a server-owned receipt before commit. The database
+-- cannot inspect storage bytes; it can require the adapter's exact bucket/path,
+-- checksum, size, project, request, and actor receipt before making it canonical.
+CREATE TABLE public.lifecycle_document_storage_attempts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  project_id uuid NOT NULL REFERENCES public.projects(id) ON DELETE RESTRICT,
+  request_key uuid NOT NULL,
+  storage_bucket text NOT NULL CHECK (storage_bucket = 'project-drive'),
+  storage_path text NOT NULL CHECK (btrim(storage_path) <> ''),
+  sha256_checksum text NOT NULL CHECK (sha256_checksum ~ '^[a-f0-9]{64}$'),
+  size_bytes bigint NOT NULL CHECK (size_bytes >= 0),
+  uploaded_by uuid NOT NULL DEFAULT auth.uid(),
+  uploaded_at timestamptz NOT NULL DEFAULT now(),
+  consumed_at timestamptz,
+  consumed_by_receipt_id uuid,
+  UNIQUE (storage_bucket, storage_path)
+);
+GRANT ALL ON public.lifecycle_document_storage_attempts TO service_role;
+ALTER TABLE public.lifecycle_document_storage_attempts ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION public.lifecycle_document_storage_attempt_guard()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.uploaded_by IS DISTINCT FROM auth.uid() OR NEW.consumed_at IS NOT NULL OR NEW.consumed_by_receipt_id IS NOT NULL THEN
+      RAISE EXCEPTION 'Storage attempt provenance is server-owned';
+    END IF;
+    NEW.uploaded_at := now();
+    RETURN NEW;
+  END IF;
+  IF TG_OP = 'UPDATE' AND OLD.uploaded_by = auth.uid() AND OLD.consumed_at IS NULL
+     AND NEW.project_id = OLD.project_id AND NEW.request_key = OLD.request_key
+     AND NEW.storage_bucket = OLD.storage_bucket AND NEW.storage_path = OLD.storage_path
+     AND NEW.sha256_checksum = OLD.sha256_checksum AND NEW.size_bytes = OLD.size_bytes
+     AND NEW.uploaded_by = OLD.uploaded_by AND NEW.uploaded_at = OLD.uploaded_at
+     AND NEW.consumed_at IS NOT NULL AND NEW.consumed_by_receipt_id IS NOT NULL THEN
+    RETURN NEW;
+  END IF;
+  RAISE EXCEPTION 'Storage attempt is immutable';
+END;
+$$;
+CREATE TRIGGER lifecycle_document_storage_attempt_immutable
+BEFORE INSERT OR UPDATE ON public.lifecycle_document_storage_attempts
+FOR EACH ROW EXECUTE FUNCTION public.lifecycle_document_storage_attempt_guard();
+
 CREATE TABLE public.department_process_template_document_revisions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   template_id uuid NOT NULL REFERENCES public.department_process_templates(id) ON DELETE RESTRICT,
@@ -114,56 +159,29 @@ CREATE TRIGGER lifecycle_document_draft_no_delete
 BEFORE DELETE ON public.project_lifecycle_document_drafts
 FOR EACH ROW EXECUTE FUNCTION public.lifecycle_document_draft_delete_guard();
 
--- Extends the existing privileged numbering contract. The advisory lock is
--- global for the number series and the document-control unique constraint is
--- the final protection against accidental reuse.
-CREATE OR REPLACE FUNCTION public.next_document_number(_kind text)
-RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
-DECLARE yr text := to_char(now(), 'YYYY'); prefix text; n int;
-BEGIN
-  IF _kind = 'LIFECYCLE_DOC' THEN
-    PERFORM pg_advisory_xact_lock(hashtext('lifecycle_document_number'));
-    prefix := 'LCD-' || yr || '-';
-    SELECT COALESCE(MAX((regexp_replace(document_number, '^.*-', ''))::int), 0) + 1 INTO n
-    FROM public.document_control_registers WHERE document_number LIKE prefix || '%';
-  ELSIF _kind = 'PO' THEN
-    PERFORM pg_advisory_xact_lock(hashtext('po_number')); prefix := 'PO-' || yr || '-';
-    SELECT COALESCE(MAX((regexp_replace(po_number, '^.*-', ''))::int), 0) + 1 INTO n FROM public.purchase_orders WHERE po_number LIKE prefix || '%';
-  ELSIF _kind = 'GRN' THEN
-    PERFORM pg_advisory_xact_lock(hashtext('grn_number')); prefix := 'GRN-' || yr || '-';
-    SELECT COALESCE(MAX((regexp_replace(grn_number, '^.*-', ''))::int), 0) + 1 INTO n FROM public.goods_receipt_notes WHERE grn_number LIKE prefix || '%';
-  ELSIF _kind = 'BOM' THEN
-    PERFORM pg_advisory_xact_lock(hashtext('bom_number')); prefix := 'BOM-' || yr || '-';
-    SELECT COALESCE(MAX((regexp_replace(bom_number, '^.*-', ''))::int), 0) + 1 INTO n FROM public.project_boms WHERE bom_number LIKE prefix || '%';
-  ELSIF _kind = 'ADJUSTMENT' THEN
-    PERFORM pg_advisory_xact_lock(hashtext('stock_adjustment_number')); prefix := 'ADJ-' || yr || '-';
-    SELECT COALESCE(MAX((regexp_replace(adjustment_number, '^.*-', ''))::int), 0) + 1 INTO n FROM public.stock_adjustments WHERE adjustment_number LIKE prefix || '%';
-  ELSIF _kind = 'ISSUE' THEN
-    PERFORM pg_advisory_xact_lock(hashtext('material_issue_number')); prefix := 'ISS-' || yr || '-';
-    SELECT COALESCE(MAX((regexp_replace(issue_number, '^.*-', ''))::int), 0) + 1 INTO n FROM public.material_issues WHERE issue_number LIKE prefix || '%';
-  ELSIF _kind = 'RETURN' THEN
-    PERFORM pg_advisory_xact_lock(hashtext('material_return_number')); prefix := 'RET-' || yr || '-';
-    SELECT COALESCE(MAX((regexp_replace(return_number, '^.*-', ''))::int), 0) + 1 INTO n FROM public.material_returns WHERE return_number LIKE prefix || '%';
-  ELSE RAISE EXCEPTION 'unknown document kind %', _kind;
-  END IF;
-  RETURN prefix || lpad(n::text, 4, '0');
-END;
-$$;
+-- The storage receipt's eventual FK is added after its target table exists.
+ALTER TABLE public.lifecycle_document_storage_attempts
+  ADD CONSTRAINT lifecycle_document_storage_attempts_consumed_receipt_fkey
+  FOREIGN KEY (consumed_by_receipt_id) REFERENCES public.project_lifecycle_document_drafts(id) ON DELETE RESTRICT;
+
+-- Uses the independently scoped business-number series. This proposal does not
+-- replace next_document_number, preserving every existing and future series.
 
 -- Re-authorize before a receipt is disclosed or a staged object is committed.
 CREATE OR REPLACE FUNCTION public.authorize_lifecycle_document_draft(
   p_project_id uuid, p_template_key text, p_template_version integer,
-  p_request_key uuid, p_source_fingerprint text
+  p_template_document_revision_id uuid, p_request_key uuid
 ) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_actor uuid := public.lifecycle_actor(); v_project public.projects%ROWTYPE;
 BEGIN
-  IF p_request_key IS NULL OR btrim(coalesce(p_source_fingerprint, '')) = '' THEN RAISE EXCEPTION 'Request key and source fingerprint are required'; END IF;
+  IF p_request_key IS NULL OR p_template_document_revision_id IS NULL THEN RAISE EXCEPTION 'Request key and pinned template revision are required'; END IF;
   SELECT * INTO v_project FROM public.projects WHERE id = p_project_id FOR SHARE;
   IF NOT FOUND OR v_project.department_id IS NULL OR v_project.project_drive_node_id IS NULL OR btrim(coalesce(v_project.revision, '')) = '' THEN RAISE EXCEPTION 'Project provenance is incomplete'; END IF;
   IF NOT public.lifecycle_can_manage_department(v_actor, v_project.department_id)
      OR NOT public.can_access_department_drive(v_actor, v_project.department_id, v_project.id) THEN RAISE EXCEPTION 'Not authorized'; END IF;
-  PERFORM 1 FROM public.department_process_templates
-  WHERE department_id = v_project.department_id AND template_key = p_template_key AND version = p_template_version AND status = 'ACTIVE' FOR SHARE;
+  PERFORM 1 FROM public.department_process_templates template
+  JOIN public.department_process_template_document_revisions revision ON revision.id = p_template_document_revision_id AND revision.template_id = template.id
+  WHERE template.department_id = v_project.department_id AND template.template_key = p_template_key AND template.version = p_template_version AND template.status = 'ACTIVE' FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Matching active immutable template version required'; END IF;
 END;
 $$;
@@ -173,7 +191,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.find_lifecycle_document_draft_receipt(
   p_project_id uuid, p_target_folder_id uuid, p_template_key text,
   p_template_version integer, p_template_document_revision_id uuid,
-  p_request_key uuid, p_source_fingerprint text
+  p_request_key uuid
 ) RETURNS TABLE(request_key uuid, node_id uuid, revision_id uuid, register_id uuid,
   audit_event_id uuid, source_fingerprint text, uses_staged_object boolean)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -190,8 +208,7 @@ BEGIN
   WHERE receipt.project_id = p_project_id AND receipt.request_key = p_request_key
     AND receipt.created_by = v_actor AND receipt.target_drive_node_id = p_target_folder_id
     AND template.template_key = p_template_key AND receipt.template_version = p_template_version
-    AND receipt.template_document_revision_id = p_template_document_revision_id
-    AND receipt.source_fingerprint = p_source_fingerprint;
+    AND receipt.template_document_revision_id = p_template_document_revision_id;
 END;
 $$;
 
@@ -200,8 +217,9 @@ $$;
 -- the pin from its own immutable template snapshot and project fields, then
 -- verifies its SHA-256/size/file name before it makes that object canonical.
 CREATE OR REPLACE FUNCTION public.commit_lifecycle_document_draft(
-  p_project_id uuid, p_target_folder_id uuid, p_request_key uuid, p_source_fingerprint text,
-  p_template_key text, p_template_version integer, p_file_name text, p_mime_type text,
+  p_project_id uuid, p_target_folder_id uuid, p_request_key uuid,
+  p_template_key text, p_template_version integer, p_template_document_revision_id uuid,
+  p_file_name text, p_mime_type text,
   p_storage_bucket text, p_storage_path text, p_sha256_checksum text, p_size_bytes bigint
 ) RETURNS TABLE(request_key uuid, node_id uuid, revision_id uuid, register_id uuid,
   audit_event_id uuid, source_fingerprint text, uses_staged_object boolean)
@@ -212,10 +230,11 @@ DECLARE
   v_template_revision public.department_process_template_document_revisions%ROWTYPE;
   v_target public.drive_nodes%ROWTYPE; v_prior public.project_lifecycle_document_drafts%ROWTYPE;
   v_node_id uuid; v_revision_id uuid; v_register_id uuid; v_audit_id uuid; v_document_number text;
-  v_rendered_content text; v_rendered_sha256 text; v_expected_name text; v_payload_hash text;
-  v_ancestry_ids uuid[]; v_ancestry_count integer; v_root_id uuid; v_token text; v_result jsonb;
+  v_rendered_content text; v_rendered_sha256 text; v_expected_name text; v_payload_hash text; v_source_fingerprint text;
+  v_ancestry_ids uuid[]; v_ancestry_count integer; v_root_found boolean; v_token text; v_result jsonb;
+  v_attempt public.lifecycle_document_storage_attempts%ROWTYPE; v_receipt_id uuid;
 BEGIN
-  IF p_request_key IS NULL OR btrim(coalesce(p_source_fingerprint,'')) = ''
+  IF p_request_key IS NULL OR p_template_document_revision_id IS NULL
      OR btrim(coalesce(p_file_name,'')) = '' OR btrim(coalesce(p_mime_type,'')) = ''
      OR p_storage_bucket <> 'project-drive' OR p_storage_path <> p_project_id::text || '/' || regexp_replace(p_storage_path, '^' || p_project_id::text || '/', '')
      OR p_size_bytes < 0 OR p_sha256_checksum !~ '^[a-f0-9]{64}$' THEN
@@ -232,36 +251,46 @@ BEGIN
     AND version = p_template_version AND status = 'ACTIVE' FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Matching active immutable template version required'; END IF;
   SELECT * INTO v_template_revision FROM public.department_process_template_document_revisions
-  WHERE template_id = v_template.id ORDER BY revision_number DESC LIMIT 1 FOR SHARE;
+  WHERE id = p_template_document_revision_id AND template_id = v_template.id FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Immutable template content revision required'; END IF;
   SELECT * INTO v_target FROM public.drive_nodes WHERE id = p_target_folder_id FOR UPDATE;
   IF NOT FOUND OR v_target.node_type <> 'FOLDER' OR v_target.is_trashed
      OR v_target.project_id IS DISTINCT FROM v_project.id OR v_target.department_id IS DISTINCT FROM v_project.department_id THEN
     RAISE EXCEPTION 'Target folder is outside the authorized project Drive';
   END IF;
-  WITH RECURSIVE ancestry(id, parent_id, project_id, department_id, depth, path) AS (
-    SELECT id, parent_id, project_id, department_id, 1, ARRAY[id] FROM public.drive_nodes WHERE id = v_target.id
+  WITH RECURSIVE ancestry(id, parent_id, project_id, department_id, is_trashed, depth, path) AS (
+    SELECT id, parent_id, project_id, department_id, is_trashed, 1, ARRAY[id] FROM public.drive_nodes WHERE id = v_target.id
     UNION ALL
-    SELECT parent.id, parent.parent_id, parent.project_id, parent.department_id, ancestry.depth + 1, ancestry.path || parent.id
+    SELECT parent.id, parent.parent_id, parent.project_id, parent.department_id, parent.is_trashed, ancestry.depth + 1, ancestry.path || parent.id
     FROM public.drive_nodes parent JOIN ancestry ON ancestry.parent_id = parent.id
     WHERE ancestry.depth < 64 AND NOT parent.id = ANY(ancestry.path)
   )
-  SELECT array_agg(id ORDER BY depth), count(*), max(id) FILTER (WHERE parent_id IS NULL)
-  INTO v_ancestry_ids, v_ancestry_count, v_root_id FROM ancestry;
-  IF v_ancestry_count IS NULL OR v_ancestry_count >= 64 OR v_root_id IS DISTINCT FROM v_project.project_drive_node_id
-     OR EXISTS (SELECT 1 FROM public.drive_nodes WHERE id = ANY(v_ancestry_ids)
-                AND (project_id IS DISTINCT FROM v_project.id OR department_id IS DISTINCT FROM v_project.department_id OR is_trashed)) THEN
+  SELECT array_agg(id ORDER BY depth), count(*), bool_or(id = v_project.project_drive_node_id)
+  INTO v_ancestry_ids, v_ancestry_count, v_root_found FROM ancestry;
+  IF v_ancestry_count IS NULL OR v_ancestry_count >= 64 OR NOT coalesce(v_root_found, false)
+     OR EXISTS (SELECT 1 FROM ancestry WHERE project_id IS DISTINCT FROM v_project.id OR department_id IS DISTINCT FROM v_project.department_id OR is_trashed) THEN
     RAISE EXCEPTION 'Target ancestry is not the locked project Drive tree';
   END IF;
   PERFORM 1 FROM public.drive_nodes WHERE id = ANY(v_ancestry_ids) ORDER BY id FOR UPDATE;
+  -- Recheck the locked chain: the project root can have a department parent.
+  WITH RECURSIVE locked_ancestry(id, parent_id, project_id, department_id, is_trashed, depth, path) AS (
+    SELECT id, parent_id, project_id, department_id, is_trashed, 1, ARRAY[id] FROM public.drive_nodes WHERE id = v_target.id
+    UNION ALL
+    SELECT parent.id, parent.parent_id, parent.project_id, parent.department_id, parent.is_trashed, locked_ancestry.depth + 1, locked_ancestry.path || parent.id
+    FROM public.drive_nodes parent JOIN locked_ancestry ON locked_ancestry.parent_id = parent.id
+    WHERE locked_ancestry.depth < 64 AND NOT parent.id = ANY(locked_ancestry.path)
+  )
+  SELECT count(*), bool_or(id = v_project.project_drive_node_id) INTO v_ancestry_count, v_root_found FROM locked_ancestry;
+  IF v_ancestry_count >= 64 OR NOT coalesce(v_root_found, false)
+     OR EXISTS (SELECT 1 FROM locked_ancestry WHERE project_id IS DISTINCT FROM v_project.id OR department_id IS DISTINCT FROM v_project.department_id OR is_trashed) THEN
+    RAISE EXCEPTION 'Target ancestry changed during locking';
+  END IF;
   SELECT * INTO v_prior FROM public.project_lifecycle_document_drafts
   WHERE project_id = v_project.id AND request_key = p_request_key FOR UPDATE;
   IF FOUND THEN
     IF v_prior.created_by = v_actor AND v_prior.template_id = v_template.id
        AND v_prior.template_version = v_template.version AND v_prior.template_document_revision_id = v_template_revision.id
-       AND v_prior.target_drive_node_id = v_target.id AND v_prior.source_fingerprint = p_source_fingerprint
-       AND v_prior.storage_bucket = p_storage_bucket AND v_prior.storage_path = p_storage_path
-       AND v_prior.sha256_checksum = p_sha256_checksum AND v_prior.size_bytes = p_size_bytes THEN
+       AND v_prior.target_drive_node_id = v_target.id THEN
       RETURN QUERY SELECT v_prior.request_key, v_prior.generated_drive_node_id, v_prior.generated_revision_id,
         v_prior.document_control_register_id, v_prior.audit_event_id, v_prior.source_fingerprint, false;
       RETURN;
@@ -269,18 +298,27 @@ BEGIN
     RAISE EXCEPTION 'Request key conflicts with a different document draft payload';
   END IF;
   -- Only these four canonical server-owned values may appear in a template.
-  FOR v_token IN SELECT (regexp_matches(v_template_revision.content, '\{\{\s*([A-Z0-9_]+)\s*\}\}', 'g'))[1] LOOP
+  -- Normalize placeholder whitespace first, then use literal replace so project
+  -- values containing backslashes or braces remain literal, as in the renderer.
+  v_rendered_content := regexp_replace(v_template_revision.content, '\{\{\s*([A-Z0-9_]+)\s*\}\}', '{{\1}}', 'g');
+  FOR v_token IN SELECT (regexp_matches(v_rendered_content, '\{\{([A-Z0-9_]+)\}\}', 'g'))[1] LOOP
     IF v_token NOT IN ('PROJECT_CODE','PROJECT_NAME','PROJECT_REVISION','DEPARTMENT') THEN RAISE EXCEPTION 'Unsupported immutable template token %', v_token; END IF;
   END LOOP;
-  v_rendered_content := regexp_replace(v_template_revision.content, '\{\{\s*PROJECT_CODE\s*\}\}', v_project.code, 'g');
-  v_rendered_content := regexp_replace(v_rendered_content, '\{\{\s*PROJECT_NAME\s*\}\}', v_project.name, 'g');
-  v_rendered_content := regexp_replace(v_rendered_content, '\{\{\s*PROJECT_REVISION\s*\}\}', v_project.revision, 'g');
-  v_rendered_content := regexp_replace(v_rendered_content, '\{\{\s*DEPARTMENT\s*\}\}', (SELECT name FROM public.departments WHERE id = v_project.department_id), 'g');
+  v_rendered_content := replace(v_rendered_content, '{{PROJECT_CODE}}', v_project.code);
+  v_rendered_content := replace(v_rendered_content, '{{PROJECT_NAME}}', v_project.name);
+  v_rendered_content := replace(v_rendered_content, '{{PROJECT_REVISION}}', v_project.revision);
+  v_rendered_content := replace(v_rendered_content, '{{DEPARTMENT}}', (SELECT name FROM public.departments WHERE id = v_project.department_id));
   IF v_rendered_content LIKE '%{{%' OR v_rendered_content LIKE '%}}%' THEN RAISE EXCEPTION 'Immutable template has unresolved token syntax'; END IF;
   v_rendered_sha256 := encode(digest(convert_to(v_rendered_content, 'UTF8'), 'sha256'), 'hex');
+  v_source_fingerprint := encode(digest(convert_to(concat_ws('|', v_project.id, v_target.id, v_template.id, v_template.version, v_template_revision.id, v_rendered_sha256), 'UTF8'), 'sha256'), 'hex');
   v_expected_name := regexp_replace(v_project.code || '-' || v_template.template_key || '-v' || v_template.version::text, '[^A-Za-z0-9._-]+', '_', 'g') || '.txt';
   IF p_file_name <> v_expected_name OR p_sha256_checksum <> v_rendered_sha256 OR p_size_bytes <> octet_length(convert_to(v_rendered_content, 'UTF8')) THEN RAISE EXCEPTION 'Staged object does not match the server-rendered immutable template snapshot'; END IF;
-  v_payload_hash := md5(concat_ws('|', v_project.id, v_actor, v_target.id, v_template.id, v_template.version, v_template_revision.id, p_request_key, p_source_fingerprint, p_file_name, p_mime_type, p_storage_bucket, p_storage_path, p_sha256_checksum, p_size_bytes));
+  SELECT * INTO v_attempt FROM public.lifecycle_document_storage_attempts
+  WHERE project_id = v_project.id AND request_key = p_request_key AND storage_bucket = p_storage_bucket
+    AND storage_path = p_storage_path AND sha256_checksum = p_sha256_checksum AND size_bytes = p_size_bytes
+    AND uploaded_by = v_actor AND consumed_at IS NULL FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Staged storage object lacks a verified owned attempt receipt'; END IF;
+  v_payload_hash := md5(concat_ws('|', v_project.id, v_actor, v_target.id, v_template.id, v_template.version, v_template_revision.id, p_request_key, v_source_fingerprint, p_file_name, p_mime_type, p_sha256_checksum, p_size_bytes));
   INSERT INTO public.drive_nodes(project_id, department_id, parent_id, name, slug, node_type, file_type, mime_type,
     file_size_bytes, storage_bucket, storage_path, sha256_checksum, current_version, is_locked, created_by, metadata)
   VALUES (v_project.id, v_project.department_id, v_target.id, p_file_name,
@@ -288,13 +326,13 @@ BEGIN
     p_size_bytes, p_storage_bucket, p_storage_path, p_sha256_checksum, 1, false, v_actor,
     jsonb_build_object('lifecycle_document_draft', true, 'template_id', v_template.id,
       'template_version', v_template.version, 'template_document_revision_id', v_template_revision.id,
-      'source_fingerprint', p_source_fingerprint, 'request_key', p_request_key))
+      'source_fingerprint', v_source_fingerprint, 'request_key', p_request_key))
   RETURNING id INTO v_node_id;
   INSERT INTO public.drive_node_revisions(node_id, version, file_size_bytes, storage_path, sha256_checksum, change_summary, uploaded_by)
   VALUES (v_node_id, 1, p_size_bytes, p_storage_path, p_sha256_checksum,
     'Initial lifecycle document DRAFT from immutable template revision ' || v_template_revision.revision_number, v_actor)
   RETURNING id INTO v_revision_id;
-  v_document_number := public.next_document_number('LIFECYCLE_DOC');
+  v_document_number := public.next_business_number('lifecycle_document', (SELECT code FROM public.departments WHERE id = v_project.department_id), v_project.code);
   INSERT INTO public.document_control_registers(drive_node_id, department_id, document_number, title, document_status,
     controlled_version, created_by, project_id, source_revision_id, approval_note)
   VALUES (v_node_id, v_project.department_id, v_document_number, v_template.title, 'DRAFT', 1, v_actor,
@@ -303,7 +341,7 @@ BEGIN
   v_result := jsonb_build_object('request_key', p_request_key, 'node_id', v_node_id, 'revision_id', v_revision_id,
     'register_id', v_register_id, 'document_number', v_document_number, 'project_id', v_project.id,
     'target_drive_node_id', v_target.id, 'template_id', v_template.id, 'template_version', v_template.version,
-    'template_document_revision_id', v_template_revision.id, 'source_fingerprint', p_source_fingerprint, 'status', 'DRAFT');
+    'template_document_revision_id', v_template_revision.id, 'source_fingerprint', v_source_fingerprint, 'status', 'DRAFT');
   INSERT INTO public.activity_log(actor_user_id, module_key, entity_type, entity_id, action, summary, after_data, reason)
   VALUES (v_actor, 'lifecycle_document', 'project_lifecycle_document_draft', v_register_id, 'created',
     'Created lifecycle document DRAFT ' || v_document_number, v_result, 'Immutable template-based generated draft')
@@ -314,9 +352,13 @@ BEGIN
     document_control_register_id, audit_event_id, request_key, source_fingerprint, payload_hash,
     storage_bucket, storage_path, sha256_checksum, size_bytes, result, created_by)
   VALUES (v_project.id, v_template.id, v_template.version, v_template_revision.id, v_target.id, v_node_id,
-    v_revision_id, v_register_id, v_audit_id, p_request_key, p_source_fingerprint, v_payload_hash,
-    p_storage_bucket, p_storage_path, p_sha256_checksum, p_size_bytes, v_result, v_actor);
-  RETURN QUERY SELECT p_request_key, v_node_id, v_revision_id, v_register_id, v_audit_id, p_source_fingerprint, true;
+    v_revision_id, v_register_id, v_audit_id, p_request_key, v_source_fingerprint, v_payload_hash,
+    p_storage_bucket, p_storage_path, p_sha256_checksum, p_size_bytes, v_result, v_actor)
+  RETURNING id INTO v_receipt_id;
+  UPDATE public.lifecycle_document_storage_attempts
+  SET consumed_at = now(), consumed_by_receipt_id = v_receipt_id
+  WHERE id = v_attempt.id;
+  RETURN QUERY SELECT p_request_key, v_node_id, v_revision_id, v_register_id, v_audit_id, v_source_fingerprint, true;
 END;
 $$;
 
@@ -332,7 +374,12 @@ BEGIN
   SELECT * INTO v_project FROM public.projects WHERE id = p_project_id FOR SHARE;
   IF NOT FOUND OR NOT public.lifecycle_can_manage_department(v_actor, v_project.department_id)
      OR NOT public.can_access_department_drive(v_actor, v_project.department_id, v_project.id) THEN RETURN false; END IF;
-  IF EXISTS (SELECT 1 FROM public.project_lifecycle_document_drafts WHERE project_id = p_project_id AND request_key = p_request_key) THEN RETURN false; END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.lifecycle_document_storage_attempts attempt
+    WHERE attempt.project_id = p_project_id AND attempt.request_key = p_request_key
+      AND attempt.storage_bucket = p_storage_bucket AND attempt.storage_path = p_storage_path
+      AND attempt.uploaded_by = v_actor AND attempt.consumed_at IS NULL
+  ) THEN RETURN false; END IF;
   RETURN NOT EXISTS (SELECT 1 FROM public.drive_nodes WHERE storage_bucket = p_storage_bucket AND storage_path = p_storage_path)
      AND NOT EXISTS (
        SELECT 1 FROM public.drive_node_revisions revision
@@ -346,13 +393,14 @@ REVOKE ALL ON FUNCTION public.lifecycle_document_template_revision_guard() FROM 
 REVOKE ALL ON FUNCTION public.lifecycle_document_template_revision_delete_guard() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.lifecycle_document_draft_guard() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.lifecycle_document_draft_delete_guard() FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid,uuid,text,integer,uuid,uuid,text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,text,integer,text,text,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.lifecycle_document_storage_attempt_guard() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid,uuid,text,integer,uuid,uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,integer,uuid,text,text,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.can_discard_lifecycle_document_object(uuid,uuid,text,text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid,uuid,text,integer,uuid,uuid,text) TO service_role;
-GRANT EXECUTE ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,text,integer,text,text,text,text,text,bigint) TO service_role;
+GRANT EXECUTE ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid,uuid,text,integer,uuid,uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,integer,uuid,text,text,text,text,text,bigint) TO service_role;
 GRANT EXECUTE ON FUNCTION public.can_discard_lifecycle_document_object(uuid,uuid,text,text) TO service_role;
 
 -- Required acceptance before applying:
