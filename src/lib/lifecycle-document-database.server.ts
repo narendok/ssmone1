@@ -54,8 +54,11 @@ export function createLifecycleDocumentDatabaseBridge(
   supabase: SupabaseClient,
   projectId: string,
   targetFolderId: string,
+  templateDocumentRevisionId: string,
 ): DocumentDatabaseBridge {
+  let authorizedInput: CommitInput | null = null;
   const authorize: DocumentDraftTransaction["authorize"] = async (input) => {
+    authorizedInput = null;
     const { error } = await supabase.rpc("authorize_lifecycle_document_draft", {
       p_project_id: projectId,
       p_template_key: input.rendered.templatePin.templateKey,
@@ -64,21 +67,31 @@ export function createLifecycleDocumentDatabaseBridge(
       p_source_fingerprint: input.sourceFingerprint,
     });
     if (error) throwRpcError(error, "Document draft authorization failed.");
+    authorizedInput = input;
   };
 
   return {
     authorize,
     async findReceipt(requestKey) {
+      if (!authorizedInput || authorizedInput.requestKey !== requestKey) throw new Error("Document receipt lookup requires scoped authorization.");
       const { data, error } = await supabase.rpc("find_lifecycle_document_draft_receipt", {
+        p_project_id: projectId,
+        p_target_folder_id: targetFolderId,
+        p_template_key: authorizedInput.rendered.templatePin.templateKey,
+        p_template_version: authorizedInput.rendered.templatePin.version,
+        p_template_document_revision_id: templateDocumentRevisionId,
         p_request_key: requestKey,
+        p_source_fingerprint: authorizedInput.sourceFingerprint,
       });
       if (error) throwRpcError(error, "Document draft receipt lookup failed.");
       const result = readReceipt(data);
       if (!result) return null;
       if (result.request_key !== requestKey) throw new Error("Document receipt request key mismatch.");
+      if (result.source_fingerprint !== authorizedInput.sourceFingerprint) throw new Error("Document receipt source mismatch.");
       return toReceipt(result);
     },
     async commit(input: CommitInput, staged: StagedDocument) {
+      await authorize(input);
       const { data, error } = await supabase.rpc("commit_lifecycle_document_draft", {
         p_project_id: projectId,
         p_target_folder_id: targetFolderId,
@@ -86,6 +99,7 @@ export function createLifecycleDocumentDatabaseBridge(
         p_source_fingerprint: input.sourceFingerprint,
         p_template_key: input.rendered.templatePin.templateKey,
         p_template_version: input.rendered.templatePin.version,
+        p_template_document_revision_id: templateDocumentRevisionId,
         p_file_name: input.rendered.fileName,
         p_mime_type: input.rendered.mimeType,
         p_storage_bucket: staged.bucket,
@@ -100,7 +114,10 @@ export function createLifecycleDocumentDatabaseBridge(
       return { receipt: toReceipt(result), usesStagedObject: result.uses_staged_object };
     },
     async canDiscard(staged) {
+      if (!authorizedInput) return false;
       const { data, error } = await supabase.rpc("can_discard_lifecycle_document_object", {
+        p_project_id: projectId,
+        p_request_key: authorizedInput.requestKey,
         p_storage_bucket: staged.bucket,
         p_storage_path: staged.path,
       });
