@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { renderLifecycleDocument } from "@/lib/lifecycle-document-renderer";
 
 const uuid = z.string().uuid();
 const departmentType = z.enum(["hardware", "firmware", "mechanical", "qa", "procurement", "production", "executive"]);
@@ -33,6 +34,9 @@ const documentDraftSchema = z.object({
   targetFolderId: uuid,
   requestKey: uuid,
   sourceFingerprint: z.string().trim().min(1).max(4000),
+  templateContent: z.string().trim().min(1).max(100_000),
+  templateKey: z.string().trim().min(1).max(120),
+  fields: z.record(z.string(), z.string().nullable()),
 });
 
 function lifecycleError(error: { message?: string } | null, fallback: string): never {
@@ -161,6 +165,14 @@ export const generateLifecycleDocumentDraft = createServerFn({ method: "POST" })
       throw new Error("An active template with the pinned project department version is required.");
     }
     await requireLifecycleManager(context, project.department_id);
+    // Render before crossing the mutation gate so missing mapped fields fail
+    // without any persistence attempt; orchestration remains disabled below.
+    const rendered = renderLifecycleDocument({
+      templateKey: data.templateKey,
+      version: data.templateVersion,
+      title: data.templateKey,
+      content: data.templateContent,
+    }, data.fields);
     await lifecycleMutationGate();
-    return { result: null, actorId: context.userId };
+    return { result: rendered, actorId: context.userId };
   });
