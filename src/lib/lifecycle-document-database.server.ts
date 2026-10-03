@@ -25,6 +25,21 @@ function toReceipt(result: DocumentDraftRpcResult): DocumentDraftReceipt {
   };
 }
 
+function readReceipt(data: unknown): DocumentDraftRpcResult | null {
+  if (data == null) return null;
+  if (Array.isArray(data)) {
+    if (!data.length) return null;
+    if (data.length !== 1) throw new Error("Ambiguous document draft receipt response.");
+    data = data[0];
+  }
+  if (!data || typeof data !== "object") throw new Error("Invalid document draft receipt response.");
+  const result = data as Record<string, unknown>;
+  for (const key of ["request_key", "node_id", "revision_id", "register_id", "audit_event_id", "source_fingerprint"]) {
+    if (typeof result[key] !== "string" || !(result[key] as string).trim()) throw new Error("Incomplete document draft receipt response.");
+  }
+  return result as DocumentDraftRpcResult;
+}
+
 function throwRpcError(error: { message?: string } | null, fallback: string): never {
   throw new Error(error?.message ?? fallback);
 }
@@ -58,8 +73,10 @@ export function createLifecycleDocumentDatabaseBridge(
         p_request_key: requestKey,
       });
       if (error) throwRpcError(error, "Document draft receipt lookup failed.");
-      if (!data) return null;
-      return toReceipt(data as DocumentDraftRpcResult);
+      const result = readReceipt(data);
+      if (!result) return null;
+      if (result.request_key !== requestKey) throw new Error("Document receipt request key mismatch.");
+      return toReceipt(result);
     },
     async commit(input: CommitInput, staged: StagedDocument) {
       const { data, error } = await supabase.rpc("commit_lifecycle_document_draft", {
@@ -77,8 +94,10 @@ export function createLifecycleDocumentDatabaseBridge(
         p_size_bytes: staged.sizeBytes,
       });
       if (error || !data) throwRpcError(error, "Document draft transaction failed.");
-      const result = data as DocumentDraftRpcResult;
-      return { receipt: toReceipt(result), usesStagedObject: result.uses_staged_object !== false };
+      const result = readReceipt(data);
+      if (!result || typeof result.uses_staged_object !== "boolean") throw new Error("Definitive document commit outcome is required.");
+      if (result.request_key !== input.requestKey || result.source_fingerprint !== input.sourceFingerprint) throw new Error("Document commit receipt conflicts with the requested source.");
+      return { receipt: toReceipt(result), usesStagedObject: result.uses_staged_object };
     },
     async canDiscard(staged) {
       const { data, error } = await supabase.rpc("can_discard_lifecycle_document_object", {
