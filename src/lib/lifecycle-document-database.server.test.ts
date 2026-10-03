@@ -43,6 +43,22 @@ describe("lifecycle document database bridge", () => {
     }));
   });
 
+  it("binds receipt lookup and storage-attempt registration to project, target, template revision, and request", async () => {
+    const f = fixture({
+      find_lifecycle_document_draft_receipt: { data: [receipt], error: null },
+      register_lifecycle_document_storage_attempt: { data: null, error: null },
+    });
+    await expect(f.bridge.findReceipt(input)).resolves.toEqual({ requestKey: input.requestKey, nodeId: "node", revisionId: "revision", registerId: "register", auditEventId: "audit", sourceFingerprint: "fingerprint" });
+    await f.bridge.registerAttempt(input, staged);
+    expect(f.rpc).toHaveBeenCalledWith("find_lifecycle_document_draft_receipt", expect.objectContaining({
+      p_project_id: "project", p_target_folder_id: "target-folder", p_template_key: "OEM", p_template_version: 1,
+      p_template_document_revision_id: "template-revision", p_request_key: input.requestKey,
+    }));
+    expect(f.rpc).toHaveBeenCalledWith("register_lifecycle_document_storage_attempt", expect.objectContaining({
+      p_project_id: "project", p_template_document_revision_id: "template-revision", p_storage_path: staged.path,
+    }));
+  });
+
   it("refuses cleanup when the database cannot prove an attempt is unreferenced", async () => {
     const f = fixture({ can_discard_lifecycle_document_object: { data: false, error: null } });
     await expect(f.bridge.canDiscard(staged)).resolves.toBe(false);
