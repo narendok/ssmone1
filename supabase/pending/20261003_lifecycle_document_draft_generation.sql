@@ -266,6 +266,7 @@ DECLARE
   v_node_id uuid; v_revision_id uuid; v_register_id uuid; v_audit_id uuid; v_document_number text;
   v_rendered_content text; v_rendered_sha256 text; v_expected_name text; v_payload_hash text; v_source_fingerprint text;
   v_ancestry_ids uuid[]; v_ancestry_count integer; v_root_found boolean; v_token text; v_result jsonb;
+  v_match text[]; v_remaining text; v_replacement text;
   v_attempt public.lifecycle_document_storage_attempts%ROWTYPE; v_receipt_id uuid;
 BEGIN
   IF p_request_key IS NULL OR p_template_document_revision_id IS NULL
@@ -341,14 +342,22 @@ BEGIN
   FOR v_token IN SELECT (regexp_matches(v_template_revision.content, '\{\{\s*([A-Z0-9_]+)\s*\}\}', 'g'))[1] LOOP
     IF v_token NOT IN ('PROJECT_CODE','PROJECT_NAME','PROJECT_REVISION','DEPARTMENT') THEN RAISE EXCEPTION 'Unsupported immutable template token %', v_token; END IF;
   END LOOP;
-  v_rendered_content := regexp_replace(
-    v_template_revision.content,
-    '\{\{\s*([A-Z0-9_]+)\s*\}\}',
-    CASE
-      WHEN substring(regexp_replace(v_template_revision.content, '^.*?\{\{\s*([A-Z0-9_]+)\s*\}\}.*$', '\1') FROM '.*') = 'PROJECT_CODE' THEN v_project.code
-      ELSE ''
-    END
-  );
+  v_rendered_content := '';
+  v_remaining := v_template_revision.content;
+  LOOP
+    v_match := regexp_match(v_remaining, '^(.*?)\{\{\s*([A-Z0-9_]+)\s*\}\}', 's');
+    EXIT WHEN v_match IS NULL;
+    v_token := v_match[2];
+    v_replacement := CASE v_token
+      WHEN 'PROJECT_CODE' THEN v_project.code
+      WHEN 'PROJECT_NAME' THEN v_project.name
+      WHEN 'PROJECT_REVISION' THEN v_project.revision
+      WHEN 'DEPARTMENT' THEN (SELECT name FROM public.departments WHERE id = v_project.department_id)
+    END;
+    v_rendered_content := v_rendered_content || v_match[1] || v_replacement;
+    v_remaining := substr(v_remaining, char_length(v_match[1]) + char_length(v_match[2]) + 5);
+  END LOOP;
+  v_rendered_content := v_rendered_content || v_remaining;
   v_rendered_sha256 := encode(digest(convert_to(v_rendered_content, 'UTF8'), 'sha256'), 'hex');
   v_source_fingerprint := encode(digest(convert_to(concat_ws('|', v_project.id, v_target.id, v_template.id, v_template.version, v_template_revision.id, v_rendered_sha256), 'UTF8'), 'sha256'), 'hex');
   v_expected_name := regexp_replace(v_project.code || '-' || v_template.template_key || '-v' || v_template.version::text, '[^A-Za-z0-9._-]+', '_', 'g') || '.txt';
