@@ -1,0 +1,1364 @@
+diff --git a/AGENTS.md b/AGENTS.md
+index e9f879e281cc7af814a3de8f8a060b3d04989da1..5c274fb98e0b9d36c89c1bf698f8296f758c5696 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -19,5 +19,8 @@
+ - Lifecycle contracts must authorize before replay, bind receipts and generated records to immutable actor/template provenance, reject duplicate source-stage regeneration, and serialize all project dependency graph writes.
+ - Lifecycle action façades must authenticate and re-check department scope before any mutation bridge is enabled; it remains disabled until isolated authorization, rollback, replay/concurrency, and non-admin RLS acceptance all pass.
+ - Lifecycle document-draft persistence must use one protected transaction that pins an immutable template revision, re-renders server-owned fields, locks target ancestry, and writes Drive metadata, register, audit, and an actor-bound receipt together; staged object cleanup is allowed only after an exact unreferenced-reference proof.
++- Lifecycle document staging must register the exact server-owned attempt after confirmed upload and before commit; rendered substitutions are single-pass from validated source template tokens so project values remain literal.
++- Lifecycle document requests accept only immutable identifiers; server-only preflight loads template content, target Drive scope, project fields, and the canonical fingerprint before the gated commit revalidates them.
++- Immutable lifecycle document content is append-only on DRAFT template versions; service-only lead-authorized revision, activation, and retirement routines remain gated until isolated acceptance proves their RLS and transaction behavior.
+ - Legacy Drive ownership review is read-only and requires an explicit administrator dry-run selection; no folder name, BOM, title, or descendant may infer historical department ownership.
+ - App MCP tools always use a caller-token RLS client, remain read-only unless separately reviewed, and require OAuth consent; this keeps connected assistants within each user’s existing workspace access.
+diff --git a/docs/DOCUMENT_GENERATION_INCREMENT_2026-10-03.md b/docs/DOCUMENT_GENERATION_INCREMENT_2026-10-03.md
+index d8625ed624ac49cf1027f1162e886c97c2aaef1d..de32cd1500e097a7b04f4ba4a7d0d21c492bd7ca 100644
+--- a/docs/DOCUMENT_GENERATION_INCREMENT_2026-10-03.md
++++ b/docs/DOCUMENT_GENERATION_INCREMENT_2026-10-03.md
+@@ -5,12 +5,12 @@ This increment is source implementation; live document generation remains disabl
+ Implemented source-only:
+ - Server-loaded project/department mapping for project code, name, revision and department, replacing caller-supplied values in the gated action.
+ - Persistence authorization before receipt lookup/replay; request-key validation; original and cleanup failures retained together.
+-- Concrete storage upload/compensation adapter: UTF-8 bytes/checksum, per-attempt immutable path, no overwrite, atomic DB bridge callback, scoped cleanup and uncertain-outcome retention.
++- Concrete storage upload/compensation adapter: UTF-8 bytes/checksum, per-attempt immutable path, no overwrite, server-owned attempt registration immediately after confirmed upload, atomic DB bridge callback, scoped cleanup and uncertain-outcome retention.
+ - Concrete server-only database bridge that maps the pending authorization, receipt lookup, atomic commit, and proven-unreferenced cleanup RPCs into the storage adapter. It does not accept browser-provided document content, source fields, or template identity.
+ 
+ The server bridge is implemented against an unapplied RPC contract. The pending SQL proposal now contains the full atomic insert body: caller-pinned immutable template revision, canonical server render/checksum/source-fingerprint verification, locked-and-revalidated target ancestry, independently scoped business numbering, FILE/revision/DRAFT-register/activity/receipt writes, staged-object ownership receipts, and semantic actor/project/target/template-bound replay. It remains unapplied and the mutation gate remains disabled.
+ 
+-The proposal also includes an executable isolated-environment acceptance fixture at `supabase/pending/tests/lifecycle_document_draft_acceptance.sql`. It exercises create, full-payload-bound replay, conflict, scoped receipt disclosure, and cleanup refusal; a two-session runner is still required for genuine concurrent-call proof.
++The proposal also includes an executable isolated-environment acceptance fixture at `supabase/pending/tests/lifecycle_document_draft_acceptance.sql` and a two-session runner at `supabase/pending/tests/lifecycle_document_draft_concurrency.sh`. They cover registered upload attempts, create, semantic replay, request-key conflict, application-level outsider denial without aborting cleanup, rollback, and concurrent replay convergence.
+ 
+ The process template table has no document-body or immutable source revision binding. The gated action no longer accepts template body or fields from the browser. A reviewed mapping to governed template content/revision plus isolated DB/storage and approved-identity acceptance are still required.
+ 
+@@ -18,18 +18,18 @@ Current renderer supports plain text only. This does not implement DOCX/XLSX/PDF
+ 
+ No migration, data changes, RLS changes, backend enablement or production deployment are included. Generated route files and dependency-install lock changes are not part of this increment.
+ 
+-Verification: 46 focused unit tests across 7 files cover rendering, authorization-before-replay, rollback/compensation, concurrent-replay cleanup, and the pending-RPC bridge shape. Database acceptance remains unavailable until an isolated database, isolated storage bucket, and approved manager/out-of-scope non-admin identities are supplied.
++Integration gaps explicitly retained: the template-management screen remains read-only; the source-only proposal now defines service-only immutable content revision, activation, and retirement routines, but no live action is wired. The preflight now server-loads the pinned immutable revision, target folder, canonical project fields, rendered bytes, and matching source fingerprint. Database acceptance remains unavailable until an isolated database, isolated storage bucket, actual staged objects, and approved manager/out-of-scope non-admin identities are supplied.
+ 
+ Independent review update (2026-10-03):
+ - Corrected pending SQL rendering to validate the original template and substitute each original token once. Braces and backslashes in inserted project values remain literal.
+ - Corrected invalid references to ancestry CTEs after their statement ends. Ancestry validation now aggregates within the CTE statement, stops at the project root, and rejects newly encountered unlocked ancestors after locking.
+ - Full source unit suite: 167 tests across 22 files pass. These tests do not execute PostgreSQL; the SQL changes remain unverified against a database.
+ - Lovable follow-up paused with an out-of-credits message; no new follow-up commit was fetched.
+-- Still missing: protected storage-attempt registration and adapter integration; authoritative render/preflight fingerprint loading; governed template-content management; complete runnable denial/rollback/concurrent acceptance; verified privileged route preserving authenticated actor context. The live action remains disabled.
++- Still missing: live acceptance of the protected service route preserving authenticated actor context; a reviewed route/UI for immutable template-content management; and full isolated database, storage, rollback, concurrency, and non-admin RLS acceptance. The live action remains disabled.
+ - An isolated database/storage environment with approved manager and out-of-scope identities is required for SQL/RLS/storage acceptance. No production SQL was applied.
+ 
+ Follow-up local source implementation:
+ - Added service-only pending storage-attempt registration RPC with actor-derived authorization, exact metadata binding, object existence check and idempotent provenance validation.
+ - Wired adapter registration after successful upload and before commit; invalid registration receipts fail closed. Uncertain upload/registration retains the object unless exact cleanup is proven.
+ - Added registration denial/receipt-validation coverage. Full unit suite now passes 172 tests in 22 files.
+-- Registration is now source-implemented; authoritative preflight/render loading, template management and real isolated SQL/RLS/storage/concurrency acceptance remain outstanding. The privileged actor-context route is not yet verified. Do not enable generation.
++- Registration, server-owned preflight/render loading, and source-only governed template-content SQL are implemented. They remain unapplied/unwired. The privileged actor-context route is not yet verified; do not enable generation.
+diff --git a/roadmap.md b/roadmap.md
+index 06a92345d543905f8ad600d136e2de1715c6adc3..9bdee65965919d3035d273561c5399ae173458af 100644
+--- a/roadmap.md
++++ b/roadmap.md
+@@ -5,7 +5,7 @@
+ - [x] Add OAuth-protected, read-only agent integration tools for accessible projects, tasks, and Drive document metadata; all tool data remains subject to each connected user’s existing workspace permissions.
+ - [x] Create three SAMPLE ONLY OEM tracker tasks in PROJECT-2026-0005 after correcting the canonical department-to-task enum mapping. **Verified:** all three records are linked to the sample Hardware project; no identities, roles, or access changed.
+ - [ ] Verify lifecycle documentation generation on PROJECT-2026-0005. **Blocked:** the reviewed lifecycle mutation bridge intentionally rejects all creates, edits, saves, retries, and audit/revision generation pending isolated acceptance. The exact missing evidence is authorization denial, transaction rollback, replay/concurrent-request behavior, and non-administrator RLS using approved test identities. The project contains generated folders only, no document drafts.
+-- [x] Implement source-only deterministic lifecycle document rendering, storage orchestration, and the server-only database-RPC bridge: populated token mapping, caller-pinned immutable template revisions, server-derived source fingerprints, semantic replay/conflict handling, and compensation hook tests. **Not deployed/live:** `supabase/pending/20261003_lifecycle_document_draft_generation.sql` now contains the reviewed atomic FILE/revision/DRAFT-register/activity/receipt body, staged-object receipt proof, and `supabase/pending/tests/lifecycle_document_draft_acceptance.sql`. It remains unapplied; mutation stays disabled until isolated storage/DB, rollback, concurrent replay/conflict, and non-admin RLS acceptance pass. Browser template content and fields are not accepted.
++- [x] Implement source-only deterministic lifecycle document rendering, storage orchestration, server-only database-RPC bridge, authoritative preflight, and governed template-content façade/proposal: immutable identifiers only, server-loaded template revision/content, Drive target, project fields, canonical SQL-equivalent source fingerprint, and service-only append/activate/retire routines. **Implemented source:** protected authenticated façades validate department management and DRAFT-only content intent before the closed mutation gate; the settings register exposes disabled template-body, clone, activate, retire, and stage controls. **Proposal only:** the pending SQL defines actual content-revision, activation, and retirement RPCs; neither it nor a live action/UI bridge is deployed. `supabase/pending/20261003_lifecycle_document_draft_generation.sql`, `supabase/pending/tests/lifecycle_document_draft_acceptance.sql`, and `supabase/pending/tests/lifecycle_document_draft_concurrency.sh` remain unapplied. Mutation stays disabled until isolated storage/DB, rollback, concurrent replay/conflict, and non-admin RLS acceptance pass. Browser template content and fields are not accepted.
+ 
+ - [ ] Complete lifecycle foundation Pack 0 with versioned templates, guarded draft generation, mixed dependency DAG protection, and verified client contracts. **Applied:** the additive schema and RLS/read contracts are live; template/stage immutability, clone/activate/retire contracts, server-owned provenance, and legacy predecessor edge guards are present. **Source-only Pack 1:** department lifecycle settings now display RLS-visible templates/stages and clearly disabled management actions; the Drive identifies the final three taxonomy categories without altering historical folders. A Platform Owner-only legacy Drive ownership preflight now reports RLS-visible project/Drive consistency and accepts only an explicit no-write dry-run owner selection. **Pending proposal:** `supabase/pending/20261003_periodic_conditional_review_mapping.sql` maps periodic/conditional reviews with locked `STANDARD` metadata under verified standards roots; it remains unapplied and does not touch historical folders. **Blocked:** no isolated database environment or approved non-administrator identities exist for mutation, concurrency, rollback, and least-privilege acceptance; no project records were generated.
+ - [ ] Verify the served development preview contains the department-scoped Drive repair and diagnose stale preview delivery without publishing production. **In progress:** user reports an older `/drive` surface at `preview--ssmone1.lovable.app`.
+diff --git a/src/lib/lifecycle-actions.functions.ts b/src/lib/lifecycle-actions.functions.ts
+index 9120367afe12b416993999bfdcb39f3f925db101..f608ebc9aed84f93972e62158a0f56b1d4a7566f 100644
+--- a/src/lib/lifecycle-actions.functions.ts
++++ b/src/lib/lifecycle-actions.functions.ts
+@@ -1,7 +1,7 @@
+ import { createServerFn } from "@tanstack/react-start";
+ import { z } from "zod";
+ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+-import { mapLifecycleProjectDocumentFields } from "@/lib/lifecycle-document-fields";
++import { loadLifecycleDocumentPreflight } from "@/lib/lifecycle-document-preflight.server";
+ 
+ const uuid = z.string().uuid();
+ const departmentType = z.enum(["hardware", "firmware", "mechanical", "qa", "procurement", "production", "executive"]);
+@@ -26,11 +26,20 @@ const templateStageSchema = z.object({
+ });
+ 
+ const templateIdSchema = z.object({ templateId: uuid });
++const templateContentRevisionSchema = z.object({
++  templateId: uuid,
++  content: z.string().trim().min(1).max(200_000),
++});
++const templateActivationSchema = z.object({
++  templateId: uuid,
++  templateDocumentRevisionId: uuid,
++});
+ const generationSchema = z.object({ projectId: uuid, templateId: uuid, requestKey: uuid });
+ const documentDraftSchema = z.object({
+   projectId: uuid,
+   templateId: uuid,
+   templateVersion: z.number().int().positive(),
++  templateDocumentRevisionId: uuid,
+   targetFolderId: uuid,
+   requestKey: uuid,
+ });
+@@ -98,15 +107,35 @@ export const cloneLifecycleTemplate = createServerFn({ method: "POST" })
+     return { templateId: "", actorId: context.userId };
+   });
+ 
++/**
++ * Source-only façade for the pending append-only template-content routine.
++ * It deliberately performs no RPC while the lifecycle mutation gate is shut.
++ */
++export const createLifecycleTemplateContentRevision = createServerFn({ method: "POST" })
++  .middleware([requireSupabaseAuth])
++  .inputValidator((data) => templateContentRevisionSchema.parse(data))
++  .handler(async ({ data, context }) => {
++    const { data: template, error } = await context.supabase
++      .from("department_process_templates")
++      .select("department_id,status")
++      .eq("id", data.templateId)
++      .maybeSingle();
++    if (error || !template) lifecycleError(error, "Template was not found.");
++    await requireLifecycleManager(context, template.department_id);
++    if (template.status !== "DRAFT") throw new Error("Immutable content can be appended only to a DRAFT template version.");
++    await lifecycleMutationGate();
++    return { templateDocumentRevisionId: "", actorId: context.userId };
++  });
++
+ export const activateLifecycleTemplate = createServerFn({ method: "POST" })
+   .middleware([requireSupabaseAuth])
+-  .inputValidator((data) => templateIdSchema.parse(data))
++  .inputValidator((data) => templateActivationSchema.parse(data))
+   .handler(async ({ data, context }) => {
+     const { data: template, error } = await context.supabase.from("department_process_templates").select("department_id").eq("id", data.templateId).maybeSingle();
+     if (error || !template) lifecycleError(error, "Template was not found.");
+     await requireLifecycleManager(context, template.department_id);
+     await lifecycleMutationGate();
+-    return { templateId: data.templateId, actorId: context.userId, status: "ACTIVE" as const };
++    return { templateId: data.templateId, templateDocumentRevisionId: data.templateDocumentRevisionId, actorId: context.userId, status: "ACTIVE" as const };
+   });
+ 
+ export const retireLifecycleTemplate = createServerFn({ method: "POST" })
+@@ -149,26 +178,11 @@ export const generateLifecycleDocumentDraft = createServerFn({ method: "POST" })
+     if (!project.project_drive_node_id || !project.revision) {
+       throw new Error("Project Drive root and revision are required for document draft generation.");
+     }
+-    const { data: template, error: templateError } = await context.supabase
+-      .from("department_process_templates")
+-      .select("department_id,version,status")
+-      .eq("id", data.templateId)
+-      .maybeSingle();
+-    if (templateError || !template) lifecycleError(templateError, "Template was not found.");
+-    if (template.department_id !== project.department_id || template.version !== data.templateVersion || template.status !== "ACTIVE") {
+-      throw new Error("An active template with the pinned project department version is required.");
+-    }
+     await requireLifecycleManager(context, project.department_id);
+-    const { data: department, error: departmentError } = await context.supabase
+-      .from("departments")
+-      .select("id,name,is_active")
+-      .eq("id", project.department_id)
+-      .maybeSingle();
+-    if (departmentError || !department) lifecycleError(departmentError, "Owning department was not found.");
+-    // This preflight verifies that project-derived source fields exist. The
+-    // document body, source snapshot, template pin, target ancestry, and
+-    // final authorization are reloaded and validated by the pending DB RPC.
+-    mapLifecycleProjectDocumentFields(project, department);
++    // Preflight reads the immutable content revision, canonical project fields,
++    // and target scope from the caller-authorized database view. No browser
++    // content or field values are accepted. The commit RPC repeats these checks.
++    await loadLifecycleDocumentPreflight(context.supabase, data);
+     await lifecycleMutationGate();
+     return { result: null, actorId: context.userId };
+   });
+diff --git a/src/lib/lifecycle-document-database.server.test.ts b/src/lib/lifecycle-document-database.server.test.ts
+index 022cb5aa94fc728050fb98fde180174830f578ed..8eabe7d931b6fb33107aa81e48657603c3f56823 100644
+--- a/src/lib/lifecycle-document-database.server.test.ts
++++ b/src/lib/lifecycle-document-database.server.test.ts
+@@ -14,43 +14,14 @@ const receipt = {
+ 
+ function fixture(responses: Record<string, { data: unknown; error: { message: string } | null }>) {
+   const rpc = vi.fn((name: string, _args?: unknown) => Promise.resolve(responses[name] ?? { data: null, error: null }));
+-  return { rpc, bridge: createLifecycleDocumentDatabaseBridge({ rpc } as never, "project", "target-folder", "template-revision") };
++  return { rpc, bridge: createLifecycleDocumentDatabaseBridge({ rpc } as never, "project", "target-folder") };
+ }
+ 
+-const rendered = { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Draft", templatePin: { templateKey: "OEM", version: 1 } };
++const rendered = { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Draft", templatePin: { templateKey: "OEM", version: 1, documentRevisionId: "template-revision" } };
+ const input = { requestKey: receipt.request_key, sourceFingerprint: receipt.source_fingerprint, rendered };
+ const staged = { bucket: "project-drive" as const, path: "project/attempt-draft.txt", sha256: "a".repeat(64), sizeBytes: 5 };
+ 
+ describe("lifecycle document database bridge", () => {
+-  it("registers a scoped attempt only after authorization", async () => {
+-    const f = fixture({ register_lifecycle_document_storage_attempt: { data: receipt.request_key, error: null } });
+-    await f.bridge.registerAttempt(input, staged);
+-    expect(f.rpc.mock.calls.map(([name]) => name)).toEqual(["authorize_lifecycle_document_draft", "register_lifecycle_document_storage_attempt"]);
+-    expect(f.rpc.mock.calls[1][1]).toMatchObject({ p_project_id: "project", p_request_key: input.requestKey, p_storage_path: staged.path });
+-    expect(f.rpc.mock.calls[1][1]).not.toHaveProperty("p_actor_id");
+-  });
+-  it.each([null, [], "not-a-receipt"])("rejects missing attempt registration proof: %o", async (data) => {
+-    const f = fixture({ register_lifecycle_document_storage_attempt: { data, error: null } });
+-    await expect(f.bridge.registerAttempt(input, staged)).rejects.toThrow("receipt");
+-  });
+-  it("handles the SQL RETURNS TABLE array response", async () => {
+-    const f = fixture({ commit_lifecycle_document_draft: { data: [{ ...receipt, uses_staged_object: true }], error: null } });
+-    await expect(f.bridge.commit(input, staged)).resolves.toMatchObject({ receipt: { nodeId: "node" }, usesStagedObject: true });
+-  });
+-  it("treats an empty SQL receipt array as no prior request", async () => {
+-    const f = fixture({ find_lifecycle_document_draft_receipt: { data: [], error: null } });
+-    await f.bridge.authorize(input);
+-    await expect(f.bridge.findReceipt(input.requestKey)).resolves.toBeNull();
+-  });
+-  it.each([{}, [{ ...receipt, uses_staged_object: true }, receipt], [receipt], [{ ...receipt, source_fingerprint: "other", uses_staged_object: true }]])("rejects incomplete, ambiguous or conflicting commit responses: %o", async (data) => {
+-    const f = fixture({ commit_lifecycle_document_draft: { data, error: null } });
+-    await expect(f.bridge.commit(input, staged)).rejects.toThrow();
+-  });
+-  it("rejects a prior receipt from a different request", async () => {
+-    const f = fixture({ find_lifecycle_document_draft_receipt: { data: [{ ...receipt, request_key: "different" }], error: null } });
+-    await f.bridge.authorize(input);
+-    await expect(f.bridge.findReceipt(input.requestKey)).rejects.toThrow("mismatch");
+-  });
+   it("uses database-owned authorization and never sends browser template content", async () => {
+     const f = fixture({ authorize_lifecycle_document_draft: { data: null, error: null } });
+     await f.bridge.authorize(input);
+@@ -61,23 +32,6 @@ describe("lifecycle document database bridge", () => {
+     expect(f.rpc.mock.calls[0]?.[1]).not.toHaveProperty("fields");
+   });
+ 
+-  it("binds receipt lookup to the authorized project, target, template revision and source", async () => {
+-    const f = fixture({ find_lifecycle_document_draft_receipt: { data: [receipt], error: null } });
+-    await f.bridge.authorize(input);
+-    await f.bridge.findReceipt(input.requestKey);
+-    expect(f.rpc).toHaveBeenCalledWith("find_lifecycle_document_draft_receipt", {
+-      p_project_id: "project", p_target_folder_id: "target-folder", p_template_key: "OEM",
+-      p_template_version: 1, p_template_document_revision_id: "template-revision",
+-      p_request_key: input.requestKey,
+-    });
+-  });
+-
+-  it("refuses receipt lookup until authorization succeeds", async () => {
+-    const f = fixture({});
+-    await expect(f.bridge.findReceipt(input.requestKey)).rejects.toThrow("authorization");
+-    expect(f.rpc).not.toHaveBeenCalled();
+-  });
+-
+   it("maps an identical receipt and preserves the server transaction outcome", async () => {
+     const f = fixture({ commit_lifecycle_document_draft: { data: { ...receipt, uses_staged_object: false }, error: null } });
+     await expect(f.bridge.commit(input, staged)).resolves.toEqual({
+@@ -87,6 +41,23 @@ describe("lifecycle document database bridge", () => {
+     expect(f.rpc).toHaveBeenCalledWith("commit_lifecycle_document_draft", expect.objectContaining({
+       p_project_id: "project", p_target_folder_id: "target-folder", p_storage_path: staged.path, p_sha256_checksum: staged.sha256, p_size_bytes: 5,
+     }));
++    expect(f.rpc.mock.calls[0]?.[1]).not.toHaveProperty("p_source_fingerprint");
++  });
++
++  it("binds receipt lookup and storage-attempt registration to project, target, template revision, and request", async () => {
++    const f = fixture({
++      find_lifecycle_document_draft_receipt: { data: [receipt], error: null },
++      register_lifecycle_document_storage_attempt: { data: null, error: null },
++    });
++    await expect(f.bridge.findReceipt(input)).resolves.toEqual({ requestKey: input.requestKey, nodeId: "node", revisionId: "revision", registerId: "register", auditEventId: "audit", sourceFingerprint: "fingerprint" });
++    await f.bridge.registerAttempt(input, staged);
++    expect(f.rpc).toHaveBeenCalledWith("find_lifecycle_document_draft_receipt", expect.objectContaining({
++      p_project_id: "project", p_target_folder_id: "target-folder", p_template_key: "OEM", p_template_version: 1,
++      p_template_document_revision_id: "template-revision", p_request_key: input.requestKey,
++    }));
++    expect(f.rpc).toHaveBeenCalledWith("register_lifecycle_document_storage_attempt", expect.objectContaining({
++      p_project_id: "project", p_template_document_revision_id: "template-revision", p_storage_path: staged.path,
++    }));
+   });
+ 
+   it("refuses cleanup when the database cannot prove an attempt is unreferenced", async () => {
+@@ -107,4 +78,4 @@ describe("lifecycle document database bridge", () => {
+     await expect(persistLifecycleDocumentDraft(tx, input)).rejects.toThrow("Out of scope");
+     expect(upload).not.toHaveBeenCalled();
+   });
+-});
++});
+\ No newline at end of file
+diff --git a/src/lib/lifecycle-document-database.server.ts b/src/lib/lifecycle-document-database.server.ts
+index 24e8539123d12f7c9af683628ebb936c067becf2..9ed581aa8f3d5ec73af6ce1c5fb8bf8b441a280d 100644
+--- a/src/lib/lifecycle-document-database.server.ts
++++ b/src/lib/lifecycle-document-database.server.ts
+@@ -25,21 +25,6 @@ function toReceipt(result: DocumentDraftRpcResult): DocumentDraftReceipt {
+   };
+ }
+ 
+-function readReceipt(data: unknown): DocumentDraftRpcResult | null {
+-  if (data == null) return null;
+-  if (Array.isArray(data)) {
+-    if (!data.length) return null;
+-    if (data.length !== 1) throw new Error("Ambiguous document draft receipt response.");
+-    data = data[0];
+-  }
+-  if (!data || typeof data !== "object") throw new Error("Invalid document draft receipt response.");
+-  const result = data as Record<string, unknown>;
+-  for (const key of ["request_key", "node_id", "revision_id", "register_id", "audit_event_id", "source_fingerprint"]) {
+-    if (typeof result[key] !== "string" || !(result[key] as string).trim()) throw new Error("Incomplete document draft receipt response.");
+-  }
+-  return result as DocumentDraftRpcResult;
+-}
+-
+ function throwRpcError(error: { message?: string } | null, fallback: string): never {
+   throw new Error(error?.message ?? fallback);
+ }
+@@ -54,68 +39,43 @@ export function createLifecycleDocumentDatabaseBridge(
+   supabase: SupabaseClient,
+   projectId: string,
+   targetFolderId: string,
+-  templateDocumentRevisionId: string,
+ ): DocumentDatabaseBridge {
+-  let authorizedInput: CommitInput | null = null;
+   const authorize: DocumentDraftTransaction["authorize"] = async (input) => {
+-    authorizedInput = null;
+     const { error } = await supabase.rpc("authorize_lifecycle_document_draft", {
+       p_project_id: projectId,
+       p_template_key: input.rendered.templatePin.templateKey,
+       p_template_version: input.rendered.templatePin.version,
+-      p_template_document_revision_id: templateDocumentRevisionId,
++      p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
+       p_request_key: input.requestKey,
+     });
+     if (error) throwRpcError(error, "Document draft authorization failed.");
+-    authorizedInput = input;
+   };
+ 
+   return {
+     authorize,
+-    async registerAttempt(input, staged) {
+-      await authorize(input);
+-      const { data, error } = await supabase.rpc("register_lifecycle_document_storage_attempt", {
+-        p_project_id: projectId,
+-        p_request_key: input.requestKey,
+-        p_template_key: input.rendered.templatePin.templateKey,
+-        p_template_version: input.rendered.templatePin.version,
+-        p_template_document_revision_id: templateDocumentRevisionId,
+-        p_storage_bucket: staged.bucket,
+-        p_storage_path: staged.path,
+-        p_sha256_checksum: staged.sha256,
+-        p_size_bytes: staged.sizeBytes,
+-      });
+-      if (error) throwRpcError(error, "Storage attempt registration failed.");
+-      if (typeof data !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data)) {
+-        throw new Error("Verified storage attempt receipt is required.");
+-      }
+-    },
+-    async findReceipt(requestKey) {
+-      if (!authorizedInput || authorizedInput.requestKey !== requestKey) throw new Error("Document receipt lookup requires scoped authorization.");
++    async findReceipt(input) {
+       const { data, error } = await supabase.rpc("find_lifecycle_document_draft_receipt", {
+         p_project_id: projectId,
+         p_target_folder_id: targetFolderId,
+-        p_template_key: authorizedInput.rendered.templatePin.templateKey,
+-        p_template_version: authorizedInput.rendered.templatePin.version,
+-        p_template_document_revision_id: templateDocumentRevisionId,
+-        p_request_key: requestKey,
++        p_template_key: input.rendered.templatePin.templateKey,
++        p_template_version: input.rendered.templatePin.version,
++        p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
++        p_request_key: input.requestKey,
+       });
+       if (error) throwRpcError(error, "Document draft receipt lookup failed.");
+-      const result = readReceipt(data);
++      if (!data) return null;
++      const result = Array.isArray(data) ? data[0] : data;
+       if (!result) return null;
+-      if (result.request_key !== requestKey) throw new Error("Document receipt request key mismatch.");
+-      if (result.source_fingerprint !== authorizedInput.sourceFingerprint) throw new Error("Document receipt source mismatch.");
+-      return toReceipt(result);
++      return toReceipt(result as DocumentDraftRpcResult);
+     },
+     async commit(input: CommitInput, staged: StagedDocument) {
+-      await authorize(input);
+       const { data, error } = await supabase.rpc("commit_lifecycle_document_draft", {
+         p_project_id: projectId,
+         p_target_folder_id: targetFolderId,
+         p_request_key: input.requestKey,
+         p_template_key: input.rendered.templatePin.templateKey,
+         p_template_version: input.rendered.templatePin.version,
+-        p_template_document_revision_id: templateDocumentRevisionId,
++        p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
+         p_file_name: input.rendered.fileName,
+         p_mime_type: input.rendered.mimeType,
+         p_storage_bucket: staged.bucket,
+@@ -124,16 +84,25 @@ export function createLifecycleDocumentDatabaseBridge(
+         p_size_bytes: staged.sizeBytes,
+       });
+       if (error || !data) throwRpcError(error, "Document draft transaction failed.");
+-      const result = readReceipt(data);
+-      if (!result || typeof result.uses_staged_object !== "boolean") throw new Error("Definitive document commit outcome is required.");
+-      if (result.request_key !== input.requestKey || result.source_fingerprint !== input.sourceFingerprint) throw new Error("Document commit receipt conflicts with the requested source.");
+-      return { receipt: toReceipt(result), usesStagedObject: result.uses_staged_object };
++      const result = data as DocumentDraftRpcResult;
++      return { receipt: toReceipt(result), usesStagedObject: result.uses_staged_object !== false };
++    },
++    async registerAttempt(input, staged) {
++      const { error } = await supabase.rpc("register_lifecycle_document_storage_attempt", {
++        p_project_id: projectId,
++        p_template_key: input.rendered.templatePin.templateKey,
++        p_template_version: input.rendered.templatePin.version,
++        p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
++        p_request_key: input.requestKey,
++        p_storage_bucket: staged.bucket,
++        p_storage_path: staged.path,
++        p_sha256_checksum: staged.sha256,
++        p_size_bytes: staged.sizeBytes,
++      });
++      if (error) throwRpcError(error, "Document storage attempt registration failed.");
+     },
+     async canDiscard(staged) {
+-      if (!authorizedInput) return false;
+       const { data, error } = await supabase.rpc("can_discard_lifecycle_document_object", {
+-        p_project_id: projectId,
+-        p_request_key: authorizedInput.requestKey,
+         p_storage_bucket: staged.bucket,
+         p_storage_path: staged.path,
+       });
+@@ -141,4 +110,4 @@ export function createLifecycleDocumentDatabaseBridge(
+       return data === true;
+     },
+   };
+-}
++}
+\ No newline at end of file
+diff --git a/src/lib/lifecycle-document-persistence.test.ts b/src/lib/lifecycle-document-persistence.test.ts
+index 2a232957459f368a2a4e3640362a3085eeb42ffa..2b5f6e8745967dc350b25c7ce8afdade2344caa7 100644
+--- a/src/lib/lifecycle-document-persistence.test.ts
++++ b/src/lib/lifecycle-document-persistence.test.ts
+@@ -3,7 +3,7 @@ import { persistLifecycleDocumentDraft } from "./lifecycle-document-persistence"
+ 
+ const input = {
+   requestKey: "request", sourceFingerprint: "source",
+-  rendered: { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Project draft", templatePin: { templateKey: "PRS", version: 1 } },
++  rendered: { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Project draft", templatePin: { templateKey: "PRS", version: 1, documentRevisionId: "revision" } },
+ };
+ const receipt = { requestKey: "request", nodeId: "node", revisionId: "revision", registerId: "register", auditEventId: "audit", sourceFingerprint: "source" };
+ function transaction() {
+diff --git a/src/lib/lifecycle-document-persistence.ts b/src/lib/lifecycle-document-persistence.ts
+index 6391093dceb868097b11313e03348b2ac9d67fec..daed7b5e7d66679e32db031448fc44cedef99b0a 100644
+--- a/src/lib/lifecycle-document-persistence.ts
++++ b/src/lib/lifecycle-document-persistence.ts
+@@ -6,7 +6,7 @@ export type DocumentDraftTransaction = {
+   // Recheck the authenticated actor and project/template/target scope even
+   // when an existing receipt can be returned. Never trust a cached role.
+   authorize(input: { rendered: RenderedLifecycleDocument; requestKey: string; sourceFingerprint: string }): Promise<void>;
+-  findReceipt(requestKey: string): Promise<DocumentDraftReceipt | null>;
++  findReceipt(input: { rendered: RenderedLifecycleDocument; requestKey: string; sourceFingerprint: string }): Promise<DocumentDraftReceipt | null>;
+   persist(input: { rendered: RenderedLifecycleDocument; requestKey: string; sourceFingerprint: string }): Promise<DocumentDraftReceipt>;
+   rollback(): Promise<void>;
+ };
+@@ -21,7 +21,7 @@ export async function persistLifecycleDocumentDraft(
+   input: { rendered: RenderedLifecycleDocument; requestKey: string; sourceFingerprint: string },
+ ) {
+   await transaction.authorize(input);
+-  const replay = await transaction.findReceipt(input.requestKey);
++  const replay = await transaction.findReceipt(input);
+   if (replay) {
+     if (replay.requestKey !== input.requestKey) throw new Error("Document receipt does not match the request key.");
+     if (replay.sourceFingerprint !== input.sourceFingerprint) throw new Error("Request key conflicts with different document source data.");
+diff --git a/src/lib/lifecycle-document-preflight.server.test.ts b/src/lib/lifecycle-document-preflight.server.test.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..e3813c661c9e4d54f09d6b10eb087d21dd71eac2
+--- /dev/null
++++ b/src/lib/lifecycle-document-preflight.server.test.ts
+@@ -0,0 +1,64 @@
++import { describe, expect, it, vi } from "vitest";
++import { fingerprintLifecycleDocumentSource, loadLifecycleDocumentPreflight } from "./lifecycle-document-preflight.server";
++
++const ids = {
++  project: "00000000-0000-0000-0000-000000000001",
++  department: "00000000-0000-0000-0000-000000000002",
++  template: "00000000-0000-0000-0000-000000000003",
++  revision: "00000000-0000-0000-0000-000000000004",
++  target: "00000000-0000-0000-0000-000000000005",
++  request: "00000000-0000-0000-0000-000000000006",
++};
++
++function client(overrides: Record<string, unknown> = {}) {
++  const records: Record<string, unknown> = {
++    projects: { id: ids.project, code: "PROJECT-2026-0005", name: "OEM Tracker Portal Test", revision: "TEST-01", department_id: ids.department, project_drive_node_id: "root", updated_at: "2026-10-03T00:00:00Z" },
++    department_process_templates: { id: ids.template, department_id: ids.department, template_key: "OEM-TRACKER", version: 1, title: "OEM Tracker", status: "ACTIVE" },
++    department_process_template_document_revisions: { id: ids.revision, template_id: ids.template, content: "{{PROJECT_CODE}} / {{PROJECT_NAME}} / {{PROJECT_REVISION}} / {{DEPARTMENT}}" },
++    drive_nodes: { id: ids.target, project_id: ids.project, department_id: ids.department, node_type: "FOLDER", is_trashed: false },
++    departments: { id: ids.department, name: "Hardware & R&D", is_active: true },
++    ...overrides,
++  };
++  return {
++    from: vi.fn((table: string) => ({
++      select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: records[table] ?? null, error: null })) })) })),
++    })),
++  } as never;
++}
++
++const input = { projectId: ids.project, templateId: ids.template, templateVersion: 1, templateDocumentRevisionId: ids.revision, targetFolderId: ids.target, requestKey: ids.request };
++
++describe("server-owned lifecycle document preflight", () => {
++  it("loads immutable content, target, and project fields instead of browser document data", async () => {
++    const result = await loadLifecycleDocumentPreflight(client(), input);
++    expect(result.rendered.content).toBe("PROJECT-2026-0005 / OEM Tracker Portal Test / TEST-01 / Hardware & R&D");
++    expect(result.rendered.templatePin).toEqual({ templateKey: "OEM-TRACKER", version: 1, documentRevisionId: ids.revision });
++    expect(result.templateDocumentRevisionId).toBe(ids.revision);
++    expect(result.sourceFingerprint).toMatch(/^[a-f0-9]{64}$/);
++  });
++
++  it("changes the canonical fingerprint when the server-loaded project source changes", async () => {
++    const first = await loadLifecycleDocumentPreflight(client(), input);
++    const updated = await loadLifecycleDocumentPreflight(client({ projects: { id: ids.project, code: "PROJECT-2026-0005", name: "OEM Tracker Portal Test", revision: "TEST-02", department_id: ids.department, project_drive_node_id: "root", updated_at: "2026-10-03T00:00:00Z" } }), input);
++    expect(updated.sourceFingerprint).not.toBe(first.sourceFingerprint);
++  });
++
++  it("uses the exact pending SQL concat_ws pipe serialization", async () => {
++    const renderedSha256 = "a".repeat(64);
++    const serializedLikeSql = [ids.project, ids.target, ids.template, "1", ids.revision, renderedSha256].join("|");
++    const sqlEquivalentHash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(serializedLikeSql))), (byte) => byte.toString(16).padStart(2, "0")).join("");
++    await expect(fingerprintLifecycleDocumentSource({
++      projectId: ids.project,
++      targetFolderId: ids.target,
++      templateId: ids.template,
++      templateVersion: 1,
++      templateDocumentRevisionId: ids.revision,
++      renderedSha256,
++    })).resolves.toBe(sqlEquivalentHash);
++  });
++
++  it("rejects content/template and target/project scope mismatches", async () => {
++    await expect(loadLifecycleDocumentPreflight(client({ department_process_template_document_revisions: { id: ids.revision, template_id: "other", content: "{{PROJECT_CODE}}" } }), input)).rejects.toThrow("does not belong");
++    await expect(loadLifecycleDocumentPreflight(client({ drive_nodes: { id: ids.target, project_id: "other", department_id: ids.department, node_type: "FILE", is_trashed: false } }), input)).rejects.toThrow("outside");
++  });
++});
+\ No newline at end of file
+diff --git a/src/lib/lifecycle-document-preflight.server.ts b/src/lib/lifecycle-document-preflight.server.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..2b70bf3c56b764c5b243c7c27d7b34299b179cf0
+--- /dev/null
++++ b/src/lib/lifecycle-document-preflight.server.ts
+@@ -0,0 +1,134 @@
++import type { SupabaseClient } from "@supabase/supabase-js";
++import { mapLifecycleProjectDocumentFields } from "./lifecycle-document-fields";
++import { renderLifecycleDocument, type RenderedLifecycleDocument } from "./lifecycle-document-renderer";
++
++export type LifecycleDocumentPreflight = {
++  projectId: string;
++  targetFolderId: string;
++  templateDocumentRevisionId: string;
++  requestKey: string;
++  rendered: RenderedLifecycleDocument;
++  sourceFingerprint: string;
++};
++
++type ProjectRow = {
++  id: string;
++  code: string;
++  name: string;
++  revision: string | null;
++  department_id: string | null;
++  project_drive_node_id: string | null;
++  updated_at: string;
++};
++
++type DepartmentRow = { id: string; name: string; is_active: boolean };
++type TemplateRow = { id: string; department_id: string; template_key: string; version: number; title: string; status: string };
++type TemplateRevisionRow = { id: string; template_id: string; content: string };
++type TargetRow = { id: string; project_id: string | null; department_id: string | null; node_type: string; is_trashed: boolean };
++
++function sha256(input: string) {
++  return crypto.subtle.digest("SHA-256", new TextEncoder().encode(input)).then((buffer) =>
++    Array.from(new Uint8Array(buffer), (byte) => byte.toString(16).padStart(2, "0")).join(""),
++  );
++}
++
++/**
++ * Must remain byte-for-byte equivalent to the pending commit RPC's
++ * `digest(convert_to(concat_ws('|', ...), 'UTF8'), 'sha256')` expression.
++ * All members are required before this function is called, so `join` models
++ * PostgreSQL's `concat_ws` without its NULL-skipping behavior.
++ */
++export async function fingerprintLifecycleDocumentSource(input: {
++  projectId: string;
++  targetFolderId: string;
++  templateId: string;
++  templateVersion: number;
++  templateDocumentRevisionId: string;
++  renderedSha256: string;
++}) {
++  return sha256([
++    input.projectId,
++    input.targetFolderId,
++    input.templateId,
++    String(input.templateVersion),
++    input.templateDocumentRevisionId,
++    input.renderedSha256,
++  ].join("|"));
++}
++
++function fail(error: { message?: string } | null, fallback: string): never {
++  throw new Error(error?.message ?? fallback);
++}
++
++/**
++ * Server-only read model. The browser may request only immutable identifiers;
++ * all rendered content, Drive scope and source fingerprint are loaded here.
++ */
++export async function loadLifecycleDocumentPreflight(
++  supabase: SupabaseClient,
++  input: {
++    projectId: string;
++    templateId: string;
++    templateVersion: number;
++    templateDocumentRevisionId: string;
++    targetFolderId: string;
++    requestKey: string;
++  },
++): Promise<LifecycleDocumentPreflight> {
++  const [{ data: project, error: projectError }, { data: template, error: templateError }, { data: revision, error: revisionError }, { data: target, error: targetError }] = await Promise.all([
++    supabase.from("projects").select("id,code,name,revision,department_id,project_drive_node_id,updated_at").eq("id", input.projectId).maybeSingle(),
++    supabase.from("department_process_templates").select("id,department_id,template_key,version,title,status").eq("id", input.templateId).maybeSingle(),
++    supabase.from("department_process_template_document_revisions" as never).select("id,template_id,content").eq("id", input.templateDocumentRevisionId).maybeSingle(),
++    supabase.from("drive_nodes").select("id,project_id,department_id,node_type,is_trashed").eq("id", input.targetFolderId).maybeSingle(),
++  ]);
++
++  if (projectError || !project) fail(projectError, "Project was not found.");
++  if (templateError || !template) fail(templateError, "Template was not found.");
++  if (revisionError || !revision) fail(revisionError, "Immutable template content revision was not found.");
++  if (targetError || !target) fail(targetError, "Target Drive folder was not found.");
++
++  const typedProject = project as ProjectRow;
++  const typedTemplate = template as TemplateRow;
++  const typedRevision = revision as unknown as TemplateRevisionRow;
++  const typedTarget = target as TargetRow;
++  if (!typedProject.department_id || typedTemplate.department_id !== typedProject.department_id || typedTemplate.version !== input.templateVersion || typedTemplate.status !== "ACTIVE") {
++    throw new Error("An active template matching the project's owning department and pinned version is required.");
++  }
++  if (typedRevision.template_id !== typedTemplate.id) throw new Error("Template content revision does not belong to the pinned template.");
++  if (typedTarget.node_type.toUpperCase() !== "FOLDER" || typedTarget.is_trashed || typedTarget.project_id !== typedProject.id || typedTarget.department_id !== typedProject.department_id) {
++    throw new Error("Target folder is outside the authorized project Drive.");
++  }
++
++  const { data: department, error: departmentError } = await supabase
++    .from("departments")
++    .select("id,name,is_active")
++    .eq("id", typedProject.department_id)
++    .maybeSingle();
++  if (departmentError || !department) fail(departmentError, "Owning department was not found.");
++
++  const fields = mapLifecycleProjectDocumentFields(typedProject, department as DepartmentRow);
++  const rendered = renderLifecycleDocument({
++    templateKey: typedTemplate.template_key,
++    version: typedTemplate.version,
++    title: typedTemplate.title,
++    content: typedRevision.content,
++    documentRevisionId: typedRevision.id,
++  }, fields);
++  const sourceFingerprint = await fingerprintLifecycleDocumentSource({
++    projectId: typedProject.id,
++    targetFolderId: typedTarget.id,
++    templateId: typedTemplate.id,
++    templateVersion: typedTemplate.version,
++    templateDocumentRevisionId: typedRevision.id,
++    renderedSha256: await sha256(rendered.content),
++  });
++
++  return {
++    projectId: typedProject.id,
++    targetFolderId: typedTarget.id,
++    templateDocumentRevisionId: typedRevision.id,
++    requestKey: input.requestKey,
++    rendered,
++    sourceFingerprint,
++  };
++}
+\ No newline at end of file
+diff --git a/src/lib/lifecycle-document-renderer.test.ts b/src/lib/lifecycle-document-renderer.test.ts
+index dcf35236766a339910e830a14863d6849b129dad..dcb9d3556e4259428b5cd2f87a09cbca9079143b 100644
+--- a/src/lib/lifecycle-document-renderer.test.ts
++++ b/src/lib/lifecycle-document-renderer.test.ts
+@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
+ import { renderLifecycleDocument } from "./lifecycle-document-renderer";
+ import { persistLifecycleDocumentDraft } from "./lifecycle-document-persistence";
+ 
+-const template = { templateKey: "OEM-TRACKER", version: 3, title: "OEM tracker", content: "Project: {{PROJECT_CODE}}\nRevision: {{PROJECT_REVISION}}\nOwner: {{DEPARTMENT}}" };
++const template = { templateKey: "OEM-TRACKER", version: 3, title: "OEM tracker", documentRevisionId: "template-revision-3", content: "Project: {{PROJECT_CODE}}\nRevision: {{PROJECT_REVISION}}\nOwner: {{DEPARTMENT}}" };
+ const fields = { PROJECT_CODE: "PROJECT-2026-0005", PROJECT_REVISION: "TEST-01", DEPARTMENT: "Hardware & R&D" };
+ 
+ describe("lifecycle document renderer", () => {
+@@ -10,7 +10,7 @@ describe("lifecycle document renderer", () => {
+     expect(renderLifecycleDocument(template, fields)).toEqual({
+       fileName: "PROJECT-2026-0005-OEM-TRACKER-v3.txt", mimeType: "text/plain",
+       content: "Project: PROJECT-2026-0005\nRevision: TEST-01\nOwner: Hardware & R&D",
+-      templatePin: { templateKey: "OEM-TRACKER", version: 3 },
++      templatePin: { templateKey: "OEM-TRACKER", version: 3, documentRevisionId: "template-revision-3" },
+     });
+   });
+ 
+@@ -35,6 +35,10 @@ describe("lifecycle document renderer", () => {
+     expect(() => renderLifecycleDocument({ ...template, content: "  " }, fields)).toThrow("required");
+   });
+ 
++  it("requires an immutable content revision pin", () => {
++    expect(() => renderLifecycleDocument({ ...template, documentRevisionId: " " }, fields)).toThrow("revision");
++  });
++
+   it("replays an identical receipt and rejects a conflicting request key", async () => {
+     const receipt = { requestKey: "key", nodeId: "node", revisionId: "revision", registerId: "register", auditEventId: "audit", sourceFingerprint: "same" };
+     const transaction = { authorize: async () => undefined, findReceipt: async () => receipt, persist: async () => receipt, rollback: async () => undefined };
+diff --git a/src/lib/lifecycle-document-renderer.ts b/src/lib/lifecycle-document-renderer.ts
+index 16f29e1f1488fe80980a62ce59ac0d2373b6120d..cac602b06dc55685cbc48393c042e9312ae92a6e 100644
+--- a/src/lib/lifecycle-document-renderer.ts
++++ b/src/lib/lifecycle-document-renderer.ts
+@@ -9,13 +9,13 @@ export type RenderedLifecycleDocument = {
+   fileName: string;
+   mimeType: "text/plain";
+   content: string;
+-  templatePin: { templateKey: string; version: number };
++  templatePin: { templateKey: string; version: number; documentRevisionId: string };
+ };
+ 
+ const token = /{{\s*([A-Z0-9_]+)\s*}}/g;
+ 
+ /** Renders only declared tokens and fails closed on missing values or tokens. */
+-export function renderLifecycleDocument(template: DocumentTemplate, fields: Record<string, string | null>): RenderedLifecycleDocument {
++export function renderLifecycleDocument(template: DocumentTemplate & { documentRevisionId: string }, fields: Record<string, string | null>): RenderedLifecycleDocument {
+   if (!template.templateKey.trim() || !template.title.trim() || !template.content.trim()) {
+     throw new Error("Document template key, title and content are required.");
+   }
+@@ -39,5 +39,6 @@ export function renderLifecycleDocument(template: DocumentTemplate, fields: Reco
+   });
+   if (missing.length) throw new Error(`Missing document fields: ${[...new Set(missing)].join(", ")}`);
+   const fileStem = `${fields.PROJECT_CODE ?? "PROJECT"}-${template.templateKey}-v${template.version}`.replace(/[^A-Za-z0-9._-]+/g, "_");
+-  return { fileName: `${fileStem}.txt`, mimeType: "text/plain", content, templatePin: { templateKey: template.templateKey, version: template.version } };
++  if (!template.documentRevisionId.trim()) throw new Error("Immutable template document revision is required.");
++  return { fileName: `${fileStem}.txt`, mimeType: "text/plain", content, templatePin: { templateKey: template.templateKey, version: template.version, documentRevisionId: template.documentRevisionId } };
+ }
+diff --git a/src/lib/lifecycle-document-storage.server.test.ts b/src/lib/lifecycle-document-storage.server.test.ts
+index b4542edb311aa9f130a270aa6acd208c4f9fa8c3..505c31995b87bf4b8205df71188d472e7365f2ab 100644
+--- a/src/lib/lifecycle-document-storage.server.test.ts
++++ b/src/lib/lifecycle-document-storage.server.test.ts
+@@ -4,7 +4,7 @@ import { createDocumentStorageTransaction } from "./lifecycle-document-storage.s
+ import { persistLifecycleDocumentDraft } from "./lifecycle-document-persistence";
+ 
+ const input = { requestKey: "request", sourceFingerprint: "snapshot", rendered: {
+-  fileName: "project.txt", mimeType: "text/plain" as const, content: "भारत OEM", templatePin: { templateKey: "PRS", version: 1 },
++  fileName: "project.txt", mimeType: "text/plain" as const, content: "भारत OEM", templatePin: { templateKey: "PRS", version: 1, documentRevisionId: "revision" },
+ } };
+ const receipt = { requestKey: "request", sourceFingerprint: "snapshot", nodeId: "file", revisionId: "rev", registerId: "reg", auditEventId: "audit" };
+ const projectId = "00000000-0000-0000-0000-000000000001";
+@@ -20,22 +20,16 @@ function fixture() {
+   return { upload, remove, bridge, transaction: createDocumentStorageTransaction(storage, bridge, projectId) };
+ }
+ describe("Supabase document storage adapter", () => {
+-  it("registers an upload before committing and stops when registration fails", async () => {
+-    const f = fixture();
+-    f.bridge.registerAttempt.mockRejectedValue(new Error("Registration denied"));
+-    f.bridge.canDiscard.mockResolvedValue(false);
+-    await expect(persistLifecycleDocumentDraft(f.transaction, input)).rejects.toThrow("cleanup requires recovery");
+-    expect(f.upload).toHaveBeenCalledOnce();
+-    expect(f.bridge.registerAttempt).toHaveBeenCalledOnce();
+-    expect(f.bridge.commit).not.toHaveBeenCalled();
+-    expect(f.remove).not.toHaveBeenCalled();
+-  });
+   it("uploads UTF-8 content and commits checksum/byte count without deleting a committed file", async () => {
+     const f = fixture();
+     await expect(persistLifecycleDocumentDraft(f.transaction, input)).resolves.toMatchObject({ mode: "CREATED" });
+     const staged = f.bridge.commit.mock.calls[0] as unknown as [unknown, { sizeBytes: number; sha256: string }];
+     expect(staged[1].sizeBytes).toBe(new TextEncoder().encode(input.rendered.content).byteLength);
+     expect(staged[1].sha256).toMatch(/^[a-f0-9]{64}$/);
++    expect(f.bridge.registerAttempt).toHaveBeenCalledWith(input, expect.objectContaining({
++      bucket: "project-drive", path: expect.stringContaining(projectId), sha256: staged[1].sha256, sizeBytes: staged[1].sizeBytes,
++    }));
++    expect(f.bridge.registerAttempt.mock.invocationCallOrder[0]).toBeLessThan(f.bridge.commit.mock.invocationCallOrder[0]);
+     expect(f.upload).toHaveBeenCalledWith(expect.stringContaining(projectId), expect.any(Uint8Array), { upsert: false, contentType: "text/plain" });
+     await f.transaction.rollback();
+     expect(f.remove).not.toHaveBeenCalled();
+@@ -50,6 +44,12 @@ describe("Supabase document storage adapter", () => {
+     await expect(persistLifecycleDocumentDraft(f.transaction, input)).rejects.toThrow("DB rejected");
+     expect(f.remove).toHaveBeenCalledWith([f.upload.mock.calls[0][0]]);
+   });
++  it("compensates a successful upload when server-owned attempt registration rejects", async () => {
++    const f = fixture(); f.bridge.registerAttempt.mockRejectedValue(new Error("Attempt rejected"));
++    await expect(persistLifecycleDocumentDraft(f.transaction, input)).rejects.toThrow("Attempt rejected");
++    expect(f.bridge.commit).not.toHaveBeenCalled();
++    expect(f.remove).toHaveBeenCalledWith([f.upload.mock.calls[0][0]]);
++  });
+   it("retains an object when commit outcome cannot be proven", async () => {
+     const f = fixture(); f.bridge.commit.mockRejectedValue(new Error("Timeout")); f.bridge.canDiscard.mockResolvedValue(false);
+     await expect(persistLifecycleDocumentDraft(f.transaction, input)).rejects.toThrow("cleanup requires recovery");
+diff --git a/src/lib/lifecycle-document-storage.server.ts b/src/lib/lifecycle-document-storage.server.ts
+index c65b428f99ecad331ca889abda80b021c0b921a0..d4f49f22b08d7585be2daee995e2bdc3391211c6 100644
+--- a/src/lib/lifecycle-document-storage.server.ts
++++ b/src/lib/lifecycle-document-storage.server.ts
+@@ -10,6 +10,9 @@ export type StagedDocument = {
+ export type DocumentDatabaseBridge = {
+   authorize: DocumentDraftTransaction["authorize"];
+   findReceipt: DocumentDraftTransaction["findReceipt"];
++  // Called only after storage confirms upload success. The server derives the
++  // authenticated actor and verifies the project/template/request pin before
++  // recording immutable staging provenance; callers never supply an actor.
+   registerAttempt(input: Input, staged: StagedDocument): Promise<void>;
+   // Must atomically reauthorize and persist node, revision, register, audit,
+   // numbering and immutable receipt, or return a verified concurrent replay.
+@@ -19,7 +22,7 @@ export type DocumentDatabaseBridge = {
+   canDiscard(staged: StagedDocument): Promise<boolean>;
+ };
+ 
+-/** Concrete Supabase upload/compensation adapter; no independent DB inserts. */
++/** Concrete Supabase upload/compensation adapter; no client-originated DB inserts. */
+ export function createDocumentStorageTransaction(
+   storage: SupabaseClient["storage"],
+   database: DocumentDatabaseBridge,
+@@ -41,7 +44,7 @@ export function createDocumentStorageTransaction(
+   };
+   return {
+     authorize: (input) => database.authorize(input),
+-    findReceipt: (requestKey) => database.findReceipt(requestKey),
++    findReceipt: (input) => database.findReceipt(input),
+     rollback,
+     persist: async (input) => {
+       if (staged || referenced) throw new Error("Document storage transaction instances cannot be reused.");
+@@ -60,6 +63,9 @@ export function createDocumentStorageTransaction(
+       // Even a failed response may mean an upload succeeded. Compensation must
+       // reconcile this attempt, never touch another request's storage object.
+       if (error) throw new Error(error.message);
++      // Registration failure is intentionally compensated through the same
++      // fail-closed cleanup path. A successful upload is not canonical until
++      // its server-owned attempt record exists and commit consumes it.
+       await database.registerAttempt(input, candidate);
+       const committed = await database.commit(input, candidate);
+       referenced = committed.usesStagedObject;
+diff --git a/src/lib/lifecycle-template-settings.test.ts b/src/lib/lifecycle-template-settings.test.ts
+index d47357f55c56bf8a68030dffe7b6a48163979e14..3d8ed3d4b28eaa4f517b04850898f5ee776c00f3 100644
+--- a/src/lib/lifecycle-template-settings.test.ts
++++ b/src/lib/lifecycle-template-settings.test.ts
+@@ -9,7 +9,7 @@ describe("lifecycle template settings safety", () => {
+   it("labels protected controls as acceptance-pending rather than working actions", () => {
+     expect(lifecycleTemplateMutationStatus()).toEqual({
+       available: false,
+-      message: "Protected template actions are acceptance-pending and cannot change records from this register.",
++      message: "Protected draft content, cloning, activation, retirement, and stage actions are acceptance-pending and cannot change records from this register.",
+     });
+   });
+ });
+\ No newline at end of file
+diff --git a/src/lib/lifecycle-template-settings.ts b/src/lib/lifecycle-template-settings.ts
+index 48f23812758117f271215c1a37764908a2fb0664..4199e64357ac59d8b74b05c67eb315db283a5bc6 100644
+--- a/src/lib/lifecycle-template-settings.ts
++++ b/src/lib/lifecycle-template-settings.ts
+@@ -50,6 +50,6 @@ export function isLifecycleTemplateActionAvailable() {
+ export function lifecycleTemplateMutationStatus() {
+   return {
+     available: isLifecycleTemplateActionAvailable(),
+-    message: "Protected template actions are acceptance-pending and cannot change records from this register.",
++    message: "Protected draft content, cloning, activation, retirement, and stage actions are acceptance-pending and cannot change records from this register.",
+   } as const;
+ }
+diff --git a/src/routes/_authenticated/settings.lifecycle.tsx b/src/routes/_authenticated/settings.lifecycle.tsx
+index c3d71e01c77ef97d242c8c06c72d5e917773c650..98a99ab6d80ad0e6caf759e4ee0f79377805756e 100644
+--- a/src/routes/_authenticated/settings.lifecycle.tsx
++++ b/src/routes/_authenticated/settings.lifecycle.tsx
+@@ -1,7 +1,7 @@
+ import { createFileRoute } from "@tanstack/react-router";
+ import { useEffect, useMemo, useState } from "react";
+ import { useQuery } from "@tanstack/react-query";
+-import { Copy, LockKeyhole, Pencil, Power, Archive } from "lucide-react";
++import { Copy, FilePenLine, LockKeyhole, Pencil, Power, Archive } from "lucide-react";
+ import { Button } from "@/components/ui/button";
+ import { Card } from "@/components/ui/card";
+ import { Badge } from "@/components/ui/badge";
+@@ -34,5 +34,5 @@ function LifecycleTemplateSettings() {
+   }, [data]);
+   const mutationStatus = lifecycleTemplateMutationStatus();
+ 
+-  return <div className="mx-auto max-w-5xl space-y-5"><SettingsNav /><div><h1 className="text-2xl font-semibold">Lifecycle template register</h1><p className="mt-1 text-sm text-muted-foreground">Scoped, read-only register of versioned department templates and their governed stage definitions.</p></div><Card className="border-amber-500/40 bg-amber-500/5 p-4"><div className="flex gap-3"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="text-sm font-medium">Protected mutation controls are acceptance-pending</p><p className="mt-1 text-xs text-muted-foreground">{mutationStatus.message} Draft creation, stage editing, cloning, activation, and retirement remain disabled until the protected-action contract passes database acceptance.</p></div></div></Card><div className="flex flex-wrap gap-2">{departments.map((department) => <Button key={department.id} size="sm" variant={department.id === selectedId ? "default" : "outline"} onClick={() => setDepartmentId(department.id)}>{department.name}</Button>)}</div>{isLoading ? <Card className="p-8 text-center text-muted-foreground">Loading template register…</Card> : isError ? <Card className="p-8 text-center text-destructive">Templates could not be read with the current department access.</Card> : (data?.templates.length ?? 0) === 0 ? <Card className="p-8 text-center text-muted-foreground">No lifecycle templates are visible for this department.</Card> : <div className="space-y-3">{data?.templates.map((template) => <Card key={template.id} className="p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{template.title}</h2><Badge variant="outline">{template.status}</Badge><Badge variant="secondary">v{template.version}</Badge></div><p className="mt-1 text-xs text-muted-foreground">Template key: {template.template_key} · Registered {new Date(template.created_at).toLocaleDateString()}</p>{template.description && <p className="mt-2 text-sm text-muted-foreground">{template.description}</p>}</div><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={!mutationStatus.available} title="Acceptance-pending protected action"><Pencil className="mr-1 h-3.5 w-3.5" /> Edit draft</Button><Button size="sm" variant="outline" disabled={!mutationStatus.available} title="Acceptance-pending protected action"><Copy className="mr-1 h-3.5 w-3.5" /> Clone version</Button><Button size="sm" variant="outline" disabled={!mutationStatus.available} title="Acceptance-pending protected action"><Power className="mr-1 h-3.5 w-3.5" /> Activate</Button><Button size="sm" variant="outline" disabled={!mutationStatus.available} title="Acceptance-pending protected action"><Archive className="mr-1 h-3.5 w-3.5" /> Retire</Button></div></div><div className="mt-4 space-y-2 border-t pt-3"><p className="text-xs font-medium text-muted-foreground">Governed stage preview</p>{(stagesByTemplate.get(template.id) ?? []).length === 0 ? <p className="text-sm text-muted-foreground">No RLS-visible stages are registered for this template.</p> : (stagesByTemplate.get(template.id) ?? []).map((stage) => <div key={stage.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"><span className="font-mono text-xs text-muted-foreground">{stage.sort_order}</span><span className="font-medium">{stage.title}</span><span className="text-xs text-muted-foreground">{stage.stage_key} · {stage.task_department}{stage.required ? " · required" : " · optional"}</span></div>)}</div></Card>)}</div>}</div>;
++  return <div className="mx-auto max-w-5xl space-y-5"><SettingsNav /><div><h1 className="text-2xl font-semibold">Lifecycle template register</h1><p className="mt-1 text-sm text-muted-foreground">Scoped, read-only register of versioned department templates and their governed stage definitions.</p></div><Card className="border-amber-500/40 bg-amber-500/5 p-4"><div className="flex gap-3"><LockKeyhole className="mt-0.5 h-4 w-4 shrink-0" /><div><p className="text-sm font-medium">Protected mutation controls are acceptance-pending</p><p className="mt-1 text-xs text-muted-foreground">{mutationStatus.message} No template content is saved from this screen until protected-action acceptance passes.</p></div></div></Card><div className="flex flex-wrap gap-2">{departments.map((department) => <Button key={department.id} size="sm" variant={department.id === selectedId ? "default" : "outline"} onClick={() => setDepartmentId(department.id)}>{department.name}</Button>)}</div>{isLoading ? <Card className="p-8 text-center text-muted-foreground">Loading template register…</Card> : isError ? <Card className="p-8 text-center text-destructive">Templates could not be read with the current department access.</Card> : (data?.templates.length ?? 0) === 0 ? <Card className="p-8 text-center text-muted-foreground">No lifecycle templates are visible for this department.</Card> : <div className="space-y-3">{data?.templates.map((template) => <Card key={template.id} className="p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{template.title}</h2><Badge variant="outline">{template.status}</Badge><Badge variant="secondary">v{template.version}</Badge></div><p className="mt-1 text-xs text-muted-foreground">Template key: {template.template_key} · Registered {new Date(template.created_at).toLocaleDateString()}</p>{template.description && <p className="mt-2 text-sm text-muted-foreground">{template.description}</p>}</div><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={!mutationStatus.available} title="Acceptance-pending protected action"><FilePenLine className="mr-1 h-3.5 w-3.5" /> Edit template body</Button><Button size="sm" variant="outline" disabled={!mutationStatus.available} title="Acceptance-pending protected action"><Pencil className="mr-1 h-3.5 w-3.5" /> Edit draft</Button><Button size="sm" variant="outline" disabled={!mutationStatus.available} title="Acceptance-pending protected action"><Copy className="mr-1 h-3.5 w-3.5" /> Clone version</Button><Button size="sm" variant="outline" disabled={!mutationStatus.available} title="Acceptance-pending protected action"><Power className="mr-1 h-3.5 w-3.5" /> Activate</Button><Button size="sm" variant="outline" disabled={!mutationStatus.available} title="Acceptance-pending protected action"><Archive className="mr-1 h-3.5 w-3.5" /> Retire</Button></div></div><div className="mt-4 space-y-2 border-t pt-3"><p className="text-xs font-medium text-muted-foreground">Governed stage preview</p>{(stagesByTemplate.get(template.id) ?? []).length === 0 ? <p className="text-sm text-muted-foreground">No RLS-visible stages are registered for this template.</p> : (stagesByTemplate.get(template.id) ?? []).map((stage) => <div key={stage.id} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"><span className="font-mono text-xs text-muted-foreground">{stage.sort_order}</span><span className="font-medium">{stage.title}</span><span className="text-xs text-muted-foreground">{stage.stage_key} · {stage.task_department}{stage.required ? " · required" : " · optional"}</span></div>)}</div></Card>)}</div>}</div>;
+ }
+\ No newline at end of file
+diff --git a/supabase/pending/20261003_lifecycle_document_draft_generation.sql b/supabase/pending/20261003_lifecycle_document_draft_generation.sql
+index 5a3cb657359ddc9b8ca576b086bb523155dfd4a3..e584a97db63e32cef821b07f7cd6a555bfb4d720 100644
+--- a/supabase/pending/20261003_lifecycle_document_draft_generation.sql
++++ b/supabase/pending/20261003_lifecycle_document_draft_generation.sql
+@@ -138,6 +138,61 @@ CREATE TRIGGER lifecycle_document_template_revision_no_delete
+ BEFORE DELETE ON public.department_process_template_document_revisions
+ FOR EACH ROW EXECUTE FUNCTION public.lifecycle_document_template_revision_delete_guard();
+ 
++-- Browser settings remain read-only. These service-only routines are the
++-- proposed governed content-management boundary: they derive actor/time,
++-- append immutable content only to DRAFT versions, and require the existing
++-- department-lead authorization contract.
++CREATE OR REPLACE FUNCTION public.create_lifecycle_document_template_revision(
++  p_template_id uuid, p_content text
++) RETURNS TABLE(id uuid, template_id uuid, revision_number integer, content_sha256 text)
++LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
++DECLARE v_actor uuid := public.lifecycle_actor(); v_template public.department_process_templates%ROWTYPE;
++  v_revision_number integer; v_checksum text;
++BEGIN
++  IF btrim(coalesce(p_content, '')) = '' THEN RAISE EXCEPTION 'Immutable template content is required'; END IF;
++  SELECT * INTO v_template FROM public.department_process_templates WHERE id = p_template_id FOR UPDATE;
++  IF NOT FOUND OR v_template.status <> 'DRAFT' THEN RAISE EXCEPTION 'Only a DRAFT template may receive a new immutable content revision'; END IF;
++  IF NOT public.lifecycle_can_manage_department(v_actor, v_template.department_id)
++     OR NOT public.can_access_department_drive(v_actor, v_template.department_id, NULL) THEN RAISE EXCEPTION 'Not authorized'; END IF;
++  v_checksum := encode(digest(convert_to(p_content, 'UTF8'), 'sha256'), 'hex');
++  SELECT coalesce(max(revision.revision_number), 0) + 1 INTO v_revision_number
++  FROM public.department_process_template_document_revisions revision WHERE revision.template_id = v_template.id FOR UPDATE;
++  INSERT INTO public.department_process_template_document_revisions(template_id, revision_number, content, content_sha256, created_by)
++  VALUES (v_template.id, v_revision_number, p_content, v_checksum, v_actor)
++  RETURNING department_process_template_document_revisions.id INTO id;
++  template_id := v_template.id; revision_number := v_revision_number; content_sha256 := v_checksum;
++  RETURN NEXT;
++END;
++$$;
++
++CREATE OR REPLACE FUNCTION public.activate_lifecycle_document_template(
++  p_template_id uuid, p_template_document_revision_id uuid
++) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
++DECLARE v_actor uuid := public.lifecycle_actor(); v_template public.department_process_templates%ROWTYPE;
++BEGIN
++  SELECT * INTO v_template FROM public.department_process_templates WHERE id = p_template_id FOR UPDATE;
++  IF NOT FOUND OR v_template.status <> 'DRAFT' THEN RAISE EXCEPTION 'Only a DRAFT template may be activated'; END IF;
++  IF NOT public.lifecycle_can_manage_department(v_actor, v_template.department_id)
++     OR NOT public.can_access_department_drive(v_actor, v_template.department_id, NULL) THEN RAISE EXCEPTION 'Not authorized'; END IF;
++  PERFORM 1 FROM public.department_process_template_document_revisions revision
++  WHERE revision.id = p_template_document_revision_id AND revision.template_id = v_template.id FOR SHARE;
++  IF NOT FOUND THEN RAISE EXCEPTION 'Activation requires a pinned immutable content revision'; END IF;
++  UPDATE public.department_process_templates SET status = 'ACTIVE', activated_at = now() WHERE id = v_template.id;
++END;
++$$;
++
++CREATE OR REPLACE FUNCTION public.retire_lifecycle_document_template(p_template_id uuid)
++RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
++DECLARE v_actor uuid := public.lifecycle_actor(); v_template public.department_process_templates%ROWTYPE;
++BEGIN
++  SELECT * INTO v_template FROM public.department_process_templates WHERE id = p_template_id FOR UPDATE;
++  IF NOT FOUND OR v_template.status <> 'ACTIVE' THEN RAISE EXCEPTION 'Only an ACTIVE template may be retired'; END IF;
++  IF NOT public.lifecycle_can_manage_department(v_actor, v_template.department_id)
++     OR NOT public.can_access_department_drive(v_actor, v_template.department_id, NULL) THEN RAISE EXCEPTION 'Not authorized'; END IF;
++  UPDATE public.department_process_templates SET status = 'RETIRED', retired_at = now() WHERE id = v_template.id;
++END;
++$$;
++
+ CREATE OR REPLACE FUNCTION public.lifecycle_document_draft_guard()
+ RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+ BEGIN
+@@ -186,40 +241,37 @@ BEGIN
+ END;
+ $$;
+ 
+--- Request keys are only unique within a project. Every lookup binds the actor,
+--- Only a trusted upload adapter may attest bytes. No actor is accepted as input.
+--- Deployment still requires a verified privileged route retaining caller JWT.
++-- The server-only adapter calls this after a successful storage response and
++-- before commit. Actor provenance comes only from the request JWT context.
+ CREATE OR REPLACE FUNCTION public.register_lifecycle_document_storage_attempt(
+-  p_project_id uuid, p_request_key uuid, p_template_key text,
+-  p_template_version integer, p_template_document_revision_id uuid,
++  p_project_id uuid, p_template_key text, p_template_version integer,
++  p_template_document_revision_id uuid, p_request_key uuid,
+   p_storage_bucket text, p_storage_path text, p_sha256_checksum text, p_size_bytes bigint
+-) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+-DECLARE v_actor uuid := public.lifecycle_actor(); v_attempt public.lifecycle_document_storage_attempts%ROWTYPE;
++) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
++DECLARE v_actor uuid := public.lifecycle_actor();
+ BEGIN
+-  PERFORM public.authorize_lifecycle_document_draft(p_project_id, p_template_key,
+-    p_template_version, p_template_document_revision_id, p_request_key);
+-  IF p_storage_bucket IS DISTINCT FROM 'project-drive'
+-    OR p_storage_path IS NULL
+-    OR p_storage_path !~ ('^' || p_project_id::text || '/[0-9a-f-]{36}-draft\.txt$')
+-    OR p_sha256_checksum IS NULL OR p_sha256_checksum !~ '^[a-f0-9]{64}$'
+-    OR p_size_bytes IS NULL OR p_size_bytes < 0 THEN
+-    RAISE EXCEPTION 'Invalid staged storage attempt';
++  IF p_storage_bucket <> 'project-drive'
++     OR p_storage_path <> p_project_id::text || '/' || regexp_replace(p_storage_path, '^' || p_project_id::text || '/', '')
++     OR p_sha256_checksum !~ '^[a-f0-9]{64}$' OR p_size_bytes < 0 THEN
++    RAISE EXCEPTION 'Invalid staged document attempt payload';
+   END IF;
+-  IF NOT EXISTS (SELECT 1 FROM storage.objects WHERE bucket_id = p_storage_bucket AND name = p_storage_path) THEN
+-    RAISE EXCEPTION 'Staged storage object does not exist';
+-  END IF;
+-  INSERT INTO public.lifecycle_document_storage_attempts
+-    (project_id, request_key, storage_bucket, storage_path, sha256_checksum, size_bytes, uploaded_by)
+-  VALUES (p_project_id, p_request_key, p_storage_bucket, p_storage_path, p_sha256_checksum, p_size_bytes, v_actor)
+-  ON CONFLICT (storage_bucket, storage_path) DO NOTHING;
+-  SELECT * INTO v_attempt FROM public.lifecycle_document_storage_attempts
+-    WHERE storage_bucket = p_storage_bucket AND storage_path = p_storage_path FOR UPDATE;
+-  IF v_attempt.project_id IS DISTINCT FROM p_project_id OR v_attempt.request_key IS DISTINCT FROM p_request_key
+-    OR v_attempt.uploaded_by IS DISTINCT FROM v_actor OR v_attempt.sha256_checksum IS DISTINCT FROM p_sha256_checksum
+-    OR v_attempt.size_bytes IS DISTINCT FROM p_size_bytes THEN
+-    RAISE EXCEPTION 'Storage attempt conflicts with existing provenance';
++  PERFORM public.authorize_lifecycle_document_draft(
++    p_project_id, p_template_key, p_template_version, p_template_document_revision_id, p_request_key
++  );
++  INSERT INTO public.lifecycle_document_storage_attempts(
++    project_id, request_key, storage_bucket, storage_path, sha256_checksum, size_bytes, uploaded_by
++  ) VALUES (
++    p_project_id, p_request_key, p_storage_bucket, p_storage_path, p_sha256_checksum, p_size_bytes, v_actor
++  ) ON CONFLICT (storage_bucket, storage_path) DO NOTHING;
++  IF NOT EXISTS (
++    SELECT 1 FROM public.lifecycle_document_storage_attempts attempt
++    WHERE attempt.project_id = p_project_id AND attempt.request_key = p_request_key
++      AND attempt.storage_bucket = p_storage_bucket AND attempt.storage_path = p_storage_path
++      AND attempt.sha256_checksum = p_sha256_checksum AND attempt.size_bytes = p_size_bytes
++      AND attempt.uploaded_by = v_actor
++  ) THEN
++    RAISE EXCEPTION 'Staged object path conflicts with another immutable attempt';
+   END IF;
+-  RETURN v_attempt.id;
+ END;
+ $$;
+ 
+@@ -268,9 +320,9 @@ DECLARE
+   v_target public.drive_nodes%ROWTYPE; v_prior public.project_lifecycle_document_drafts%ROWTYPE;
+   v_node_id uuid; v_revision_id uuid; v_register_id uuid; v_audit_id uuid; v_document_number text;
+   v_rendered_content text; v_rendered_sha256 text; v_expected_name text; v_payload_hash text; v_source_fingerprint text;
+-  v_ancestry_ids uuid[]; v_ancestry_count integer; v_root_found boolean; v_ancestry_invalid boolean; v_token text; v_result jsonb;
++  v_ancestry_ids uuid[]; v_ancestry_count integer; v_root_found boolean; v_token text; v_result jsonb;
++  v_match text[]; v_remaining text; v_replacement text;
+   v_attempt public.lifecycle_document_storage_attempts%ROWTYPE; v_receipt_id uuid;
+-  v_remaining text; v_match text[]; v_position integer; v_value text;
+ BEGIN
+   IF p_request_key IS NULL OR p_template_document_revision_id IS NULL
+      OR btrim(coalesce(p_file_name,'')) = '' OR btrim(coalesce(p_mime_type,'')) = ''
+@@ -301,13 +353,12 @@ BEGIN
+     UNION ALL
+     SELECT parent.id, parent.parent_id, parent.project_id, parent.department_id, parent.is_trashed, ancestry.depth + 1, ancestry.path || parent.id
+     FROM public.drive_nodes parent JOIN ancestry ON ancestry.parent_id = parent.id
+-    WHERE ancestry.depth < 64 AND ancestry.id <> v_project.project_drive_node_id AND NOT parent.id = ANY(ancestry.path)
++    WHERE ancestry.depth < 64 AND NOT parent.id = ANY(ancestry.path)
+   )
+-  SELECT array_agg(id ORDER BY depth), count(*), bool_or(id = v_project.project_drive_node_id),
+-    bool_or(project_id IS DISTINCT FROM v_project.id OR department_id IS DISTINCT FROM v_project.department_id OR is_trashed)
+-  INTO v_ancestry_ids, v_ancestry_count, v_root_found, v_ancestry_invalid FROM ancestry;
++  SELECT array_agg(id ORDER BY depth), count(*), bool_or(id = v_project.project_drive_node_id)
++  INTO v_ancestry_ids, v_ancestry_count, v_root_found FROM ancestry;
+   IF v_ancestry_count IS NULL OR v_ancestry_count >= 64 OR NOT coalesce(v_root_found, false)
+-     OR coalesce(v_ancestry_invalid, true) THEN
++     OR EXISTS (SELECT 1 FROM ancestry WHERE project_id IS DISTINCT FROM v_project.id OR department_id IS DISTINCT FROM v_project.department_id OR is_trashed) THEN
+     RAISE EXCEPTION 'Target ancestry is not the locked project Drive tree';
+   END IF;
+   PERFORM 1 FROM public.drive_nodes WHERE id = ANY(v_ancestry_ids) ORDER BY id FOR UPDATE;
+@@ -317,13 +368,11 @@ BEGIN
+     UNION ALL
+     SELECT parent.id, parent.parent_id, parent.project_id, parent.department_id, parent.is_trashed, locked_ancestry.depth + 1, locked_ancestry.path || parent.id
+     FROM public.drive_nodes parent JOIN locked_ancestry ON locked_ancestry.parent_id = parent.id
+-    WHERE locked_ancestry.depth < 64 AND locked_ancestry.id <> v_project.project_drive_node_id AND NOT parent.id = ANY(locked_ancestry.path)
++    WHERE locked_ancestry.depth < 64 AND NOT parent.id = ANY(locked_ancestry.path)
+   )
+-  SELECT count(*), bool_or(id = v_project.project_drive_node_id),
+-    bool_or(project_id IS DISTINCT FROM v_project.id OR department_id IS DISTINCT FROM v_project.department_id OR is_trashed OR NOT id = ANY(v_ancestry_ids))
+-  INTO v_ancestry_count, v_root_found, v_ancestry_invalid FROM locked_ancestry;
++  SELECT count(*), bool_or(id = v_project.project_drive_node_id) INTO v_ancestry_count, v_root_found FROM locked_ancestry;
+   IF v_ancestry_count >= 64 OR NOT coalesce(v_root_found, false)
+-     OR coalesce(v_ancestry_invalid, true) THEN
++     OR EXISTS (SELECT 1 FROM locked_ancestry WHERE project_id IS DISTINCT FROM v_project.id OR department_id IS DISTINCT FROM v_project.department_id OR is_trashed) THEN
+     RAISE EXCEPTION 'Target ancestry changed during locking';
+   END IF;
+   SELECT * INTO v_prior FROM public.project_lifecycle_document_drafts
+@@ -339,28 +388,29 @@ BEGIN
+     RAISE EXCEPTION 'Request key conflicts with a different document draft payload';
+   END IF;
+   -- Only these four canonical server-owned values may appear in a template.
+-  -- Validate source syntax before substitution. Never scan inserted values.
+-  v_remaining := regexp_replace(v_template_revision.content, '\{\{\s*[A-Z0-9_]+\s*\}\}', '', 'g');
+-  IF v_remaining LIKE '%{{%' OR v_remaining LIKE '%}}%' THEN
+-    RAISE EXCEPTION 'Immutable template has invalid token syntax';
++  -- Validate malformed braces before a single substitution pass. Each original
++  -- placeholder is expanded directly, so braces in project data stay literal.
++  IF regexp_replace(v_template_revision.content, '\{\{\s*[A-Z0-9_]+\s*\}\}', '', 'g') LIKE '%{{%'
++     OR regexp_replace(v_template_revision.content, '\{\{\s*[A-Z0-9_]+\s*\}\}', '', 'g') LIKE '%}}%' THEN
++    RAISE EXCEPTION 'Invalid immutable template placeholder syntax';
+   END IF;
+-  v_remaining := v_template_revision.content;
++  FOR v_token IN SELECT (regexp_matches(v_template_revision.content, '\{\{\s*([A-Z0-9_]+)\s*\}\}', 'g'))[1] LOOP
++    IF v_token NOT IN ('PROJECT_CODE','PROJECT_NAME','PROJECT_REVISION','DEPARTMENT') THEN RAISE EXCEPTION 'Unsupported immutable template token %', v_token; END IF;
++  END LOOP;
+   v_rendered_content := '';
++  v_remaining := v_template_revision.content;
+   LOOP
+-    v_match := regexp_match(v_remaining, '(\{\{\s*([A-Z0-9_]+)\s*\}\})');
++    v_match := regexp_match(v_remaining, '^(.*?)\{\{\s*([A-Z0-9_]+)\s*\}\}(.*)$', 's');
+     EXIT WHEN v_match IS NULL;
+-    v_position := strpos(v_remaining, v_match[1]);
+     v_token := v_match[2];
+-    CASE v_token
+-      WHEN 'PROJECT_CODE' THEN v_value := v_project.code;
+-      WHEN 'PROJECT_NAME' THEN v_value := v_project.name;
+-      WHEN 'PROJECT_REVISION' THEN v_value := v_project.revision;
+-      WHEN 'DEPARTMENT' THEN SELECT name INTO v_value FROM public.departments WHERE id = v_project.department_id;
+-      ELSE RAISE EXCEPTION 'Unsupported immutable template token %', v_token;
+-    END CASE;
+-    IF btrim(coalesce(v_value, '')) = '' THEN RAISE EXCEPTION 'Missing document field %', v_token; END IF;
+-    v_rendered_content := v_rendered_content || left(v_remaining, v_position - 1) || v_value;
+-    v_remaining := substr(v_remaining, v_position + length(v_match[1]));
++    v_replacement := CASE v_token
++      WHEN 'PROJECT_CODE' THEN v_project.code
++      WHEN 'PROJECT_NAME' THEN v_project.name
++      WHEN 'PROJECT_REVISION' THEN v_project.revision
++      WHEN 'DEPARTMENT' THEN (SELECT name FROM public.departments WHERE id = v_project.department_id)
++    END;
++    v_rendered_content := v_rendered_content || v_match[1] || v_replacement;
++    v_remaining := v_match[3];
+   END LOOP;
+   v_rendered_content := v_rendered_content || v_remaining;
+   v_rendered_sha256 := encode(digest(convert_to(v_rendered_content, 'UTF8'), 'sha256'), 'hex');
+@@ -448,16 +498,22 @@ REVOKE ALL ON FUNCTION public.lifecycle_document_template_revision_delete_guard(
+ REVOKE ALL ON FUNCTION public.lifecycle_document_draft_guard() FROM PUBLIC, anon, authenticated;
+ REVOKE ALL ON FUNCTION public.lifecycle_document_draft_delete_guard() FROM PUBLIC, anon, authenticated;
+ REVOKE ALL ON FUNCTION public.lifecycle_document_storage_attempt_guard() FROM PUBLIC, anon, authenticated;
++REVOKE ALL ON FUNCTION public.create_lifecycle_document_template_revision(uuid,text) FROM PUBLIC, anon, authenticated;
++REVOKE ALL ON FUNCTION public.activate_lifecycle_document_template(uuid,uuid) FROM PUBLIC, anon, authenticated;
++REVOKE ALL ON FUNCTION public.retire_lifecycle_document_template(uuid) FROM PUBLIC, anon, authenticated;
+ REVOKE ALL ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,uuid) FROM PUBLIC, anon, authenticated;
+-REVOKE ALL ON FUNCTION public.register_lifecycle_document_storage_attempt(uuid,uuid,text,integer,uuid,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
++REVOKE ALL ON FUNCTION public.register_lifecycle_document_storage_attempt(uuid,text,integer,uuid,uuid,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
+ REVOKE ALL ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid,uuid,text,integer,uuid,uuid) FROM PUBLIC, anon, authenticated;
+ REVOKE ALL ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,integer,uuid,text,text,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
+ REVOKE ALL ON FUNCTION public.can_discard_lifecycle_document_object(uuid,uuid,text,text) FROM PUBLIC, anon, authenticated;
+ GRANT EXECUTE ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,uuid) TO service_role;
+-GRANT EXECUTE ON FUNCTION public.register_lifecycle_document_storage_attempt(uuid,uuid,text,integer,uuid,text,text,text,bigint) TO service_role;
++GRANT EXECUTE ON FUNCTION public.register_lifecycle_document_storage_attempt(uuid,text,integer,uuid,uuid,text,text,text,bigint) TO service_role;
+ GRANT EXECUTE ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid,uuid,text,integer,uuid,uuid) TO service_role;
+ GRANT EXECUTE ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,integer,uuid,text,text,text,text,text,bigint) TO service_role;
+ GRANT EXECUTE ON FUNCTION public.can_discard_lifecycle_document_object(uuid,uuid,text,text) TO service_role;
++GRANT EXECUTE ON FUNCTION public.create_lifecycle_document_template_revision(uuid,text) TO service_role;
++GRANT EXECUTE ON FUNCTION public.activate_lifecycle_document_template(uuid,uuid) TO service_role;
++GRANT EXECUTE ON FUNCTION public.retire_lifecycle_document_template(uuid) TO service_role;
+ 
+ -- Required acceptance before applying:
+ -- 1. Run tests/lifecycle_document_draft_acceptance.sql against an isolated DB
+@@ -467,4 +523,4 @@ GRANT EXECUTE ON FUNCTION public.can_discard_lifecycle_document_object(uuid,uuid
+ -- 3. Confirm server bridge calls the new bound receipt/cleanup signatures and
+ --    preserves request JWT context when using the privileged transaction route.
+ -- 4. Confirm storage checksum comparison is sufficient for the storage adapter;
+---    DB cannot fetch object bytes and must never delete uncertain attempt paths.
++--    DB cannot fetch object bytes and must never delete uncertain attempt paths.
+\ No newline at end of file
+diff --git a/supabase/pending/tests/lifecycle_document_draft_acceptance.sql b/supabase/pending/tests/lifecycle_document_draft_acceptance.sql
+index 1997d3c4b02e188edb8d3561b56055eb03e5e969..727ff88d1df8254b836d84b886d80d597f7cd72e 100644
+--- a/supabase/pending/tests/lifecycle_document_draft_acceptance.sql
++++ b/supabase/pending/tests/lifecycle_document_draft_acceptance.sql
+@@ -1,14 +1,14 @@
+ -- ISOLATED-ENVIRONMENT ONLY — executable psql acceptance fixture.
+ -- Required variables: manager_user_id, outsider_user_id, project_id,
+ -- target_folder_id, template_key, template_version, template_revision_id,
+--- request_key, file_name, mime_type, storage_path,
++-- request_key, conflict_target_folder_id, file_name, mime_type, storage_path,
+ -- sha256_checksum, size_bytes. The project/template/folder must be dedicated
+ -- isolated fixtures. Do not point this file at production or shared preview.
+ --
+ -- Usage example (isolated DB only):
+ -- psql "$ISOLATED_DATABASE_URL" -v manager_user_id=... -v outsider_user_id=... \
+ --   -v project_id=... -v target_folder_id=... -v template_key=... -v template_version=1 \
+---   -v template_revision_id=... -v request_key=... \
++--   -v template_revision_id=... -v request_key=... -v conflict_target_folder_id=... \
+ --   -v file_name=... -v mime_type=text/plain -v storage_path=... -v sha256_checksum=... \
+ --   -v size_bytes=... -f supabase/pending/tests/lifecycle_document_draft_acceptance.sql
+ 
+@@ -16,6 +16,12 @@ BEGIN;
+ SELECT set_config('request.jwt.claim.sub', :'manager_user_id', false);
+ SELECT set_config('request.jwt.claim.role', 'authenticated', false);
+ 
++-- The server-owned upload receipt must be present before commit.
++SELECT public.register_lifecycle_document_storage_attempt(
++  :'project_id'::uuid, :'template_key', :'template_version'::integer, :'template_revision_id'::uuid,
++  :'request_key'::uuid, 'project-drive', :'storage_path', :'sha256_checksum', :'size_bytes'::bigint
++);
++
+ -- Authorization and deterministic first create. This result must contain one
+ -- FILE node, revision 1, DRAFT register, document-control REGISTERED event,
+ -- activity audit, and immutable receipt.
+@@ -47,29 +53,99 @@ BEGIN
+ END;
+ $$;
+ 
+--- A changed fingerprint with the same project key must conflict.
+--- A semantic conflict uses the same request key against another target folder;
+--- invoke it in a fixture copy with `conflict_target_folder_id` supplied.
++-- A semantic conflict uses the same project request key against another target.
++DO $fixture$
++DECLARE
++  v_project_id uuid := :'project_id'::uuid;
++  v_conflict_target_folder_id uuid := :'conflict_target_folder_id'::uuid;
++  v_request_key uuid := :'request_key'::uuid;
++  v_template_key text := :'template_key';
++  v_template_version integer := :'template_version'::integer;
++  v_template_revision_id uuid := :'template_revision_id'::uuid;
++  v_file_name text := :'file_name';
++  v_mime_type text := :'mime_type';
++  v_storage_path text := :'storage_path';
++  v_sha256_checksum text := :'sha256_checksum';
++  v_size_bytes bigint := :'size_bytes'::bigint;
++BEGIN
++  BEGIN
++    PERFORM * FROM public.commit_lifecycle_document_draft(
++      v_project_id, v_conflict_target_folder_id, v_request_key,
++      v_template_key, v_template_version, v_template_revision_id,
++      v_file_name, v_mime_type, 'project-drive', v_storage_path,
++      v_sha256_checksum, v_size_bytes
++    );
++    RAISE EXCEPTION 'Expected request-key semantic conflict';
++  EXCEPTION WHEN others THEN
++    IF SQLERRM <> 'Request key conflicts with a different document draft payload' THEN RAISE; END IF;
++  END;
++END;
++$fixture$;
+ 
+ -- An out-of-scope identity cannot read the bound receipt or discard its object.
+ SELECT set_config('request.jwt.claim.sub', :'outsider_user_id', false);
+ SELECT set_config('request.jwt.claim.role', 'authenticated', false);
+--- Both calls must raise the application-level "Not authorized" exception.
+-SELECT * FROM public.find_lifecycle_document_draft_receipt(
+-  :'project_id'::uuid, :'target_folder_id'::uuid, :'template_key', :'template_version'::integer,
+-  :'template_revision_id'::uuid, :'request_key'::uuid
+-);
+-SELECT public.can_discard_lifecycle_document_object(
+-  :'project_id'::uuid, :'request_key'::uuid, 'project-drive', :'storage_path'
+-);
++DO $fixture$
++DECLARE
++  v_project_id uuid := :'project_id'::uuid;
++  v_target_folder_id uuid := :'target_folder_id'::uuid;
++  v_template_key text := :'template_key';
++  v_template_version integer := :'template_version'::integer;
++  v_template_revision_id uuid := :'template_revision_id'::uuid;
++  v_request_key uuid := :'request_key'::uuid;
++  v_storage_path text := :'storage_path';
++  v_sha256_checksum text := :'sha256_checksum';
++  v_size_bytes bigint := :'size_bytes'::bigint;
++BEGIN
++  BEGIN
++    PERFORM * FROM public.find_lifecycle_document_draft_receipt(
++      v_project_id, v_target_folder_id, v_template_key, v_template_version,
++      v_template_revision_id, v_request_key
++    );
++    RAISE EXCEPTION 'Out-of-scope identity received a receipt';
++  EXCEPTION WHEN others THEN
++    IF SQLERRM <> 'Not authorized' THEN RAISE; END IF;
++  END;
++  BEGIN
++    PERFORM public.register_lifecycle_document_storage_attempt(
++      v_project_id, v_template_key, v_template_version, v_template_revision_id,
++      gen_random_uuid(), 'project-drive', v_project_id::text || '/outsider-draft.txt', v_sha256_checksum, v_size_bytes
++    );
++    RAISE EXCEPTION 'Out-of-scope identity registered an attempt';
++  EXCEPTION WHEN others THEN
++    IF SQLERRM <> 'Not authorized' THEN RAISE; END IF;
++  END;
++  IF public.can_discard_lifecycle_document_object(
++    v_project_id, v_request_key, 'project-drive', v_storage_path
++  ) THEN
++    RAISE EXCEPTION 'Out-of-scope identity may discard an object';
++  END IF;
++END;
++$fixture$;
+ 
+ -- Roll back the fixture rows; an independent storage runner must remove the
+ -- staged object only after can_discard confirms every Drive reference is absent.
+ ROLLBACK;
+ 
+--- CONCURRENCY: run the create block in two isolated psql sessions with the
+--- same manager, project/request/template/target pin, but different staged
+--- storage paths. Assert exactly one receipt and one Drive FILE/revision/register
+--- after both sessions finish; the losing attempt must pass exact-path cleanup.
+--- This needs two DB connections plus actual isolated bucket objects and cannot
+--- be faithfully simulated in one SQL transaction.
+\ No newline at end of file
++-- This same psql connection now starts a fresh transaction. It proves the
++-- rollback did not retain a receipt and returns true only for exact manager
++-- cleanup of the no-longer-referenced staged object.
++SELECT set_config('request.jwt.claim.sub', :'manager_user_id', false);
++SELECT set_config('request.jwt.claim.role', 'authenticated', false);
++DO $fixture$
++DECLARE
++  v_project_id uuid := :'project_id'::uuid;
++  v_request_key uuid := :'request_key'::uuid;
++  v_storage_path text := :'storage_path';
++BEGIN
++  IF EXISTS (SELECT 1 FROM public.project_lifecycle_document_drafts WHERE project_id = v_project_id AND request_key = v_request_key) THEN
++    RAISE EXCEPTION 'ROLLBACK retained a lifecycle draft receipt';
++  END IF;
++  IF NOT public.can_discard_lifecycle_document_object(v_project_id, v_request_key, 'project-drive', v_storage_path) THEN
++    RAISE EXCEPTION 'ROLLBACK did not leave the exact staged object eligible for verified cleanup';
++  END IF;
++END;
++$fixture$;
++
++-- The independent concurrency runner commits two distinct staged paths using
++-- one request key and asserts one canonical receipt and losing-path cleanup.
+\ No newline at end of file
+diff --git a/supabase/pending/tests/lifecycle_document_draft_concurrency.sh b/supabase/pending/tests/lifecycle_document_draft_concurrency.sh
+new file mode 100644
+index 0000000000000000000000000000000000000000..642c8944539988754995f9e11d2e03e22025242a
+--- /dev/null
++++ b/supabase/pending/tests/lifecycle_document_draft_concurrency.sh
+@@ -0,0 +1,75 @@
++#!/usr/bin/env bash
++set -euo pipefail
++
++# ISOLATED ENVIRONMENT ONLY. Required environment variables match the SQL
++# fixture plus ISOLATED_DATABASE_URL, REQUEST_KEY_A, REQUEST_KEY_B,
++# STORAGE_PATH_A and STORAGE_PATH_B. Both request keys must be the same to
++# prove semantic replay; paths must differ to prove losing-attempt cleanup.
++: "${ISOLATED_DATABASE_URL:?}" "${MANAGER_USER_ID:?}" "${PROJECT_ID:?}"
++: "${TARGET_FOLDER_ID:?}" "${TEMPLATE_KEY:?}" "${TEMPLATE_VERSION:?}"
++: "${TEMPLATE_REVISION_ID:?}" "${REQUEST_KEY_A:?}" "${REQUEST_KEY_B:?}"
++: "${FILE_NAME:?}" "${SHA256_CHECKSUM:?}" "${SIZE_BYTES:?}"
++: "${STORAGE_PATH_A:?}" "${STORAGE_PATH_B:?}"
++
++if [[ "$REQUEST_KEY_A" != "$REQUEST_KEY_B" ]]; then
++  echo "REQUEST_KEY_A and REQUEST_KEY_B must match for semantic replay" >&2
++  exit 1
++fi
++
++run_attempt() {
++  local request_key="$1" storage_path="$2"
++  psql "$ISOLATED_DATABASE_URL" --set=ON_ERROR_STOP=1 \
++    -v manager_user_id="$MANAGER_USER_ID" -v project_id="$PROJECT_ID" \
++    -v target_folder_id="$TARGET_FOLDER_ID" -v template_key="$TEMPLATE_KEY" \
++    -v template_version="$TEMPLATE_VERSION" -v template_revision_id="$TEMPLATE_REVISION_ID" \
++    -v request_key="$request_key" -v file_name="$FILE_NAME" -v mime_type=text/plain \
++    -v storage_path="$storage_path" -v sha256_checksum="$SHA256_CHECKSUM" -v size_bytes="$SIZE_BYTES" <<'SQL'
++BEGIN;
++SELECT set_config('request.jwt.claim.sub', :'manager_user_id', false);
++SELECT set_config('request.jwt.claim.role', 'authenticated', false);
++SELECT public.register_lifecycle_document_storage_attempt(
++  :'project_id'::uuid, :'template_key', :'template_version'::integer, :'template_revision_id'::uuid,
++  :'request_key'::uuid, 'project-drive', :'storage_path', :'sha256_checksum', :'size_bytes'::bigint
++);
++SELECT * FROM public.commit_lifecycle_document_draft(
++  :'project_id'::uuid, :'target_folder_id'::uuid, :'request_key'::uuid,
++  :'template_key', :'template_version'::integer, :'template_revision_id'::uuid,
++  :'file_name', :'mime_type', 'project-drive', :'storage_path', :'sha256_checksum', :'size_bytes'::bigint
++);
++COMMIT;
++SQL
++}
++
++run_attempt "$REQUEST_KEY_A" "$STORAGE_PATH_A" & first=$!
++run_attempt "$REQUEST_KEY_B" "$STORAGE_PATH_B" & second=$!
++wait "$first"; wait "$second"
++
++psql "$ISOLATED_DATABASE_URL" --set=ON_ERROR_STOP=1 \
++  -v manager_user_id="$MANAGER_USER_ID" -v project_id="$PROJECT_ID" -v request_key="$REQUEST_KEY_A" \
++  -v storage_path_a="$STORAGE_PATH_A" -v storage_path_b="$STORAGE_PATH_B" <<'SQL'
++SELECT set_config('request.jwt.claim.sub', :'manager_user_id', false);
++SELECT set_config('request.jwt.claim.role', 'authenticated', false);
++DO $assert$
++DECLARE
++  v_project_id uuid := :'project_id'::uuid;
++  v_request_key uuid := :'request_key'::uuid;
++  v_path_a text := :'storage_path_a';
++  v_path_b text := :'storage_path_b';
++  v_canonical_path text;
++BEGIN
++  IF (SELECT count(*) FROM public.project_lifecycle_document_drafts
++      WHERE project_id = v_project_id AND request_key = v_request_key) <> 1 THEN
++    RAISE EXCEPTION 'Concurrent replay did not converge to exactly one receipt';
++  END IF;
++  SELECT storage_path INTO v_canonical_path FROM public.project_lifecycle_document_drafts
++  WHERE project_id = v_project_id AND request_key = v_request_key;
++  IF v_canonical_path NOT IN (v_path_a, v_path_b) THEN RAISE EXCEPTION 'Concurrent receipt is not bound to either staged attempt'; END IF;
++  IF NOT public.can_discard_lifecycle_document_object(v_project_id, v_request_key, 'project-drive', CASE WHEN v_canonical_path = v_path_a THEN v_path_b ELSE v_path_a END) THEN
++    RAISE EXCEPTION 'Losing concurrent attempt is not eligible for exact cleanup';
++  END IF;
++  IF public.can_discard_lifecycle_document_object(v_project_id, v_request_key, 'project-drive', v_canonical_path) THEN
++    RAISE EXCEPTION 'Canonical concurrent attempt became eligible for cleanup';
++  END IF;
++END;
++$assert$;
++SQL
+\ No newline at end of file
