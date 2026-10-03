@@ -42,9 +42,12 @@ wait "$first"; wait "$second"
 psql "$ISOLATED_DATABASE_URL" --set=ON_ERROR_STOP=1 \
   -v project_id="$PROJECT_ID" -v request_key="$REQUEST_KEY_A" <<'SQL'
 DO $assert$
+DECLARE
+  v_project_id uuid := :'project_id'::uuid;
+  v_request_key uuid := :'request_key'::uuid;
 BEGIN
   IF (SELECT count(*) FROM public.project_lifecycle_document_drafts
-      WHERE project_id = :'project_id'::uuid AND request_key = :'request_key'::uuid) <> 1 THEN
+      WHERE project_id = v_project_id AND request_key = v_request_key) <> 1 THEN
     RAISE EXCEPTION 'Concurrent replay did not converge to exactly one receipt';
   END IF;
 END;

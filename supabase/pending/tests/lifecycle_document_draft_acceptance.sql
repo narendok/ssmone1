@@ -55,13 +55,25 @@ $$;
 
 -- A semantic conflict uses the same project request key against another target.
 DO $fixture$
+DECLARE
+  v_project_id uuid := :'project_id'::uuid;
+  v_conflict_target_folder_id uuid := :'conflict_target_folder_id'::uuid;
+  v_request_key uuid := :'request_key'::uuid;
+  v_template_key text := :'template_key';
+  v_template_version integer := :'template_version'::integer;
+  v_template_revision_id uuid := :'template_revision_id'::uuid;
+  v_file_name text := :'file_name';
+  v_mime_type text := :'mime_type';
+  v_storage_path text := :'storage_path';
+  v_sha256_checksum text := :'sha256_checksum';
+  v_size_bytes bigint := :'size_bytes'::bigint;
 BEGIN
   BEGIN
     PERFORM * FROM public.commit_lifecycle_document_draft(
-      :'project_id'::uuid, :'conflict_target_folder_id'::uuid, :'request_key'::uuid,
-      :'template_key', :'template_version'::integer, :'template_revision_id'::uuid,
-      :'file_name', :'mime_type', 'project-drive', :'storage_path',
-      :'sha256_checksum', :'size_bytes'::bigint
+      v_project_id, v_conflict_target_folder_id, v_request_key,
+      v_template_key, v_template_version, v_template_revision_id,
+      v_file_name, v_mime_type, 'project-drive', v_storage_path,
+      v_sha256_checksum, v_size_bytes
     );
     RAISE EXCEPTION 'Expected request-key semantic conflict';
   EXCEPTION WHEN others THEN
@@ -74,11 +86,21 @@ $fixture$;
 SELECT set_config('request.jwt.claim.sub', :'outsider_user_id', false);
 SELECT set_config('request.jwt.claim.role', 'authenticated', false);
 DO $fixture$
+DECLARE
+  v_project_id uuid := :'project_id'::uuid;
+  v_target_folder_id uuid := :'target_folder_id'::uuid;
+  v_template_key text := :'template_key';
+  v_template_version integer := :'template_version'::integer;
+  v_template_revision_id uuid := :'template_revision_id'::uuid;
+  v_request_key uuid := :'request_key'::uuid;
+  v_storage_path text := :'storage_path';
+  v_sha256_checksum text := :'sha256_checksum';
+  v_size_bytes bigint := :'size_bytes'::bigint;
 BEGIN
   BEGIN
     PERFORM * FROM public.find_lifecycle_document_draft_receipt(
-      :'project_id'::uuid, :'target_folder_id'::uuid, :'template_key', :'template_version'::integer,
-      :'template_revision_id'::uuid, :'request_key'::uuid
+      v_project_id, v_target_folder_id, v_template_key, v_template_version,
+      v_template_revision_id, v_request_key
     );
     RAISE EXCEPTION 'Out-of-scope identity received a receipt';
   EXCEPTION WHEN others THEN
@@ -86,15 +108,15 @@ BEGIN
   END;
   BEGIN
     PERFORM public.register_lifecycle_document_storage_attempt(
-      :'project_id'::uuid, :'template_key', :'template_version'::integer, :'template_revision_id'::uuid,
-      gen_random_uuid(), 'project-drive', :'project_id' || '/outsider-draft.txt', :'sha256_checksum', :'size_bytes'::bigint
+      v_project_id, v_template_key, v_template_version, v_template_revision_id,
+      gen_random_uuid(), 'project-drive', v_project_id::text || '/outsider-draft.txt', v_sha256_checksum, v_size_bytes
     );
     RAISE EXCEPTION 'Out-of-scope identity registered an attempt';
   EXCEPTION WHEN others THEN
     IF SQLERRM <> 'Not authorized' THEN RAISE; END IF;
   END;
   IF public.can_discard_lifecycle_document_object(
-    :'project_id'::uuid, :'request_key'::uuid, 'project-drive', :'storage_path'
+    v_project_id, v_request_key, 'project-drive', v_storage_path
   ) THEN
     RAISE EXCEPTION 'Out-of-scope identity may discard an object';
   END IF;
