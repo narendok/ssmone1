@@ -7,6 +7,20 @@ export const lifecycleActionContracts = {
   materialize: { rpc: "generate_project_lifecycle_draft", mutation: "project draft", idempotent: true },
 } as const;
 
-export function lifecycleActionMayRun(input: { approvedForDeployment: boolean; hasIsolatedDbAcceptance: boolean }) {
-  return input.approvedForDeployment && input.hasIsolatedDbAcceptance;
+export type LifecycleAcceptanceEvidence = {
+  authorization: boolean;
+  rollback: boolean;
+  replayAndConcurrency: boolean;
+  nonAdminRls: boolean;
+};
+
+export function lifecycleActionMayRun(input: {
+  approvedForDeployment: boolean;
+  evidence: LifecycleAcceptanceEvidence;
+}) {
+  return input.approvedForDeployment
+    && input.evidence.authorization
+    && input.evidence.rollback
+    && input.evidence.replayAndConcurrency
+    && input.evidence.nonAdminRls;
 }

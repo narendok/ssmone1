@@ -8,8 +8,18 @@ describe("lifecycle protected-action contract", () => {
   });
 
   it("requires deployment review and isolated database acceptance before mutation can be enabled", () => {
-    expect(lifecycleActionMayRun({ approvedForDeployment: false, hasIsolatedDbAcceptance: true })).toBe(false);
-    expect(lifecycleActionMayRun({ approvedForDeployment: true, hasIsolatedDbAcceptance: false })).toBe(false);
-    expect(lifecycleActionMayRun({ approvedForDeployment: true, hasIsolatedDbAcceptance: true })).toBe(true);
+    const completeEvidence = {
+      authorization: true,
+      rollback: true,
+      replayAndConcurrency: true,
+      nonAdminRls: true,
+    };
+
+    expect(lifecycleActionMayRun({ approvedForDeployment: false, evidence: completeEvidence })).toBe(false);
+    expect(lifecycleActionMayRun({ approvedForDeployment: true, evidence: { ...completeEvidence, authorization: false } })).toBe(false);
+    expect(lifecycleActionMayRun({ approvedForDeployment: true, evidence: { ...completeEvidence, rollback: false } })).toBe(false);
+    expect(lifecycleActionMayRun({ approvedForDeployment: true, evidence: { ...completeEvidence, replayAndConcurrency: false } })).toBe(false);
+    expect(lifecycleActionMayRun({ approvedForDeployment: true, evidence: { ...completeEvidence, nonAdminRls: false } })).toBe(false);
+    expect(lifecycleActionMayRun({ approvedForDeployment: true, evidence: completeEvidence })).toBe(true);
   });
 });
