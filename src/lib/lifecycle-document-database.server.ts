@@ -73,7 +73,6 @@ export function createLifecycleDocumentDatabaseBridge(
         p_project_id: projectId,
         p_target_folder_id: targetFolderId,
         p_request_key: input.requestKey,
-        p_source_fingerprint: input.sourceFingerprint,
         p_template_key: input.rendered.templatePin.templateKey,
         p_template_version: input.rendered.templatePin.version,
         p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
