@@ -28,7 +28,7 @@ const templateStageSchema = z.object({
 const templateIdSchema = z.object({ templateId: uuid });
 const templateContentRevisionSchema = z.object({
   templateId: uuid,
-  content: z.string().trim().min(1).max(200_000),
+  content: z.string().max(200_000).refine((value) => value.trim().length > 0, "Template content is required."),
 });
 const templateActivationSchema = z.object({
   templateId: uuid,

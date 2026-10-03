@@ -11,6 +11,8 @@ export function createLifecycleTemplateContentStore(client: SupabaseClient) {
       if (!uuid.test(templateId) || !content.trim() || content.length > 200_000) {
         throw new Error("Valid template and non-empty content are required.");
       }
+      const checksum = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(content))),
+        (byte) => byte.toString(16).padStart(2, "0")).join("");
       const { data, error } = await client.rpc("create_lifecycle_document_template_revision", {
         p_template_id: templateId, p_content: content,
       });
@@ -20,7 +22,7 @@ export function createLifecycleTemplateContentStore(client: SupabaseClient) {
       const row = rows[0] as Record<string, unknown>;
       if (typeof row.id !== "string" || !uuid.test(row.id) || row.template_id !== templateId
         || !Number.isSafeInteger(row.revision_number) || (row.revision_number as number) < 1
-        || typeof row.content_sha256 !== "string" || !/^[a-f0-9]{64}$/.test(row.content_sha256)) {
+        || row.content_sha256 !== checksum) {
         throw new Error("Invalid immutable template revision receipt.");
       }
       return { id: row.id, templateId, revisionNumber: row.revision_number as number, checksum: row.content_sha256 };

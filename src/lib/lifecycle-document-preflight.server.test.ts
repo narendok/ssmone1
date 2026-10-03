@@ -13,7 +13,7 @@ const ids = {
 function client(overrides: Record<string, unknown> = {}) {
   const records: Record<string, unknown> = {
     projects: { id: ids.project, code: "PROJECT-2026-0005", name: "OEM Tracker Portal Test", revision: "TEST-01", department_id: ids.department, project_drive_node_id: "root", updated_at: "2026-10-03T00:00:00Z" },
-    department_process_templates: { id: ids.template, department_id: ids.department, template_key: "OEM-TRACKER", version: 1, title: "OEM Tracker", status: "ACTIVE" },
+    department_process_templates: { id: ids.template, department_id: ids.department, template_key: "OEM-TRACKER", version: 1, title: "OEM Tracker", status: "ACTIVE", active_document_revision_id: ids.revision },
     department_process_template_document_revisions: { id: ids.revision, template_id: ids.template, content: "{{PROJECT_CODE}} / {{PROJECT_NAME}} / {{PROJECT_REVISION}} / {{DEPARTMENT}}" },
     drive_nodes: { id: ids.target, project_id: ids.project, department_id: ids.department, node_type: "FOLDER", is_trashed: false },
     departments: { id: ids.department, name: "Hardware & R&D", is_active: true },
@@ -29,6 +29,10 @@ function client(overrides: Record<string, unknown> = {}) {
 const input = { projectId: ids.project, templateId: ids.template, templateVersion: 1, templateDocumentRevisionId: ids.revision, targetFolderId: ids.target, requestKey: ids.request };
 
 describe("server-owned lifecycle document preflight", () => {
+  it.each([null, "00000000-0000-0000-0000-000000000099"])("rejects missing or different activated document pins: %s", async (activeDocumentRevisionId) => {
+    const template = { id: ids.template, department_id: ids.department, template_key: "OEM-TRACKER", version: 1, title: "OEM Tracker", status: "ACTIVE", active_document_revision_id: activeDocumentRevisionId };
+    await expect(loadLifecycleDocumentPreflight(client({ department_process_templates: template }), input)).rejects.toThrow("approved during template activation");
+  });
   it("loads immutable content, target, and project fields instead of browser document data", async () => {
     const result = await loadLifecycleDocumentPreflight(client(), input);
     expect(result.rendered.content).toBe("PROJECT-2026-0005 / OEM Tracker Portal Test / TEST-01 / Hardware & R&D");

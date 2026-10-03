@@ -1,0 +1,40 @@
+name: Lifecycle template SQL regressions
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - supabase/pending/20261003_lifecycle_document_draft_generation.sql
+      - supabase/pending/tests/**
+      - supabase/migrations/20261002220916_5d158822-de77-479d-a8af-54037acc96ad.sql
+      - .github/workflows/lifecycle-template-sql.yml
+  pull_request:
+    paths:
+      - supabase/pending/20261003_lifecycle_document_draft_generation.sql
+      - supabase/pending/tests/**
+      - supabase/migrations/20261002220916_5d158822-de77-479d-a8af-54037acc96ad.sql
+      - .github/workflows/lifecycle-template-sql.yml
+
+permissions:
+  contents: read
+
+jobs:
+  template-governance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install test package manager
+        run: npm install --global pnpm@11.19.0 --ignore-scripts
+      - name: Install isolated PostgreSQL test runtime
+        run: pnpm --dir supabase/pending/tests install --frozen-lockfile --ignore-scripts
+      - name: Execute template governance SQL regressions
+        run: node --test supabase/pending/tests/template-governance.pg.mjs
+      # This deliberately has no production secrets or deployment step.
+      # These focused fixture tests are not full Supabase acceptance.

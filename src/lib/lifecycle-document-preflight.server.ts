@@ -22,7 +22,7 @@ type ProjectRow = {
 };
 
 type DepartmentRow = { id: string; name: string; is_active: boolean };
-type TemplateRow = { id: string; department_id: string; template_key: string; version: number; title: string; status: string };
+type TemplateRow = { id: string; department_id: string; template_key: string; version: number; title: string; status: string; active_document_revision_id: string | null };
 type TemplateRevisionRow = { id: string; template_id: string; content: string };
 type TargetRow = { id: string; project_id: string | null; department_id: string | null; node_type: string; is_trashed: boolean };
 
@@ -77,7 +77,7 @@ export async function loadLifecycleDocumentPreflight(
 ): Promise<LifecycleDocumentPreflight> {
   const [{ data: project, error: projectError }, { data: template, error: templateError }, { data: revision, error: revisionError }, { data: target, error: targetError }] = await Promise.all([
     supabase.from("projects").select("id,code,name,revision,department_id,project_drive_node_id,updated_at").eq("id", input.projectId).maybeSingle(),
-    supabase.from("department_process_templates").select("id,department_id,template_key,version,title,status").eq("id", input.templateId).maybeSingle(),
+    supabase.from("department_process_templates").select("id,department_id,template_key,version,title,status,active_document_revision_id").eq("id", input.templateId).maybeSingle(),
     supabase.from("department_process_template_document_revisions" as never).select("id,template_id,content").eq("id", input.templateDocumentRevisionId).maybeSingle(),
     supabase.from("drive_nodes").select("id,project_id,department_id,node_type,is_trashed").eq("id", input.targetFolderId).maybeSingle(),
   ]);
@@ -95,6 +95,9 @@ export async function loadLifecycleDocumentPreflight(
     throw new Error("An active template matching the project's owning department and pinned version is required.");
   }
   if (typedRevision.template_id !== typedTemplate.id) throw new Error("Template content revision does not belong to the pinned template.");
+  if (!typedTemplate.active_document_revision_id || typedTemplate.active_document_revision_id !== typedRevision.id) {
+    throw new Error("Generation requires the exact document revision approved during template activation.");
+  }
   if (typedTarget.node_type.toUpperCase() !== "FOLDER" || typedTarget.is_trashed || typedTarget.project_id !== typedProject.id || typedTarget.department_id !== typedProject.department_id) {
     throw new Error("Target folder is outside the authorized project Drive.");
   }

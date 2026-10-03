@@ -1,5 +1,9 @@
 # Document generation increment — 2026-10-03
 
+Latest follow-on: [2026-10-04 template governance checkpoint](evidence/TEMPLATE_GENERATION_CHECKPOINT_2026-10-04.md).
+191 source tests, 11 focused embedded PostgreSQL tests, TypeScript and production
+build pass. This does not establish full isolated Supabase acceptance or live save.
+
 This increment is source implementation; live document generation remains disabled.
 
 Implemented source-only:

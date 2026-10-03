@@ -12,6 +12,18 @@
 --   -v file_name=... -v mime_type=text/plain -v storage_path=... -v sha256_checksum=... \
 --   -v size_bytes=... -f supabase/pending/tests/lifecycle_document_draft_acceptance.sql
 
+\set ON_ERROR_STOP on
+
+-- Registration is a separate server RPC in the real storage workflow. Keep
+-- its exact provenance after the commit-test rollback, so cleanup can be
+-- proven against an existing unconsumed attempt rather than guessed by path.
+SELECT set_config('request.jwt.claim.sub', :'manager_user_id', false);
+SELECT set_config('request.jwt.claim.role', 'authenticated', false);
+SELECT public.register_lifecycle_document_storage_attempt(
+  :'project_id'::uuid, :'template_key', :'template_version'::integer, :'template_revision_id'::uuid,
+  :'request_key'::uuid, 'project-drive', :'storage_path', :'sha256_checksum', :'size_bytes'::bigint
+);
+
 BEGIN;
 SELECT set_config('lifecycle_test.sha256_checksum', :'sha256_checksum', false);
 SELECT set_config('lifecycle_test.conflict_target_folder_id', :'conflict_target_folder_id', false);
@@ -29,12 +41,6 @@ SELECT set_config('lifecycle_test.template_revision_id', :'template_revision_id'
 SELECT set_config('lifecycle_test.template_version', :'template_version', false);
 SELECT set_config('request.jwt.claim.sub', :'manager_user_id', false);
 SELECT set_config('request.jwt.claim.role', 'authenticated', false);
-
--- The server-owned upload receipt must be present before commit.
-SELECT public.register_lifecycle_document_storage_attempt(
-  :'project_id'::uuid, :'template_key', :'template_version'::integer, :'template_revision_id'::uuid,
-  :'request_key'::uuid, 'project-drive', :'storage_path', :'sha256_checksum', :'size_bytes'::bigint
-);
 
 -- Authorization and deterministic first create. This result must contain one
 -- FILE node, revision 1, DRAFT register, document-control REGISTERED event,
@@ -137,7 +143,8 @@ BEGIN
 END;
 $fixture$;
 
--- Roll back the fixture rows; an independent storage runner must remove the
+-- Roll back generated fixture rows (retaining the upload-attempt registration);
+-- an independent storage runner must remove the
 -- staged object only after can_discard confirms every Drive reference is absent.
 ROLLBACK;
 

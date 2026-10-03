@@ -78,6 +78,18 @@ USING (EXISTS (
     AND public.can_access_department_drive(auth.uid(), template.department_id, NULL)
 ));
 
+-- An ACTIVE process version must remember the exact document body approved
+-- during activation. Legacy ACTIVE versions remain unbound and cannot generate
+-- documents until a governed successor is activated; never infer a latest body.
+ALTER TABLE public.department_process_template_document_revisions
+  ADD CONSTRAINT lifecycle_template_revision_identity UNIQUE (template_id, id);
+ALTER TABLE public.department_process_templates
+  ADD COLUMN active_document_revision_id uuid,
+  ADD CONSTRAINT lifecycle_template_active_document_revision_fkey
+    FOREIGN KEY (id, active_document_revision_id)
+    REFERENCES public.department_process_template_document_revisions(template_id, id)
+    ON DELETE RESTRICT;
+
 CREATE TABLE public.project_lifecycle_document_drafts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   project_id uuid NOT NULL REFERENCES public.projects(id) ON DELETE RESTRICT,
@@ -150,7 +162,7 @@ DECLARE v_actor uuid := public.lifecycle_actor(); v_template public.department_p
   v_revision_number integer; v_checksum text;
 BEGIN
   IF btrim(coalesce(p_content, '')) = '' THEN RAISE EXCEPTION 'Immutable template content is required'; END IF;
-  SELECT * INTO v_template FROM public.department_process_templates WHERE id = p_template_id FOR UPDATE;
+  SELECT template.* INTO v_template FROM public.department_process_templates template WHERE template.id = p_template_id FOR UPDATE;
   IF NOT FOUND OR v_template.status <> 'DRAFT' THEN RAISE EXCEPTION 'Only a DRAFT template may receive a new immutable content revision'; END IF;
   IF NOT public.lifecycle_can_manage_department(v_actor, v_template.department_id)
      OR NOT public.can_access_department_drive(v_actor, v_template.department_id, NULL) THEN RAISE EXCEPTION 'Not authorized'; END IF;
@@ -171,15 +183,29 @@ CREATE OR REPLACE FUNCTION public.activate_lifecycle_document_template(
   p_template_id uuid, p_template_document_revision_id uuid
 ) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_actor uuid := public.lifecycle_actor(); v_template public.department_process_templates%ROWTYPE;
+  v_content text; v_token text;
 BEGIN
   SELECT * INTO v_template FROM public.department_process_templates WHERE id = p_template_id FOR UPDATE;
   IF NOT FOUND OR v_template.status <> 'DRAFT' THEN RAISE EXCEPTION 'Only a DRAFT template may be activated'; END IF;
   IF NOT public.lifecycle_can_manage_department(v_actor, v_template.department_id)
      OR NOT public.can_access_department_drive(v_actor, v_template.department_id, NULL) THEN RAISE EXCEPTION 'Not authorized'; END IF;
-  PERFORM 1 FROM public.department_process_template_document_revisions revision
+  SELECT revision.content INTO v_content FROM public.department_process_template_document_revisions revision
   WHERE revision.id = p_template_document_revision_id AND revision.template_id = v_template.id FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Activation requires a pinned immutable content revision'; END IF;
-  UPDATE public.department_process_templates SET status = 'ACTIVE', activated_at = now() WHERE id = v_template.id;
+  IF regexp_replace(v_content, '\{\{\s*[A-Z0-9_]+\s*\}\}', '', 'g') LIKE '%{{%'
+     OR regexp_replace(v_content, '\{\{\s*[A-Z0-9_]+\s*\}\}', '', 'g') LIKE '%}}%' THEN
+    RAISE EXCEPTION 'Invalid document template placeholder';
+  END IF;
+  FOR v_token IN SELECT (regexp_matches(v_content, '\{\{\s*([A-Z0-9_]+)\s*\}\}', 'g'))[1] LOOP
+    IF v_token NOT IN ('PROJECT_CODE', 'PROJECT_NAME', 'PROJECT_REVISION', 'DEPARTMENT') THEN
+      RAISE EXCEPTION 'Unsupported document template field: %', v_token;
+    END IF;
+  END LOOP;
+  UPDATE public.department_process_templates
+    SET active_document_revision_id = p_template_document_revision_id WHERE id = v_template.id;
+  -- Preserve the existing governed-stage checks, successor serialization and
+  -- transition guard. A failed transition rolls the content pin back as well.
+  PERFORM public.activate_department_process_template(v_template.id);
 END;
 $$;
 
@@ -191,7 +217,7 @@ BEGIN
   IF NOT FOUND OR v_template.status <> 'ACTIVE' THEN RAISE EXCEPTION 'Only an ACTIVE template may be retired'; END IF;
   IF NOT public.lifecycle_can_manage_department(v_actor, v_template.department_id)
      OR NOT public.can_access_department_drive(v_actor, v_template.department_id, NULL) THEN RAISE EXCEPTION 'Not authorized'; END IF;
-  UPDATE public.department_process_templates SET status = 'RETIRED', retired_at = now() WHERE id = v_template.id;
+  PERFORM public.retire_department_process_template(v_template.id);
 END;
 $$;
 
@@ -238,7 +264,8 @@ BEGIN
      OR NOT public.can_access_department_drive(v_actor, v_project.department_id, v_project.id) THEN RAISE EXCEPTION 'Not authorized'; END IF;
   PERFORM 1 FROM public.department_process_templates template
   JOIN public.department_process_template_document_revisions revision ON revision.id = p_template_document_revision_id AND revision.template_id = template.id
-  WHERE template.department_id = v_project.department_id AND template.template_key = p_template_key AND template.version = p_template_version AND template.status = 'ACTIVE' FOR SHARE;
+  WHERE template.department_id = v_project.department_id AND template.template_key = p_template_key AND template.version = p_template_version AND template.status = 'ACTIVE'
+    AND template.active_document_revision_id = p_template_document_revision_id FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Matching active immutable template version required'; END IF;
 END;
 $$;
@@ -342,7 +369,8 @@ BEGIN
      OR NOT public.can_access_department_drive(v_actor, v_project.department_id, v_project.id) THEN RAISE EXCEPTION 'Not authorized'; END IF;
   SELECT * INTO v_template FROM public.department_process_templates
   WHERE department_id = v_project.department_id AND template_key = p_template_key
-    AND version = p_template_version AND status = 'ACTIVE' FOR SHARE;
+    AND version = p_template_version AND status = 'ACTIVE'
+    AND active_document_revision_id = p_template_document_revision_id FOR SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Matching active immutable template version required'; END IF;
   SELECT * INTO v_template_revision FROM public.department_process_template_document_revisions
   WHERE id = p_template_document_revision_id AND template_id = v_template.id FOR SHARE;
