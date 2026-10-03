@@ -49,3 +49,15 @@ Codex independent integration review:
 - Full source suite: 188 tests in 25 files passed. These unit tests do not execute pending SQL or establish backend authorization acceptance.
 - Remaining blocking integration: a verified privileged execution route retaining the signed-in actor; isolated database/storage with approved scoped test identities; deployment acceptance for SQL, storage compensation, concurrent replay and template lifecycle. UI save and automatic project/change generation remain disabled/unwired. No production migration was applied.
 - TypeScript and production build completed with exit code 0. User confirmed there is no separate test/staging project; isolated database acceptance is therefore unavailable at this checkpoint.
+
+### Live enablement access audit — 2026-10-03
+
+User explicitly authorized completing and enabling template save/automatic generation. This authorization does not replace the required isolated acceptance evidence.
+
+Verified blockers:
+- Current tools expose local shell/Git but no Lovable browser or Supabase deployment capability.
+- No Docker, PostgreSQL psql, or Supabase CLI was located in PATH. No database/Supabase deployment environment variable names were present (no credential values were printed).
+- User previously confirmed no separate test/staging Supabase project exists.
+- Existing src/integrations/supabase/client.server.ts creates a service-role client without retaining the signed-in user's token/identity. public.lifecycle_actor() reads auth.uid() and rejects a null actor. A service-role key alone cannot satisfy the actor-preserving execution requirement; replacing its bearer token with the user's token also cannot confer service-only RPC execution.
+
+Do not enable the gate or claim live save until a reviewed server-only authenticated actor transport and isolated SQL/storage/RLS acceptance are available. Source tests at 054c792 remain 188 passing; they were not rerun in this read-only audit. No backend migration, role/credential change, production data mutation, or publication was performed.
