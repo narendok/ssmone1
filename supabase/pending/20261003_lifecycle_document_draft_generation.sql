@@ -345,7 +345,7 @@ BEGIN
   v_rendered_content := '';
   v_remaining := v_template_revision.content;
   LOOP
-    v_match := regexp_match(v_remaining, '^(.*?)\{\{\s*([A-Z0-9_]+)\s*\}\}', 's');
+    v_match := regexp_match(v_remaining, '^(.*?)\{\{\s*([A-Z0-9_]+)\s*\}\}(.*)$', 's');
     EXIT WHEN v_match IS NULL;
     v_token := v_match[2];
     v_replacement := CASE v_token
@@ -355,7 +355,7 @@ BEGIN
       WHEN 'DEPARTMENT' THEN (SELECT name FROM public.departments WHERE id = v_project.department_id)
     END;
     v_rendered_content := v_rendered_content || v_match[1] || v_replacement;
-    v_remaining := substr(v_remaining, char_length(v_match[1]) + char_length(v_match[2]) + 5);
+    v_remaining := v_match[3];
   END LOOP;
   v_rendered_content := v_rendered_content || v_remaining;
   v_rendered_sha256 := encode(digest(convert_to(v_rendered_content, 'UTF8'), 'sha256'), 'hex');
@@ -444,10 +444,12 @@ REVOKE ALL ON FUNCTION public.lifecycle_document_draft_guard() FROM PUBLIC, anon
 REVOKE ALL ON FUNCTION public.lifecycle_document_draft_delete_guard() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.lifecycle_document_storage_attempt_guard() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.register_lifecycle_document_storage_attempt(uuid,text,integer,uuid,uuid,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid,uuid,text,integer,uuid,uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,integer,uuid,text,text,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.can_discard_lifecycle_document_object(uuid,uuid,text,text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.register_lifecycle_document_storage_attempt(uuid,text,integer,uuid,uuid,text,text,text,bigint) TO service_role;
 GRANT EXECUTE ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid,uuid,text,integer,uuid,uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,integer,uuid,text,text,text,text,text,bigint) TO service_role;
 GRANT EXECUTE ON FUNCTION public.can_discard_lifecycle_document_object(uuid,uuid,text,text) TO service_role;
