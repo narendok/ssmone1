@@ -2,6 +2,7 @@
 
 ## Maintenance
 
+- [x] Add OAuth-protected, read-only agent integration tools for accessible projects, tasks, and Drive document metadata; all tool data remains subject to each connected user’s existing workspace permissions.
 - [x] Create three SAMPLE ONLY OEM tracker tasks in PROJECT-2026-0005 after correcting the canonical department-to-task enum mapping. **Verified:** all three records are linked to the sample Hardware project; no identities, roles, or access changed.
 - [ ] Verify lifecycle documentation generation on PROJECT-2026-0005. **Blocked:** the reviewed lifecycle mutation bridge intentionally rejects all creates, edits, saves, retries, and audit/revision generation pending isolated acceptance. The exact missing evidence is authorization denial, transaction rollback, replay/concurrent-request behavior, and non-administrator RLS using approved test identities. The project contains generated folders only, no document drafts.
 - [x] Implement source-only deterministic lifecycle document rendering and persistence orchestration: populated token mapping, immutable template/version pinning, replay/conflict handling, and compensation hook tests. **Not deployed/live:** the current app has no accepted atomic storage/Drive-revision/register/audit routine. `supabase/pending/20261003_lifecycle_document_draft_generation.sql` is an unapplied review proposal for its receipt table and protected transaction contract.

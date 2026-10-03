@@ -19,3 +19,4 @@
 - Lifecycle contracts must authorize before replay, bind receipts and generated records to immutable actor/template provenance, reject duplicate source-stage regeneration, and serialize all project dependency graph writes.
 - Lifecycle action façades must authenticate and re-check department scope before any mutation bridge is enabled; it remains disabled until isolated authorization, rollback, replay/concurrency, and non-admin RLS acceptance all pass.
 - Legacy Drive ownership review is read-only and requires an explicit administrator dry-run selection; no folder name, BOM, title, or descendant may infer historical department ownership.
+- App MCP tools always use a caller-token RLS client, remain read-only unless separately reviewed, and require OAuth consent; this keeps connected assistants within each user’s existing workspace access.

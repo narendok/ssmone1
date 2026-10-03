@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>) => ({ next: typeof search.next === "string" ? search.next : undefined }),
   head: () => ({ meta: [
     { title: "Sign in — SSM One" }, { name: "description", content: "Sign in to the SSM One operations workspace." },
     { property: "og:title", content: "Sign in — SSM One" }, { property: "og:description", content: "Sign in to the SSM One operations workspace." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
@@ -19,6 +20,8 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
+  const destination = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
   const [loading, setLoading] = useState(false);
   async function handleSignIn(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,19 +34,19 @@ function AuthPage() {
     setLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Welcome back");
-    navigate({ to: "/" });
+    navigate({ to: destination });
   }
 
   async function handleGoogle() {
     setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: `${window.location.origin}${destination}` });
     if (result.error) {
       setLoading(false);
       toast.error(result.error.message);
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/" });
+    navigate({ to: destination });
   }
 
   return (
