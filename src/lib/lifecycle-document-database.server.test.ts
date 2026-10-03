@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createLifecycleDocumentDatabaseBridge } from "./lifecycle-document-database.server";
+import { createDocumentStorageTransaction } from "./lifecycle-document-storage.server";
+import { persistLifecycleDocumentDraft } from "./lifecycle-document-persistence";
 
 const receipt = {
   request_key: "00000000-0000-0000-0000-000000000001",
@@ -49,5 +51,14 @@ describe("lifecycle document database bridge", () => {
   it("surfaces database authorization errors before an upload can proceed", async () => {
     const f = fixture({ authorize_lifecycle_document_draft: { data: null, error: { message: "Not authorized" } } });
     await expect(f.bridge.authorize(input)).rejects.toThrow("Not authorized");
+  });
+
+  it("prevents an unauthorized bridge from uploading staged content", async () => {
+    const f = fixture({ authorize_lifecycle_document_draft: { data: null, error: { message: "Out of scope" } } });
+    const upload = vi.fn();
+    const storage = { from: vi.fn(() => ({ upload, remove: vi.fn() })) };
+    const tx = createDocumentStorageTransaction(storage as never, f.bridge, "00000000-0000-0000-0000-000000000010");
+    await expect(persistLifecycleDocumentDraft(tx, input)).rejects.toThrow("Out of scope");
+    expect(upload).not.toHaveBeenCalled();
   });
 });
