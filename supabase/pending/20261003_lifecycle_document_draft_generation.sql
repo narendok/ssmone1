@@ -47,13 +47,18 @@ CREATE TABLE public.project_lifecycle_document_drafts (
   request_key uuid NOT NULL,
   source_fingerprint text NOT NULL CHECK (btrim(source_fingerprint) <> ''),
   payload_hash text NOT NULL CHECK (payload_hash ~ '^[a-f0-9]{32}$'),
+  storage_bucket text NOT NULL CHECK (storage_bucket = 'project-drive'),
+  storage_path text NOT NULL CHECK (btrim(storage_path) <> ''),
+  sha256_checksum text NOT NULL CHECK (sha256_checksum ~ '^[a-f0-9]{64}$'),
+  size_bytes bigint NOT NULL CHECK (size_bytes >= 0),
   result jsonb NOT NULL CHECK (jsonb_typeof(result) = 'object'),
   created_by uuid NOT NULL DEFAULT auth.uid(),
   created_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (project_id, request_key),
   UNIQUE (generated_drive_node_id),
   UNIQUE (generated_revision_id),
-  UNIQUE (document_control_register_id)
+  UNIQUE (document_control_register_id),
+  UNIQUE (storage_bucket, storage_path)
 );
 GRANT SELECT ON public.project_lifecycle_document_drafts TO authenticated;
 GRANT ALL ON public.project_lifecycle_document_drafts TO service_role;
@@ -254,7 +259,9 @@ BEGIN
   IF FOUND THEN
     IF v_prior.created_by = v_actor AND v_prior.template_id = v_template.id
        AND v_prior.template_version = v_template.version AND v_prior.template_document_revision_id = v_template_revision.id
-       AND v_prior.target_drive_node_id = v_target.id AND v_prior.source_fingerprint = p_source_fingerprint THEN
+       AND v_prior.target_drive_node_id = v_target.id AND v_prior.source_fingerprint = p_source_fingerprint
+       AND v_prior.storage_bucket = p_storage_bucket AND v_prior.storage_path = p_storage_path
+       AND v_prior.sha256_checksum = p_sha256_checksum AND v_prior.size_bytes = p_size_bytes THEN
       RETURN QUERY SELECT v_prior.request_key, v_prior.generated_drive_node_id, v_prior.generated_revision_id,
         v_prior.document_control_register_id, v_prior.audit_event_id, v_prior.source_fingerprint, false;
       RETURN;
@@ -304,9 +311,11 @@ BEGIN
   v_result := v_result || jsonb_build_object('audit_event_id', v_audit_id);
   INSERT INTO public.project_lifecycle_document_drafts(project_id, template_id, template_version,
     template_document_revision_id, target_drive_node_id, generated_drive_node_id, generated_revision_id,
-    document_control_register_id, audit_event_id, request_key, source_fingerprint, payload_hash, result, created_by)
+    document_control_register_id, audit_event_id, request_key, source_fingerprint, payload_hash,
+    storage_bucket, storage_path, sha256_checksum, size_bytes, result, created_by)
   VALUES (v_project.id, v_template.id, v_template.version, v_template_revision.id, v_target.id, v_node_id,
-    v_revision_id, v_register_id, v_audit_id, p_request_key, p_source_fingerprint, v_payload_hash, v_result, v_actor);
+    v_revision_id, v_register_id, v_audit_id, p_request_key, p_source_fingerprint, v_payload_hash,
+    p_storage_bucket, p_storage_path, p_sha256_checksum, p_size_bytes, v_result, v_actor);
   RETURN QUERY SELECT p_request_key, v_node_id, v_revision_id, v_register_id, v_audit_id, p_source_fingerprint, true;
 END;
 $$;
@@ -325,7 +334,11 @@ BEGIN
      OR NOT public.can_access_department_drive(v_actor, v_project.department_id, v_project.id) THEN RETURN false; END IF;
   IF EXISTS (SELECT 1 FROM public.project_lifecycle_document_drafts WHERE project_id = p_project_id AND request_key = p_request_key) THEN RETURN false; END IF;
   RETURN NOT EXISTS (SELECT 1 FROM public.drive_nodes WHERE storage_bucket = p_storage_bucket AND storage_path = p_storage_path)
-     AND NOT EXISTS (SELECT 1 FROM public.drive_node_revisions WHERE storage_path = p_storage_path);
+     AND NOT EXISTS (
+       SELECT 1 FROM public.drive_node_revisions revision
+       JOIN public.drive_nodes node ON node.id = revision.node_id
+       WHERE node.storage_bucket = p_storage_bucket AND revision.storage_path = p_storage_path
+     );
 END;
 $$;
 
