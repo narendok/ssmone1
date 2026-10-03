@@ -11,7 +11,7 @@ const receipt = {
 };
 
 function fixture(responses: Record<string, { data: unknown; error: { message: string } | null }>) {
-  const rpc = vi.fn((name: string) => Promise.resolve(responses[name] ?? { data: null, error: null }));
+  const rpc = vi.fn((name: string, _args?: unknown) => Promise.resolve(responses[name] ?? { data: null, error: null }));
   return { rpc, bridge: createLifecycleDocumentDatabaseBridge({ rpc } as never, "project") };
 }
 

@@ -41,7 +41,6 @@ export function createLifecycleDocumentDatabaseBridge(
 ): DocumentDatabaseBridge {
   const authorize: DocumentDraftTransaction["authorize"] = async (input) => {
     const { error } = await supabase.rpc("authorize_lifecycle_document_draft", {
-      p_project_id: null,
       p_project_id: projectId,
       p_template_key: input.rendered.templatePin.templateKey,
       p_template_version: input.rendered.templatePin.version,
