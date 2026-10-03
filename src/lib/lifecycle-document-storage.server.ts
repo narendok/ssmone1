@@ -44,7 +44,7 @@ export function createDocumentStorageTransaction(
   };
   return {
     authorize: (input) => database.authorize(input),
-    findReceipt: (requestKey) => database.findReceipt(requestKey),
+    findReceipt: (input) => database.findReceipt(input),
     rollback,
     persist: async (input) => {
       if (staged || referenced) throw new Error("Document storage transaction instances cannot be reused.");

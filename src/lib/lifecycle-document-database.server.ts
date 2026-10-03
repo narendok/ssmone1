@@ -53,18 +53,20 @@ export function createLifecycleDocumentDatabaseBridge(
 
   return {
     authorize,
-    async findReceipt(requestKey) {
+    async findReceipt(input) {
       const { data, error } = await supabase.rpc("find_lifecycle_document_draft_receipt", {
         p_project_id: projectId,
         p_target_folder_id: targetFolderId,
-        p_template_key: "",
-        p_template_version: 0,
-        p_template_document_revision_id: "",
-        p_request_key: requestKey,
+        p_template_key: input.rendered.templatePin.templateKey,
+        p_template_version: input.rendered.templatePin.version,
+        p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
+        p_request_key: input.requestKey,
       });
       if (error) throwRpcError(error, "Document draft receipt lookup failed.");
       if (!data) return null;
-      return toReceipt(data as DocumentDraftRpcResult);
+      const result = Array.isArray(data) ? data[0] : data;
+      if (!result) return null;
+      return toReceipt(result as DocumentDraftRpcResult);
     },
     async commit(input: CommitInput, staged: StagedDocument) {
       const { data, error } = await supabase.rpc("commit_lifecycle_document_draft", {
