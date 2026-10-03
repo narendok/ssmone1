@@ -159,6 +159,11 @@ CREATE TRIGGER lifecycle_document_draft_no_delete
 BEFORE DELETE ON public.project_lifecycle_document_drafts
 FOR EACH ROW EXECUTE FUNCTION public.lifecycle_document_draft_delete_guard();
 
+-- The storage receipt's eventual FK is added after its target table exists.
+ALTER TABLE public.lifecycle_document_storage_attempts
+  ADD CONSTRAINT lifecycle_document_storage_attempts_consumed_receipt_fkey
+  FOREIGN KEY (consumed_by_receipt_id) REFERENCES public.project_lifecycle_document_drafts(id) ON DELETE RESTRICT;
+
 -- Uses the independently scoped business-number series. This proposal does not
 -- replace next_document_number, preserving every existing and future series.
 
@@ -293,10 +298,13 @@ BEGIN
     RAISE EXCEPTION 'Request key conflicts with a different document draft payload';
   END IF;
   -- Only these four canonical server-owned values may appear in a template.
-  FOR v_token IN SELECT (regexp_matches(v_template_revision.content, '\{\{\s*([A-Z0-9_]+)\s*\}\}', 'g'))[1] LOOP
+  -- Normalize placeholder whitespace first, then use literal replace so project
+  -- values containing backslashes or braces remain literal, as in the renderer.
+  v_rendered_content := regexp_replace(v_template_revision.content, '\{\{\s*([A-Z0-9_]+)\s*\}\}', '{{\1}}', 'g');
+  FOR v_token IN SELECT (regexp_matches(v_rendered_content, '\{\{([A-Z0-9_]+)\}\}', 'g'))[1] LOOP
     IF v_token NOT IN ('PROJECT_CODE','PROJECT_NAME','PROJECT_REVISION','DEPARTMENT') THEN RAISE EXCEPTION 'Unsupported immutable template token %', v_token; END IF;
   END LOOP;
-  v_rendered_content := replace(v_template_revision.content, '{{PROJECT_CODE}}', v_project.code);
+  v_rendered_content := replace(v_rendered_content, '{{PROJECT_CODE}}', v_project.code);
   v_rendered_content := replace(v_rendered_content, '{{PROJECT_NAME}}', v_project.name);
   v_rendered_content := replace(v_rendered_content, '{{PROJECT_REVISION}}', v_project.revision);
   v_rendered_content := replace(v_rendered_content, '{{DEPARTMENT}}', (SELECT name FROM public.departments WHERE id = v_project.department_id));
