@@ -12,7 +12,7 @@ const receipt = {
 
 function fixture(responses: Record<string, { data: unknown; error: { message: string } | null }>) {
   const rpc = vi.fn((name: string) => Promise.resolve(responses[name] ?? { data: null, error: null }));
-  return { rpc, bridge: createLifecycleDocumentDatabaseBridge({ rpc } as never) };
+  return { rpc, bridge: createLifecycleDocumentDatabaseBridge({ rpc } as never, "project") };
 }
 
 const rendered = { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Draft", templatePin: { templateKey: "OEM", version: 1 } };
