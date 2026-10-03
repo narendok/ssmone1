@@ -97,10 +97,10 @@ export interface TaskActivity {
 const SELECT =
   "*, assignee:rd_members(id,name,email,department,department_id), department_record:departments(id,name,code), project:projects(id,name,code,color), purchase_request:purchase_requests(id,request_number,status), qms_capa:qms_capas(id,capa_code,title,status), customer_complaint:customer_complaints(id,complaint_code,title,status)";
 
-export type CanonicalDepartment = { id: string; name: string; code: string | null; aliases: string[] };
+export type CanonicalDepartment = { id: string; name: string; code: string | null; aliases: string[]; department_type: Department | null };
 
 export async function fetchCanonicalDepartments(): Promise<CanonicalDepartment[]> {
-  const { data, error } = await sb.from("departments").select("id,name,code,aliases").eq("is_active", true).order("name");
+  const { data, error } = await sb.from("departments").select("id,name,code,aliases,department_type").eq("is_active", true).order("name");
   if (error) throw error;
   return (data ?? []) as CanonicalDepartment[];
 }
