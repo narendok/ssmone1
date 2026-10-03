@@ -14,6 +14,7 @@ function fixture() {
   const storage = { from: vi.fn(() => ({ upload, remove })) } as unknown as SupabaseClient["storage"];
   const bridge = {
     authorize: vi.fn(async () => undefined), findReceipt: vi.fn(async () => null),
+    registerAttempt: vi.fn(async () => undefined),
     commit: vi.fn(async () => ({ receipt, usesStagedObject: true })), canDiscard: vi.fn(async () => true),
   };
   return { upload, remove, bridge, transaction: createDocumentStorageTransaction(storage, bridge, projectId) };
@@ -25,6 +26,10 @@ describe("Supabase document storage adapter", () => {
     const staged = f.bridge.commit.mock.calls[0] as unknown as [unknown, { sizeBytes: number; sha256: string }];
     expect(staged[1].sizeBytes).toBe(new TextEncoder().encode(input.rendered.content).byteLength);
     expect(staged[1].sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(f.bridge.registerAttempt).toHaveBeenCalledWith(input, expect.objectContaining({
+      bucket: "project-drive", path: expect.stringContaining(projectId), sha256: staged[1].sha256, sizeBytes: staged[1].sizeBytes,
+    }));
+    expect(f.bridge.registerAttempt.mock.invocationCallOrder[0]).toBeLessThan(f.bridge.commit.mock.invocationCallOrder[0]);
     expect(f.upload).toHaveBeenCalledWith(expect.stringContaining(projectId), expect.any(Uint8Array), { upsert: false, contentType: "text/plain" });
     await f.transaction.rollback();
     expect(f.remove).not.toHaveBeenCalled();
@@ -37,6 +42,12 @@ describe("Supabase document storage adapter", () => {
   it("compensates its exact upload when database rejects", async () => {
     const f = fixture(); f.bridge.commit.mockRejectedValue(new Error("DB rejected"));
     await expect(persistLifecycleDocumentDraft(f.transaction, input)).rejects.toThrow("DB rejected");
+    expect(f.remove).toHaveBeenCalledWith([f.upload.mock.calls[0][0]]);
+  });
+  it("compensates a successful upload when server-owned attempt registration rejects", async () => {
+    const f = fixture(); f.bridge.registerAttempt.mockRejectedValue(new Error("Attempt rejected"));
+    await expect(persistLifecycleDocumentDraft(f.transaction, input)).rejects.toThrow("Attempt rejected");
+    expect(f.bridge.commit).not.toHaveBeenCalled();
     expect(f.remove).toHaveBeenCalledWith([f.upload.mock.calls[0][0]]);
   });
   it("retains an object when commit outcome cannot be proven", async () => {
