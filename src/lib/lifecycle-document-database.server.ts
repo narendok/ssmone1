@@ -38,6 +38,7 @@ function throwRpcError(error: { message?: string } | null, fallback: string): ne
 export function createLifecycleDocumentDatabaseBridge(
   supabase: SupabaseClient,
   projectId: string,
+  targetFolderId: string,
 ): DocumentDatabaseBridge {
   const authorize: DocumentDraftTransaction["authorize"] = async (input) => {
     const { error } = await supabase.rpc("authorize_lifecycle_document_draft", {
@@ -62,6 +63,8 @@ export function createLifecycleDocumentDatabaseBridge(
     },
     async commit(input: CommitInput, staged: StagedDocument) {
       const { data, error } = await supabase.rpc("commit_lifecycle_document_draft", {
+        p_project_id: projectId,
+        p_target_folder_id: targetFolderId,
         p_request_key: input.requestKey,
         p_source_fingerprint: input.sourceFingerprint,
         p_template_key: input.rendered.templatePin.templateKey,

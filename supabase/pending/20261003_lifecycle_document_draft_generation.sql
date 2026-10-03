@@ -151,9 +151,9 @@ $$;
 -- provenance, rejects conflicts, creates FILE + initial revision + DRAFT
 -- register + explicit audit row + immutable receipt in one transaction.
 CREATE OR REPLACE FUNCTION public.commit_lifecycle_document_draft(
-  p_request_key uuid, p_source_fingerprint text, p_template_key text, p_template_version integer,
-  p_file_name text, p_mime_type text, p_storage_bucket text, p_storage_path text,
-  p_sha256_checksum text, p_size_bytes bigint
+  p_project_id uuid, p_target_folder_id uuid, p_request_key uuid, p_source_fingerprint text,
+  p_template_key text, p_template_version integer, p_file_name text, p_mime_type text,
+  p_storage_bucket text, p_storage_path text, p_sha256_checksum text, p_size_bytes bigint
 ) RETURNS TABLE(request_key uuid, node_id uuid, revision_id uuid, register_id uuid, audit_event_id uuid, source_fingerprint text, uses_staged_object boolean)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
@@ -165,10 +165,24 @@ DECLARE v_expected_fingerprint text;
 BEGIN
   IF p_request_key IS NULL OR btrim(coalesce(p_source_fingerprint,'')) = '' OR btrim(coalesce(p_storage_path,'')) = '' OR p_size_bytes < 0 OR p_sha256_checksum !~ '^[a-f0-9]{64}$' THEN RAISE EXCEPTION 'Invalid document draft payload'; END IF;
   PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0));
-  SELECT * INTO v_project FROM public.projects WHERE id = (SELECT project_id FROM public.project_lifecycle_document_drafts WHERE request_key=p_request_key LIMIT 1) FOR UPDATE;
-  -- First attempts identify the project through the target Drive folder. The
-  -- application bridge must pass the target ID in the accepted final signature.
-  RAISE EXCEPTION 'Review required: final RPC signature must include target folder and project ID, bind source snapshot server-side, and be replaced before application';
+  SELECT * INTO v_project FROM public.projects WHERE id = p_project_id FOR UPDATE;
+  IF NOT FOUND OR v_project.department_id IS NULL OR v_project.project_drive_node_id IS NULL OR btrim(coalesce(v_project.revision,'')) = '' THEN RAISE EXCEPTION 'Project provenance is incomplete'; END IF;
+  IF NOT public.lifecycle_can_manage_department(v_actor, v_project.department_id) OR NOT public.can_access_department_drive(v_actor, v_project.department_id, v_project.id) THEN RAISE EXCEPTION 'Not authorized'; END IF;
+  SELECT * INTO v_template FROM public.department_process_templates WHERE department_id=v_project.department_id AND template_key=p_template_key AND version=p_template_version AND status='ACTIVE' FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Matching active immutable template version required'; END IF;
+  SELECT * INTO v_template_revision FROM public.department_process_template_document_revisions WHERE template_id=v_template.id ORDER BY revision_number DESC LIMIT 1 FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Immutable template content revision required'; END IF;
+  SELECT * INTO v_target FROM public.drive_nodes WHERE id=p_target_folder_id FOR SHARE;
+  IF NOT FOUND OR v_target.node_type <> 'FOLDER' OR v_target.project_id IS DISTINCT FROM v_project.id OR v_target.department_id IS DISTINCT FROM v_project.department_id THEN RAISE EXCEPTION 'Target folder is outside the authorized project Drive'; END IF;
+  SELECT * INTO v_prior FROM public.project_lifecycle_document_drafts WHERE project_id=v_project.id AND request_key=p_request_key FOR UPDATE;
+  IF FOUND THEN
+    IF v_prior.created_by=v_actor AND v_prior.template_id=v_template.id AND v_prior.template_version=v_template.version AND v_prior.target_drive_node_id=v_target.id AND v_prior.source_fingerprint=p_source_fingerprint THEN
+      RETURN QUERY SELECT v_prior.request_key, v_prior.generated_drive_node_id, v_prior.generated_revision_id, v_prior.document_control_register_id, v_prior.audit_event_id, v_prior.source_fingerprint, false;
+      RETURN;
+    END IF;
+    RAISE EXCEPTION 'Request key conflicts with a different document draft payload';
+  END IF;
+  RAISE EXCEPTION 'Review required: lock target ancestry; render stored immutable template content with server-loaded fields; bind calculated fingerprint before inserting Drive node/revision/register/audit/receipt';
 END;
 $$;
 
@@ -190,11 +204,11 @@ REVOKE ALL ON FUNCTION public.lifecycle_document_draft_guard() FROM PUBLIC, anon
 REVOKE ALL ON FUNCTION public.lifecycle_document_draft_delete_guard() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.commit_lifecycle_document_draft(uuid,text,text,integer,text,text,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,text,integer,text,text,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.can_discard_lifecycle_document_object(text,text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid) TO service_role;
-GRANT EXECUTE ON FUNCTION public.commit_lifecycle_document_draft(uuid,text,text,integer,text,text,text,text,text,bigint) TO service_role;
+GRANT EXECUTE ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,text,integer,text,text,text,text,text,bigint) TO service_role;
 GRANT EXECUTE ON FUNCTION public.can_discard_lifecycle_document_object(text,text) TO service_role;
 
 -- Required acceptance before applying:

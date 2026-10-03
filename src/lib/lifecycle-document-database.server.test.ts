@@ -14,7 +14,7 @@ const receipt = {
 
 function fixture(responses: Record<string, { data: unknown; error: { message: string } | null }>) {
   const rpc = vi.fn((name: string, _args?: unknown) => Promise.resolve(responses[name] ?? { data: null, error: null }));
-  return { rpc, bridge: createLifecycleDocumentDatabaseBridge({ rpc } as never, "project") };
+  return { rpc, bridge: createLifecycleDocumentDatabaseBridge({ rpc } as never, "project", "target-folder") };
 }
 
 const rendered = { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Draft", templatePin: { templateKey: "OEM", version: 1 } };
@@ -39,7 +39,7 @@ describe("lifecycle document database bridge", () => {
       usesStagedObject: false,
     });
     expect(f.rpc).toHaveBeenCalledWith("commit_lifecycle_document_draft", expect.objectContaining({
-      p_storage_path: staged.path, p_sha256_checksum: staged.sha256, p_size_bytes: 5,
+      p_project_id: "project", p_target_folder_id: "target-folder", p_storage_path: staged.path, p_sha256_checksum: staged.sha256, p_size_bytes: 5,
     }));
   });
 
