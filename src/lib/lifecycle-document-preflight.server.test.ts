@@ -32,7 +32,7 @@ describe("server-owned lifecycle document preflight", () => {
   it("loads immutable content, target, and project fields instead of browser document data", async () => {
     const result = await loadLifecycleDocumentPreflight(client(), input);
     expect(result.rendered.content).toBe("PROJECT-2026-0005 / OEM Tracker Portal Test / TEST-01 / Hardware & R&D");
-    expect(result.rendered.templatePin).toEqual({ templateKey: "OEM-TRACKER", version: 1 });
+    expect(result.rendered.templatePin).toEqual({ templateKey: "OEM-TRACKER", version: 1, documentRevisionId: ids.revision });
     expect(result.templateDocumentRevisionId).toBe(ids.revision);
     expect(result.sourceFingerprint).toMatch(/^[a-f0-9]{64}$/);
   });
