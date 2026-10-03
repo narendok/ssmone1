@@ -156,7 +156,9 @@ BEGIN
      OR NOT public.can_access_department_drive(v_actor, v_template.department_id, NULL) THEN RAISE EXCEPTION 'Not authorized'; END IF;
   v_checksum := encode(digest(convert_to(p_content, 'UTF8'), 'sha256'), 'hex');
   SELECT coalesce(max(revision.revision_number), 0) + 1 INTO v_revision_number
-  FROM public.department_process_template_document_revisions revision WHERE revision.template_id = v_template.id FOR UPDATE;
+  -- The parent template is already locked, serializing append operations.
+  -- PostgreSQL does not allow FOR UPDATE on an aggregate query.
+  FROM public.department_process_template_document_revisions revision WHERE revision.template_id = v_template.id;
   INSERT INTO public.department_process_template_document_revisions(template_id, revision_number, content, content_sha256, created_by)
   VALUES (v_template.id, v_revision_number, p_content, v_checksum, v_actor)
   RETURNING department_process_template_document_revisions.id INTO id;

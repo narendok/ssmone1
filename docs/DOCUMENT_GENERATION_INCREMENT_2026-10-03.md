@@ -40,3 +40,12 @@ Codex independent integration review:
 - Preserved fixed ancestry CTE scope/root termination/lock verification and object-existence registration. Corrected psql interpolation inside dollar-quoted acceptance blocks using session settings.
 - Independent verification: 177 tests in 23 files, TypeScript and production build pass. SQL and two-session scripts remain unexecuted; no isolated DB/storage/approved identities are available.
 - Server-owned preflight source/fingerprint now exists. Template management remains a gated facade and unapplied RPC proposal with disabled UI controls. Real template-management persistence, route integration, automatic project/change triggers, live generation and mobile acceptance remain incomplete. No production migration or gate enablement was performed.
+
+### Local adapter/workflow increment — 2026-10-03
+
+- Added lifecycle-template-content.server.ts: concrete pending RPC calls for append-only content revision, pinned activation and retirement; invalid, ambiguous, wrong-template and missing-checksum receipts fail closed. No live route invokes this adapter.
+- Added lifecycle-document-workflow.server.ts: composes caller-authorized preflight, the database bridge, immutable storage staging and protected persistence. A route must first supply an accepted actor-preserving transaction client; denied acceptance stops before pending table reads/upload. No credentials or automatic deployment flag were introduced.
+- Fixed invalid FOR UPDATE on the template-revision aggregate; the already locked parent template serializes append operations.
+- Full source suite: 188 tests in 25 files passed. These unit tests do not execute pending SQL or establish backend authorization acceptance.
+- Remaining blocking integration: a verified privileged execution route retaining the signed-in actor; isolated database/storage with approved scoped test identities; deployment acceptance for SQL, storage compensation, concurrent replay and template lifecycle. UI save and automatic project/change generation remain disabled/unwired. No production migration was applied.
+- TypeScript and production build completed with exit code 0. User confirmed there is no separate test/staging project; isolated database acceptance is therefore unavailable at this checkpoint.
