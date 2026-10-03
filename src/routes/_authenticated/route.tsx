@@ -17,7 +17,7 @@ export const Route = createFileRoute("/_authenticated")({
   ssr: false,
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/auth" });
+    if (error || !data.user) throw redirect({ to: "/auth", search: { next: undefined } });
     return { user: data.user };
   },
   component: AppLayout,
@@ -27,7 +27,7 @@ function AppLayout() {
   const { user, role, displayName, employeeStatus, signOut } = useAuth();
   const navigate = useNavigate();
   const suspended = employeeStatus === "SUSPENDED" || employeeStatus === "EXITED";
-  useEffect(() => { if (suspended) { void signOut().finally(() => navigate({ to: "/auth" })); } }, [navigate, signOut, suspended]);
+  useEffect(() => { if (suspended) { void signOut().finally(() => navigate({ to: "/auth", search: { next: undefined } })); } }, [navigate, signOut, suspended]);
   if (suspended) return <main className="flex min-h-screen items-center justify-center p-6"><section className="max-w-md text-center"><h1 className="text-xl font-semibold">Access unavailable</h1><p className="mt-2 text-sm text-muted-foreground">Your workspace access is not active. Please contact your system administrator.</p></section></main>;
   return (
     <SidebarProvider>
