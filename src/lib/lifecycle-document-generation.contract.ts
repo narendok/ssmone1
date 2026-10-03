@@ -34,10 +34,8 @@ export type LifecycleDocumentGenerationPlan = {
 };
 
 function fingerprint(fields: Record<string, string | null>) {
-  return Object.entries(fields)
-    .sort(([left], [right]) => left.localeCompare(right))
-    .map(([key, value]) => `${key}:${value ?? ""}`)
-    .join("|");
+  return JSON.stringify(Object.entries(fields)
+    .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0));
 }
 
 /**
@@ -70,7 +68,10 @@ export function planLifecycleDocumentDraft(input: LifecycleDocumentDraftInput): 
     };
   }
 
-  if (existing?.status === "APPROVED" || staleSourceDetected || Boolean(existing?.manualEditFingerprint)) {
+  const templateChanged = Boolean(existing && (
+    existing.templateId !== input.templateId || existing.templateVersion !== input.templateVersion
+  ));
+  if (existing?.status === "APPROVED" || staleSourceDetected || templateChanged || Boolean(existing?.manualEditFingerprint)) {
     return {
       state: "READY_TO_PROPOSE", immutableTemplatePin, requiredProvenance, missingProvenance, sourceFingerprint,
       retryMode: "REQUIRE_NEW_DRAFT", preservation: { preserveManualEdits: true, preserveApprovedVersions: true, staleSourceDetected },
