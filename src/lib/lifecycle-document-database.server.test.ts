@@ -14,10 +14,10 @@ const receipt = {
 
 function fixture(responses: Record<string, { data: unknown; error: { message: string } | null }>) {
   const rpc = vi.fn((name: string, _args?: unknown) => Promise.resolve(responses[name] ?? { data: null, error: null }));
-  return { rpc, bridge: createLifecycleDocumentDatabaseBridge({ rpc } as never, "project", "target-folder", "template-revision") };
+  return { rpc, bridge: createLifecycleDocumentDatabaseBridge({ rpc } as never, "project", "target-folder") };
 }
 
-const rendered = { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Draft", templatePin: { templateKey: "OEM", version: 1 } };
+const rendered = { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Draft", templatePin: { templateKey: "OEM", version: 1, documentRevisionId: "template-revision" } };
 const input = { requestKey: receipt.request_key, sourceFingerprint: receipt.source_fingerprint, rendered };
 const staged = { bucket: "project-drive" as const, path: "project/attempt-draft.txt", sha256: "a".repeat(64), sizeBytes: 5 };
 
@@ -40,7 +40,7 @@ describe("lifecycle document database bridge", () => {
   it("treats an empty SQL receipt array as no prior request", async () => {
     const f = fixture({ find_lifecycle_document_draft_receipt: { data: [], error: null } });
     await f.bridge.authorize(input);
-    await expect(f.bridge.findReceipt(input.requestKey)).resolves.toBeNull();
+    await expect(f.bridge.findReceipt(input)).resolves.toBeNull();
   });
   it.each([{}, [{ ...receipt, uses_staged_object: true }, receipt], [receipt], [{ ...receipt, source_fingerprint: "other", uses_staged_object: true }]])("rejects incomplete, ambiguous or conflicting commit responses: %o", async (data) => {
     const f = fixture({ commit_lifecycle_document_draft: { data, error: null } });
@@ -49,7 +49,7 @@ describe("lifecycle document database bridge", () => {
   it("rejects a prior receipt from a different request", async () => {
     const f = fixture({ find_lifecycle_document_draft_receipt: { data: [{ ...receipt, request_key: "different" }], error: null } });
     await f.bridge.authorize(input);
-    await expect(f.bridge.findReceipt(input.requestKey)).rejects.toThrow("mismatch");
+    await expect(f.bridge.findReceipt(input)).rejects.toThrow("mismatch");
   });
   it("uses database-owned authorization and never sends browser template content", async () => {
     const f = fixture({ authorize_lifecycle_document_draft: { data: null, error: null } });
@@ -64,7 +64,7 @@ describe("lifecycle document database bridge", () => {
   it("binds receipt lookup to the authorized project, target, template revision and source", async () => {
     const f = fixture({ find_lifecycle_document_draft_receipt: { data: [receipt], error: null } });
     await f.bridge.authorize(input);
-    await f.bridge.findReceipt(input.requestKey);
+    await f.bridge.findReceipt(input);
     expect(f.rpc).toHaveBeenCalledWith("find_lifecycle_document_draft_receipt", {
       p_project_id: "project", p_target_folder_id: "target-folder", p_template_key: "OEM",
       p_template_version: 1, p_template_document_revision_id: "template-revision",
@@ -74,7 +74,7 @@ describe("lifecycle document database bridge", () => {
 
   it("refuses receipt lookup until authorization succeeds", async () => {
     const f = fixture({});
-    await expect(f.bridge.findReceipt(input.requestKey)).rejects.toThrow("authorization");
+    await expect(f.bridge.findReceipt(input)).rejects.toThrow("authorization");
     expect(f.rpc).not.toHaveBeenCalled();
   });
 

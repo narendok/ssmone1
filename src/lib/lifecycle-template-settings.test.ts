@@ -9,7 +9,7 @@ describe("lifecycle template settings safety", () => {
   it("labels protected controls as acceptance-pending rather than working actions", () => {
     expect(lifecycleTemplateMutationStatus()).toEqual({
       available: false,
-      message: "Protected template actions are acceptance-pending and cannot change records from this register.",
+      message: "Protected draft content, cloning, activation, retirement, and stage actions are acceptance-pending and cannot change records from this register.",
     });
   });
 });

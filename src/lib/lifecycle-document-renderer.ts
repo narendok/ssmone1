@@ -9,13 +9,13 @@ export type RenderedLifecycleDocument = {
   fileName: string;
   mimeType: "text/plain";
   content: string;
-  templatePin: { templateKey: string; version: number };
+  templatePin: { templateKey: string; version: number; documentRevisionId: string };
 };
 
 const token = /{{\s*([A-Z0-9_]+)\s*}}/g;
 
 /** Renders only declared tokens and fails closed on missing values or tokens. */
-export function renderLifecycleDocument(template: DocumentTemplate, fields: Record<string, string | null>): RenderedLifecycleDocument {
+export function renderLifecycleDocument(template: DocumentTemplate & { documentRevisionId: string }, fields: Record<string, string | null>): RenderedLifecycleDocument {
   if (!template.templateKey.trim() || !template.title.trim() || !template.content.trim()) {
     throw new Error("Document template key, title and content are required.");
   }
@@ -39,5 +39,6 @@ export function renderLifecycleDocument(template: DocumentTemplate, fields: Reco
   });
   if (missing.length) throw new Error(`Missing document fields: ${[...new Set(missing)].join(", ")}`);
   const fileStem = `${fields.PROJECT_CODE ?? "PROJECT"}-${template.templateKey}-v${template.version}`.replace(/[^A-Za-z0-9._-]+/g, "_");
-  return { fileName: `${fileStem}.txt`, mimeType: "text/plain", content, templatePin: { templateKey: template.templateKey, version: template.version } };
+  if (!template.documentRevisionId.trim()) throw new Error("Immutable template document revision is required.");
+  return { fileName: `${fileStem}.txt`, mimeType: "text/plain", content, templatePin: { templateKey: template.templateKey, version: template.version, documentRevisionId: template.documentRevisionId } };
 }

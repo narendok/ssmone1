@@ -4,7 +4,7 @@ import { createDocumentStorageTransaction } from "./lifecycle-document-storage.s
 import { persistLifecycleDocumentDraft } from "./lifecycle-document-persistence";
 
 const input = { requestKey: "request", sourceFingerprint: "snapshot", rendered: {
-  fileName: "project.txt", mimeType: "text/plain" as const, content: "भारत OEM", templatePin: { templateKey: "PRS", version: 1 },
+  fileName: "project.txt", mimeType: "text/plain" as const, content: "भारत OEM", templatePin: { templateKey: "PRS", version: 1, documentRevisionId: "revision" },
 } };
 const receipt = { requestKey: "request", sourceFingerprint: "snapshot", nodeId: "file", revisionId: "rev", registerId: "reg", auditEventId: "audit" };
 const projectId = "00000000-0000-0000-0000-000000000001";
@@ -20,22 +20,16 @@ function fixture() {
   return { upload, remove, bridge, transaction: createDocumentStorageTransaction(storage, bridge, projectId) };
 }
 describe("Supabase document storage adapter", () => {
-  it("registers an upload before committing and stops when registration fails", async () => {
-    const f = fixture();
-    f.bridge.registerAttempt.mockRejectedValue(new Error("Registration denied"));
-    f.bridge.canDiscard.mockResolvedValue(false);
-    await expect(persistLifecycleDocumentDraft(f.transaction, input)).rejects.toThrow("cleanup requires recovery");
-    expect(f.upload).toHaveBeenCalledOnce();
-    expect(f.bridge.registerAttempt).toHaveBeenCalledOnce();
-    expect(f.bridge.commit).not.toHaveBeenCalled();
-    expect(f.remove).not.toHaveBeenCalled();
-  });
   it("uploads UTF-8 content and commits checksum/byte count without deleting a committed file", async () => {
     const f = fixture();
     await expect(persistLifecycleDocumentDraft(f.transaction, input)).resolves.toMatchObject({ mode: "CREATED" });
     const staged = f.bridge.commit.mock.calls[0] as unknown as [unknown, { sizeBytes: number; sha256: string }];
     expect(staged[1].sizeBytes).toBe(new TextEncoder().encode(input.rendered.content).byteLength);
     expect(staged[1].sha256).toMatch(/^[a-f0-9]{64}$/);
+    expect(f.bridge.registerAttempt).toHaveBeenCalledWith(input, expect.objectContaining({
+      bucket: "project-drive", path: expect.stringContaining(projectId), sha256: staged[1].sha256, sizeBytes: staged[1].sizeBytes,
+    }));
+    expect(f.bridge.registerAttempt.mock.invocationCallOrder[0]).toBeLessThan(f.bridge.commit.mock.invocationCallOrder[0]);
     expect(f.upload).toHaveBeenCalledWith(expect.stringContaining(projectId), expect.any(Uint8Array), { upsert: false, contentType: "text/plain" });
     await f.transaction.rollback();
     expect(f.remove).not.toHaveBeenCalled();
@@ -48,6 +42,12 @@ describe("Supabase document storage adapter", () => {
   it("compensates its exact upload when database rejects", async () => {
     const f = fixture(); f.bridge.commit.mockRejectedValue(new Error("DB rejected"));
     await expect(persistLifecycleDocumentDraft(f.transaction, input)).rejects.toThrow("DB rejected");
+    expect(f.remove).toHaveBeenCalledWith([f.upload.mock.calls[0][0]]);
+  });
+  it("compensates a successful upload when server-owned attempt registration rejects", async () => {
+    const f = fixture(); f.bridge.registerAttempt.mockRejectedValue(new Error("Attempt rejected"));
+    await expect(persistLifecycleDocumentDraft(f.transaction, input)).rejects.toThrow("Attempt rejected");
+    expect(f.bridge.commit).not.toHaveBeenCalled();
     expect(f.remove).toHaveBeenCalledWith([f.upload.mock.calls[0][0]]);
   });
   it("retains an object when commit outcome cannot be proven", async () => {

@@ -54,7 +54,6 @@ export function createLifecycleDocumentDatabaseBridge(
   supabase: SupabaseClient,
   projectId: string,
   targetFolderId: string,
-  templateDocumentRevisionId: string,
 ): DocumentDatabaseBridge {
   let authorizedInput: CommitInput | null = null;
   const authorize: DocumentDraftTransaction["authorize"] = async (input) => {
@@ -63,7 +62,7 @@ export function createLifecycleDocumentDatabaseBridge(
       p_project_id: projectId,
       p_template_key: input.rendered.templatePin.templateKey,
       p_template_version: input.rendered.templatePin.version,
-      p_template_document_revision_id: templateDocumentRevisionId,
+      p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
       p_request_key: input.requestKey,
     });
     if (error) throwRpcError(error, "Document draft authorization failed.");
@@ -79,7 +78,7 @@ export function createLifecycleDocumentDatabaseBridge(
         p_request_key: input.requestKey,
         p_template_key: input.rendered.templatePin.templateKey,
         p_template_version: input.rendered.templatePin.version,
-        p_template_document_revision_id: templateDocumentRevisionId,
+        p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
         p_storage_bucket: staged.bucket,
         p_storage_path: staged.path,
         p_sha256_checksum: staged.sha256,
@@ -90,14 +89,15 @@ export function createLifecycleDocumentDatabaseBridge(
         throw new Error("Verified storage attempt receipt is required.");
       }
     },
-    async findReceipt(requestKey) {
+    async findReceipt(input) {
+      const requestKey = input.requestKey;
       if (!authorizedInput || authorizedInput.requestKey !== requestKey) throw new Error("Document receipt lookup requires scoped authorization.");
       const { data, error } = await supabase.rpc("find_lifecycle_document_draft_receipt", {
         p_project_id: projectId,
         p_target_folder_id: targetFolderId,
         p_template_key: authorizedInput.rendered.templatePin.templateKey,
         p_template_version: authorizedInput.rendered.templatePin.version,
-        p_template_document_revision_id: templateDocumentRevisionId,
+        p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
         p_request_key: requestKey,
       });
       if (error) throwRpcError(error, "Document draft receipt lookup failed.");
@@ -115,7 +115,7 @@ export function createLifecycleDocumentDatabaseBridge(
         p_request_key: input.requestKey,
         p_template_key: input.rendered.templatePin.templateKey,
         p_template_version: input.rendered.templatePin.version,
-        p_template_document_revision_id: templateDocumentRevisionId,
+        p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
         p_file_name: input.rendered.fileName,
         p_mime_type: input.rendered.mimeType,
         p_storage_bucket: staged.bucket,

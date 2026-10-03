@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { mapLifecycleProjectDocumentFields } from "@/lib/lifecycle-document-fields";
+import { loadLifecycleDocumentPreflight } from "@/lib/lifecycle-document-preflight.server";
 
 const uuid = z.string().uuid();
 const departmentType = z.enum(["hardware", "firmware", "mechanical", "qa", "procurement", "production", "executive"]);
@@ -26,11 +26,20 @@ const templateStageSchema = z.object({
 });
 
 const templateIdSchema = z.object({ templateId: uuid });
+const templateContentRevisionSchema = z.object({
+  templateId: uuid,
+  content: z.string().trim().min(1).max(200_000),
+});
+const templateActivationSchema = z.object({
+  templateId: uuid,
+  templateDocumentRevisionId: uuid,
+});
 const generationSchema = z.object({ projectId: uuid, templateId: uuid, requestKey: uuid });
 const documentDraftSchema = z.object({
   projectId: uuid,
   templateId: uuid,
   templateVersion: z.number().int().positive(),
+  templateDocumentRevisionId: uuid,
   targetFolderId: uuid,
   requestKey: uuid,
 });
@@ -98,15 +107,35 @@ export const cloneLifecycleTemplate = createServerFn({ method: "POST" })
     return { templateId: "", actorId: context.userId };
   });
 
+/**
+ * Source-only façade for the pending append-only template-content routine.
+ * It deliberately performs no RPC while the lifecycle mutation gate is shut.
+ */
+export const createLifecycleTemplateContentRevision = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => templateContentRevisionSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: template, error } = await context.supabase
+      .from("department_process_templates")
+      .select("department_id,status")
+      .eq("id", data.templateId)
+      .maybeSingle();
+    if (error || !template) lifecycleError(error, "Template was not found.");
+    await requireLifecycleManager(context, template.department_id);
+    if (template.status !== "DRAFT") throw new Error("Immutable content can be appended only to a DRAFT template version.");
+    await lifecycleMutationGate();
+    return { templateDocumentRevisionId: "", actorId: context.userId };
+  });
+
 export const activateLifecycleTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => templateIdSchema.parse(data))
+  .inputValidator((data) => templateActivationSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { data: template, error } = await context.supabase.from("department_process_templates").select("department_id").eq("id", data.templateId).maybeSingle();
     if (error || !template) lifecycleError(error, "Template was not found.");
     await requireLifecycleManager(context, template.department_id);
     await lifecycleMutationGate();
-    return { templateId: data.templateId, actorId: context.userId, status: "ACTIVE" as const };
+    return { templateId: data.templateId, templateDocumentRevisionId: data.templateDocumentRevisionId, actorId: context.userId, status: "ACTIVE" as const };
   });
 
 export const retireLifecycleTemplate = createServerFn({ method: "POST" })
@@ -149,26 +178,11 @@ export const generateLifecycleDocumentDraft = createServerFn({ method: "POST" })
     if (!project.project_drive_node_id || !project.revision) {
       throw new Error("Project Drive root and revision are required for document draft generation.");
     }
-    const { data: template, error: templateError } = await context.supabase
-      .from("department_process_templates")
-      .select("department_id,version,status")
-      .eq("id", data.templateId)
-      .maybeSingle();
-    if (templateError || !template) lifecycleError(templateError, "Template was not found.");
-    if (template.department_id !== project.department_id || template.version !== data.templateVersion || template.status !== "ACTIVE") {
-      throw new Error("An active template with the pinned project department version is required.");
-    }
     await requireLifecycleManager(context, project.department_id);
-    const { data: department, error: departmentError } = await context.supabase
-      .from("departments")
-      .select("id,name,is_active")
-      .eq("id", project.department_id)
-      .maybeSingle();
-    if (departmentError || !department) lifecycleError(departmentError, "Owning department was not found.");
-    // This preflight verifies that project-derived source fields exist. The
-    // document body, source snapshot, template pin, target ancestry, and
-    // final authorization are reloaded and validated by the pending DB RPC.
-    mapLifecycleProjectDocumentFields(project, department);
+    // Preflight reads the immutable content revision, canonical project fields,
+    // and target scope from the caller-authorized database view. No browser
+    // content or field values are accepted. The commit RPC repeats these checks.
+    await loadLifecycleDocumentPreflight(context.supabase, data);
     await lifecycleMutationGate();
     return { result: null, actorId: context.userId };
   });
