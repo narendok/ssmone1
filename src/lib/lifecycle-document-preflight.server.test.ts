@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { loadLifecycleDocumentPreflight } from "./lifecycle-document-preflight.server";
+import { fingerprintLifecycleDocumentSource, loadLifecycleDocumentPreflight } from "./lifecycle-document-preflight.server";
 
 const ids = {
   project: "00000000-0000-0000-0000-000000000001",
@@ -41,6 +41,20 @@ describe("server-owned lifecycle document preflight", () => {
     const first = await loadLifecycleDocumentPreflight(client(), input);
     const updated = await loadLifecycleDocumentPreflight(client({ projects: { id: ids.project, code: "PROJECT-2026-0005", name: "OEM Tracker Portal Test", revision: "TEST-02", department_id: ids.department, project_drive_node_id: "root", updated_at: "2026-10-03T00:00:00Z" } }), input);
     expect(updated.sourceFingerprint).not.toBe(first.sourceFingerprint);
+  });
+
+  it("uses the exact pending SQL concat_ws pipe serialization", async () => {
+    const renderedSha256 = "a".repeat(64);
+    const serializedLikeSql = [ids.project, ids.target, ids.template, "1", ids.revision, renderedSha256].join("|");
+    const sqlEquivalentHash = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(serializedLikeSql))), (byte) => byte.toString(16).padStart(2, "0")).join("");
+    await expect(fingerprintLifecycleDocumentSource({
+      projectId: ids.project,
+      targetFolderId: ids.target,
+      templateId: ids.template,
+      templateVersion: 1,
+      templateDocumentRevisionId: ids.revision,
+      renderedSha256,
+    })).resolves.toBe(sqlEquivalentHash);
   });
 
   it("rejects content/template and target/project scope mismatches", async () => {

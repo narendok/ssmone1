@@ -32,6 +32,30 @@ function sha256(input: string) {
   );
 }
 
+/**
+ * Must remain byte-for-byte equivalent to the pending commit RPC's
+ * `digest(convert_to(concat_ws('|', ...), 'UTF8'), 'sha256')` expression.
+ * All members are required before this function is called, so `join` models
+ * PostgreSQL's `concat_ws` without its NULL-skipping behavior.
+ */
+export async function fingerprintLifecycleDocumentSource(input: {
+  projectId: string;
+  targetFolderId: string;
+  templateId: string;
+  templateVersion: number;
+  templateDocumentRevisionId: string;
+  renderedSha256: string;
+}) {
+  return sha256([
+    input.projectId,
+    input.targetFolderId,
+    input.templateId,
+    String(input.templateVersion),
+    input.templateDocumentRevisionId,
+    input.renderedSha256,
+  ].join("|"));
+}
+
 function fail(error: { message?: string } | null, fallback: string): never {
   throw new Error(error?.message ?? fallback);
 }
@@ -90,14 +114,14 @@ export async function loadLifecycleDocumentPreflight(
     content: typedRevision.content,
     documentRevisionId: typedRevision.id,
   }, fields);
-  const sourceFingerprint = await sha256(JSON.stringify({
+  const sourceFingerprint = await fingerprintLifecycleDocumentSource({
     projectId: typedProject.id,
     targetFolderId: typedTarget.id,
     templateId: typedTemplate.id,
     templateVersion: typedTemplate.version,
     templateDocumentRevisionId: typedRevision.id,
     renderedSha256: await sha256(rendered.content),
-  }));
+  });
 
   return {
     projectId: typedProject.id,

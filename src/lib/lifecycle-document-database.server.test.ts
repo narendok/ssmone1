@@ -41,6 +41,7 @@ describe("lifecycle document database bridge", () => {
     expect(f.rpc).toHaveBeenCalledWith("commit_lifecycle_document_draft", expect.objectContaining({
       p_project_id: "project", p_target_folder_id: "target-folder", p_storage_path: staged.path, p_sha256_checksum: staged.sha256, p_size_bytes: 5,
     }));
+    expect(f.rpc.mock.calls[0]?.[1]).not.toHaveProperty("p_source_fingerprint");
   });
 
   it("binds receipt lookup and storage-attempt registration to project, target, template revision, and request", async () => {
