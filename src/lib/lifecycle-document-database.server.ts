@@ -72,6 +72,24 @@ export function createLifecycleDocumentDatabaseBridge(
 
   return {
     authorize,
+    async registerAttempt(input, staged) {
+      await authorize(input);
+      const { data, error } = await supabase.rpc("register_lifecycle_document_storage_attempt", {
+        p_project_id: projectId,
+        p_request_key: input.requestKey,
+        p_template_key: input.rendered.templatePin.templateKey,
+        p_template_version: input.rendered.templatePin.version,
+        p_template_document_revision_id: templateDocumentRevisionId,
+        p_storage_bucket: staged.bucket,
+        p_storage_path: staged.path,
+        p_sha256_checksum: staged.sha256,
+        p_size_bytes: staged.sizeBytes,
+      });
+      if (error) throwRpcError(error, "Storage attempt registration failed.");
+      if (typeof data !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data)) {
+        throw new Error("Verified storage attempt receipt is required.");
+      }
+    },
     async findReceipt(requestKey) {
       if (!authorizedInput || authorizedInput.requestKey !== requestKey) throw new Error("Document receipt lookup requires scoped authorization.");
       const { data, error } = await supabase.rpc("find_lifecycle_document_draft_receipt", {

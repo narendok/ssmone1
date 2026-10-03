@@ -19,3 +19,17 @@ Current renderer supports plain text only. This does not implement DOCX/XLSX/PDF
 No migration, data changes, RLS changes, backend enablement or production deployment are included. Generated route files and dependency-install lock changes are not part of this increment.
 
 Verification: 46 focused unit tests across 7 files cover rendering, authorization-before-replay, rollback/compensation, concurrent-replay cleanup, and the pending-RPC bridge shape. Database acceptance remains unavailable until an isolated database, isolated storage bucket, and approved manager/out-of-scope non-admin identities are supplied.
+
+Independent review update (2026-10-03):
+- Corrected pending SQL rendering to validate the original template and substitute each original token once. Braces and backslashes in inserted project values remain literal.
+- Corrected invalid references to ancestry CTEs after their statement ends. Ancestry validation now aggregates within the CTE statement, stops at the project root, and rejects newly encountered unlocked ancestors after locking.
+- Full source unit suite: 167 tests across 22 files pass. These tests do not execute PostgreSQL; the SQL changes remain unverified against a database.
+- Lovable follow-up paused with an out-of-credits message; no new follow-up commit was fetched.
+- Still missing: protected storage-attempt registration and adapter integration; authoritative render/preflight fingerprint loading; governed template-content management; complete runnable denial/rollback/concurrent acceptance; verified privileged route preserving authenticated actor context. The live action remains disabled.
+- An isolated database/storage environment with approved manager and out-of-scope identities is required for SQL/RLS/storage acceptance. No production SQL was applied.
+
+Follow-up local source implementation:
+- Added service-only pending storage-attempt registration RPC with actor-derived authorization, exact metadata binding, object existence check and idempotent provenance validation.
+- Wired adapter registration after successful upload and before commit; invalid registration receipts fail closed. Uncertain upload/registration retains the object unless exact cleanup is proven.
+- Added registration denial/receipt-validation coverage. Full unit suite now passes 172 tests in 22 files.
+- Registration is now source-implemented; authoritative preflight/render loading, template management and real isolated SQL/RLS/storage/concurrency acceptance remain outstanding. The privileged actor-context route is not yet verified. Do not enable generation.

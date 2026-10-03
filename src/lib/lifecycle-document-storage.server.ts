@@ -10,6 +10,7 @@ export type StagedDocument = {
 export type DocumentDatabaseBridge = {
   authorize: DocumentDraftTransaction["authorize"];
   findReceipt: DocumentDraftTransaction["findReceipt"];
+  registerAttempt(input: Input, staged: StagedDocument): Promise<void>;
   // Must atomically reauthorize and persist node, revision, register, audit,
   // numbering and immutable receipt, or return a verified concurrent replay.
   commit(input: Input, staged: StagedDocument): Promise<{ receipt: DocumentDraftReceipt; usesStagedObject: boolean }>;
@@ -59,6 +60,7 @@ export function createDocumentStorageTransaction(
       // Even a failed response may mean an upload succeeded. Compensation must
       // reconcile this attempt, never touch another request's storage object.
       if (error) throw new Error(error.message);
+      await database.registerAttempt(input, candidate);
       const committed = await database.commit(input, candidate);
       referenced = committed.usesStagedObject;
       if (!referenced) await rollback();

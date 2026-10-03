@@ -22,6 +22,17 @@ const input = { requestKey: receipt.request_key, sourceFingerprint: receipt.sour
 const staged = { bucket: "project-drive" as const, path: "project/attempt-draft.txt", sha256: "a".repeat(64), sizeBytes: 5 };
 
 describe("lifecycle document database bridge", () => {
+  it("registers a scoped attempt only after authorization", async () => {
+    const f = fixture({ register_lifecycle_document_storage_attempt: { data: receipt.request_key, error: null } });
+    await f.bridge.registerAttempt(input, staged);
+    expect(f.rpc.mock.calls.map(([name]) => name)).toEqual(["authorize_lifecycle_document_draft", "register_lifecycle_document_storage_attempt"]);
+    expect(f.rpc.mock.calls[1][1]).toMatchObject({ p_project_id: "project", p_request_key: input.requestKey, p_storage_path: staged.path });
+    expect(f.rpc.mock.calls[1][1]).not.toHaveProperty("p_actor_id");
+  });
+  it.each([null, [], "not-a-receipt"])("rejects missing attempt registration proof: %o", async (data) => {
+    const f = fixture({ register_lifecycle_document_storage_attempt: { data, error: null } });
+    await expect(f.bridge.registerAttempt(input, staged)).rejects.toThrow("receipt");
+  });
   it("handles the SQL RETURNS TABLE array response", async () => {
     const f = fixture({ commit_lifecycle_document_draft: { data: [{ ...receipt, uses_staged_object: true }], error: null } });
     await expect(f.bridge.commit(input, staged)).resolves.toMatchObject({ receipt: { nodeId: "node" }, usesStagedObject: true });

@@ -14,11 +14,22 @@ function fixture() {
   const storage = { from: vi.fn(() => ({ upload, remove })) } as unknown as SupabaseClient["storage"];
   const bridge = {
     authorize: vi.fn(async () => undefined), findReceipt: vi.fn(async () => null),
+    registerAttempt: vi.fn(async () => undefined),
     commit: vi.fn(async () => ({ receipt, usesStagedObject: true })), canDiscard: vi.fn(async () => true),
   };
   return { upload, remove, bridge, transaction: createDocumentStorageTransaction(storage, bridge, projectId) };
 }
 describe("Supabase document storage adapter", () => {
+  it("registers an upload before committing and stops when registration fails", async () => {
+    const f = fixture();
+    f.bridge.registerAttempt.mockRejectedValue(new Error("Registration denied"));
+    f.bridge.canDiscard.mockResolvedValue(false);
+    await expect(persistLifecycleDocumentDraft(f.transaction, input)).rejects.toThrow("cleanup requires recovery");
+    expect(f.upload).toHaveBeenCalledOnce();
+    expect(f.bridge.registerAttempt).toHaveBeenCalledOnce();
+    expect(f.bridge.commit).not.toHaveBeenCalled();
+    expect(f.remove).not.toHaveBeenCalled();
+  });
   it("uploads UTF-8 content and commits checksum/byte count without deleting a committed file", async () => {
     const f = fixture();
     await expect(persistLifecycleDocumentDraft(f.transaction, input)).resolves.toMatchObject({ mode: "CREATED" });
