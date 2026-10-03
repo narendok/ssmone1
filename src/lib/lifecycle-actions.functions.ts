@@ -26,6 +26,14 @@ const templateStageSchema = z.object({
 
 const templateIdSchema = z.object({ templateId: uuid });
 const generationSchema = z.object({ projectId: uuid, templateId: uuid, requestKey: uuid });
+const documentDraftSchema = z.object({
+  projectId: uuid,
+  templateId: uuid,
+  templateVersion: z.number().int().positive(),
+  targetFolderId: uuid,
+  requestKey: uuid,
+  sourceFingerprint: z.string().trim().min(1).max(4000),
+});
 
 function lifecycleError(error: { message?: string } | null, fallback: string): never {
   throw new Error(error?.message ?? fallback);
@@ -118,6 +126,40 @@ export const materializeLifecycleDraft = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: project, error } = await context.supabase.from("projects").select("department_id").eq("id", data.projectId).maybeSingle();
     if (error || !project?.department_id) lifecycleError(error, "Project requires an owning department.");
+    await requireLifecycleManager(context, project.department_id);
+    await lifecycleMutationGate();
+    return { result: null, actorId: context.userId };
+  });
+
+/**
+ * Deliberately gated facade for the future document-producing action. Unlike
+ * lifecycle materialization, this must render content, store a Drive file,
+ * create a persisted source revision and audit-linked controlled draft in one
+ * replay-safe server transaction. It is not available until isolated tests
+ * prove authorization, rollback, concurrency and non-admin RLS behavior.
+ */
+export const generateLifecycleDocumentDraft = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => documentDraftSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: project, error } = await context.supabase
+      .from("projects")
+      .select("department_id,project_drive_node_id,revision")
+      .eq("id", data.projectId)
+      .maybeSingle();
+    if (error || !project?.department_id) lifecycleError(error, "Project requires an owning department.");
+    if (!project.project_drive_node_id || !project.revision) {
+      throw new Error("Project Drive root and revision are required for document draft generation.");
+    }
+    const { data: template, error: templateError } = await context.supabase
+      .from("department_process_templates")
+      .select("department_id,version,status")
+      .eq("id", data.templateId)
+      .maybeSingle();
+    if (templateError || !template) lifecycleError(templateError, "Template was not found.");
+    if (template.department_id !== project.department_id || template.version !== data.templateVersion || template.status !== "ACTIVE") {
+      throw new Error("An active template with the pinned project department version is required.");
+    }
     await requireLifecycleManager(context, project.department_id);
     await lifecycleMutationGate();
     return { result: null, actorId: context.userId };

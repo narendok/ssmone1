@@ -4,7 +4,8 @@ import { lifecycleActionContracts, lifecycleActionMayRun } from "./lifecycle-act
 describe("lifecycle protected-action contract", () => {
   it("keeps only generation replay-safe by request key", () => {
     expect(lifecycleActionContracts.materialize.idempotent).toBe(true);
-    expect(Object.values(lifecycleActionContracts).filter((item) => item.idempotent)).toHaveLength(1);
+    expect(lifecycleActionContracts.documentDraft.idempotent).toBe(true);
+    expect(Object.values(lifecycleActionContracts).filter((item) => item.idempotent)).toHaveLength(2);
   });
 
   it("requires deployment review and isolated database acceptance before mutation can be enabled", () => {
