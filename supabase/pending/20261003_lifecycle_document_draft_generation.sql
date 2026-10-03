@@ -186,6 +186,40 @@ BEGIN
 END;
 $$;
 
+-- The server-only adapter calls this after a successful storage response and
+-- before commit. Actor provenance comes only from the request JWT context.
+CREATE OR REPLACE FUNCTION public.register_lifecycle_document_storage_attempt(
+  p_project_id uuid, p_template_key text, p_template_version integer,
+  p_template_document_revision_id uuid, p_request_key uuid,
+  p_storage_bucket text, p_storage_path text, p_sha256_checksum text, p_size_bytes bigint
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_actor uuid := public.lifecycle_actor();
+BEGIN
+  IF p_storage_bucket <> 'project-drive'
+     OR p_storage_path <> p_project_id::text || '/' || regexp_replace(p_storage_path, '^' || p_project_id::text || '/', '')
+     OR p_sha256_checksum !~ '^[a-f0-9]{64}$' OR p_size_bytes < 0 THEN
+    RAISE EXCEPTION 'Invalid staged document attempt payload';
+  END IF;
+  PERFORM public.authorize_lifecycle_document_draft(
+    p_project_id, p_template_key, p_template_version, p_template_document_revision_id, p_request_key
+  );
+  INSERT INTO public.lifecycle_document_storage_attempts(
+    project_id, request_key, storage_bucket, storage_path, sha256_checksum, size_bytes, uploaded_by
+  ) VALUES (
+    p_project_id, p_request_key, p_storage_bucket, p_storage_path, p_sha256_checksum, p_size_bytes, v_actor
+  ) ON CONFLICT (storage_bucket, storage_path) DO NOTHING;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.lifecycle_document_storage_attempts attempt
+    WHERE attempt.project_id = p_project_id AND attempt.request_key = p_request_key
+      AND attempt.storage_bucket = p_storage_bucket AND attempt.storage_path = p_storage_path
+      AND attempt.sha256_checksum = p_sha256_checksum AND attempt.size_bytes = p_size_bytes
+      AND attempt.uploaded_by = v_actor
+  ) THEN
+    RAISE EXCEPTION 'Staged object path conflicts with another immutable attempt';
+  END IF;
+END;
+$$;
+
 -- Request keys are only unique within a project. Every lookup binds the actor,
 -- project, target folder, template version and immutable template revision.
 CREATE OR REPLACE FUNCTION public.find_lifecycle_document_draft_receipt(
@@ -232,6 +266,7 @@ DECLARE
   v_node_id uuid; v_revision_id uuid; v_register_id uuid; v_audit_id uuid; v_document_number text;
   v_rendered_content text; v_rendered_sha256 text; v_expected_name text; v_payload_hash text; v_source_fingerprint text;
   v_ancestry_ids uuid[]; v_ancestry_count integer; v_root_found boolean; v_token text; v_result jsonb;
+  v_match text[]; v_remaining text; v_replacement text;
   v_attempt public.lifecycle_document_storage_attempts%ROWTYPE; v_receipt_id uuid;
 BEGIN
   IF p_request_key IS NULL OR p_template_document_revision_id IS NULL
@@ -298,17 +333,31 @@ BEGIN
     RAISE EXCEPTION 'Request key conflicts with a different document draft payload';
   END IF;
   -- Only these four canonical server-owned values may appear in a template.
-  -- Normalize placeholder whitespace first, then use literal replace so project
-  -- values containing backslashes or braces remain literal, as in the renderer.
-  v_rendered_content := regexp_replace(v_template_revision.content, '\{\{\s*([A-Z0-9_]+)\s*\}\}', '{{\1}}', 'g');
-  FOR v_token IN SELECT (regexp_matches(v_rendered_content, '\{\{([A-Z0-9_]+)\}\}', 'g'))[1] LOOP
+  -- Validate malformed braces before a single substitution pass. Each original
+  -- placeholder is expanded directly, so braces in project data stay literal.
+  IF regexp_replace(v_template_revision.content, '\{\{\s*[A-Z0-9_]+\s*\}\}', '', 'g') LIKE '%{{%'
+     OR regexp_replace(v_template_revision.content, '\{\{\s*[A-Z0-9_]+\s*\}\}', '', 'g') LIKE '%}}%' THEN
+    RAISE EXCEPTION 'Invalid immutable template placeholder syntax';
+  END IF;
+  FOR v_token IN SELECT (regexp_matches(v_template_revision.content, '\{\{\s*([A-Z0-9_]+)\s*\}\}', 'g'))[1] LOOP
     IF v_token NOT IN ('PROJECT_CODE','PROJECT_NAME','PROJECT_REVISION','DEPARTMENT') THEN RAISE EXCEPTION 'Unsupported immutable template token %', v_token; END IF;
   END LOOP;
-  v_rendered_content := replace(v_rendered_content, '{{PROJECT_CODE}}', v_project.code);
-  v_rendered_content := replace(v_rendered_content, '{{PROJECT_NAME}}', v_project.name);
-  v_rendered_content := replace(v_rendered_content, '{{PROJECT_REVISION}}', v_project.revision);
-  v_rendered_content := replace(v_rendered_content, '{{DEPARTMENT}}', (SELECT name FROM public.departments WHERE id = v_project.department_id));
-  IF v_rendered_content LIKE '%{{%' OR v_rendered_content LIKE '%}}%' THEN RAISE EXCEPTION 'Immutable template has unresolved token syntax'; END IF;
+  v_rendered_content := '';
+  v_remaining := v_template_revision.content;
+  LOOP
+    v_match := regexp_match(v_remaining, '^(.*?)\{\{\s*([A-Z0-9_]+)\s*\}\}(.*)$', 's');
+    EXIT WHEN v_match IS NULL;
+    v_token := v_match[2];
+    v_replacement := CASE v_token
+      WHEN 'PROJECT_CODE' THEN v_project.code
+      WHEN 'PROJECT_NAME' THEN v_project.name
+      WHEN 'PROJECT_REVISION' THEN v_project.revision
+      WHEN 'DEPARTMENT' THEN (SELECT name FROM public.departments WHERE id = v_project.department_id)
+    END;
+    v_rendered_content := v_rendered_content || v_match[1] || v_replacement;
+    v_remaining := v_match[3];
+  END LOOP;
+  v_rendered_content := v_rendered_content || v_remaining;
   v_rendered_sha256 := encode(digest(convert_to(v_rendered_content, 'UTF8'), 'sha256'), 'hex');
   v_source_fingerprint := encode(digest(convert_to(concat_ws('|', v_project.id, v_target.id, v_template.id, v_template.version, v_template_revision.id, v_rendered_sha256), 'UTF8'), 'sha256'), 'hex');
   v_expected_name := regexp_replace(v_project.code || '-' || v_template.template_key || '-v' || v_template.version::text, '[^A-Za-z0-9._-]+', '_', 'g') || '.txt';
@@ -395,10 +444,12 @@ REVOKE ALL ON FUNCTION public.lifecycle_document_draft_guard() FROM PUBLIC, anon
 REVOKE ALL ON FUNCTION public.lifecycle_document_draft_delete_guard() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.lifecycle_document_storage_attempt_guard() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.register_lifecycle_document_storage_attempt(uuid,text,integer,uuid,uuid,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid,uuid,text,integer,uuid,uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,integer,uuid,text,text,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.can_discard_lifecycle_document_object(uuid,uuid,text,text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.register_lifecycle_document_storage_attempt(uuid,text,integer,uuid,uuid,text,text,text,bigint) TO service_role;
 GRANT EXECUTE ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid,uuid,text,integer,uuid,uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,integer,uuid,text,text,text,text,text,bigint) TO service_role;
 GRANT EXECUTE ON FUNCTION public.can_discard_lifecycle_document_object(uuid,uuid,text,text) TO service_role;

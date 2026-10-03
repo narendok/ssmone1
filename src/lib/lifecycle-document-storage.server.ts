@@ -10,6 +10,10 @@ export type StagedDocument = {
 export type DocumentDatabaseBridge = {
   authorize: DocumentDraftTransaction["authorize"];
   findReceipt: DocumentDraftTransaction["findReceipt"];
+  // Called only after storage confirms upload success. The server derives the
+  // authenticated actor and verifies the project/template/request pin before
+  // recording immutable staging provenance; callers never supply an actor.
+  registerAttempt(input: Input, staged: StagedDocument): Promise<void>;
   // Must atomically reauthorize and persist node, revision, register, audit,
   // numbering and immutable receipt, or return a verified concurrent replay.
   commit(input: Input, staged: StagedDocument): Promise<{ receipt: DocumentDraftReceipt; usesStagedObject: boolean }>;
@@ -18,7 +22,7 @@ export type DocumentDatabaseBridge = {
   canDiscard(staged: StagedDocument): Promise<boolean>;
 };
 
-/** Concrete Supabase upload/compensation adapter; no independent DB inserts. */
+/** Concrete Supabase upload/compensation adapter; no client-originated DB inserts. */
 export function createDocumentStorageTransaction(
   storage: SupabaseClient["storage"],
   database: DocumentDatabaseBridge,
@@ -59,6 +63,10 @@ export function createDocumentStorageTransaction(
       // Even a failed response may mean an upload succeeded. Compensation must
       // reconcile this attempt, never touch another request's storage object.
       if (error) throw new Error(error.message);
+      // Registration failure is intentionally compensated through the same
+      // fail-closed cleanup path. A successful upload is not canonical until
+      // its server-owned attempt record exists and commit consumes it.
+      await database.registerAttempt(input, candidate);
       const committed = await database.commit(input, candidate);
       referenced = committed.usesStagedObject;
       if (!referenced) await rollback();
