@@ -17,7 +17,7 @@ function fixture(responses: Record<string, { data: unknown; error: { message: st
   return { rpc, bridge: createLifecycleDocumentDatabaseBridge({ rpc } as never, "project", "target-folder") };
 }
 
-const rendered = { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Draft", templatePin: { templateKey: "OEM", version: 1 } };
+const rendered = { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Draft", templatePin: { templateKey: "OEM", version: 1, documentRevisionId: "template-revision" } };
 const input = { requestKey: receipt.request_key, sourceFingerprint: receipt.source_fingerprint, rendered };
 const staged = { bucket: "project-drive" as const, path: "project/attempt-draft.txt", sha256: "a".repeat(64), sizeBytes: 5 };
 

@@ -4,7 +4,7 @@ import { createDocumentStorageTransaction } from "./lifecycle-document-storage.s
 import { persistLifecycleDocumentDraft } from "./lifecycle-document-persistence";
 
 const input = { requestKey: "request", sourceFingerprint: "snapshot", rendered: {
-  fileName: "project.txt", mimeType: "text/plain" as const, content: "भारत OEM", templatePin: { templateKey: "PRS", version: 1 },
+  fileName: "project.txt", mimeType: "text/plain" as const, content: "भारत OEM", templatePin: { templateKey: "PRS", version: 1, documentRevisionId: "revision" },
 } };
 const receipt = { requestKey: "request", sourceFingerprint: "snapshot", nodeId: "file", revisionId: "rev", registerId: "reg", auditEventId: "audit" };
 const projectId = "00000000-0000-0000-0000-000000000001";

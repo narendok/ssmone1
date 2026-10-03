@@ -88,6 +88,7 @@ export async function loadLifecycleDocumentPreflight(
     version: typedTemplate.version,
     title: typedTemplate.title,
     content: typedRevision.content,
+    documentRevisionId: typedRevision.id,
   }, fields);
   const sourceFingerprint = await sha256(JSON.stringify({
     projectId: typedProject.id,
