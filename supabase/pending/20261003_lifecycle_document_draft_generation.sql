@@ -72,8 +72,14 @@ BEGIN
 END;
 $$;
 CREATE TRIGGER lifecycle_document_template_revision_immutable
-BEFORE INSERT OR UPDATE OR DELETE ON public.department_process_template_document_revisions
+BEFORE INSERT OR UPDATE ON public.department_process_template_document_revisions
 FOR EACH ROW EXECUTE FUNCTION public.lifecycle_document_template_revision_guard();
+CREATE OR REPLACE FUNCTION public.lifecycle_document_template_revision_delete_guard()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$ BEGIN RAISE EXCEPTION 'Template document revisions are immutable'; END; $$;
+CREATE TRIGGER lifecycle_document_template_revision_no_delete
+BEFORE DELETE ON public.department_process_template_document_revisions
+FOR EACH ROW EXECUTE FUNCTION public.lifecycle_document_template_revision_delete_guard();
 
 CREATE OR REPLACE FUNCTION public.lifecycle_document_draft_guard()
 RETURNS trigger
@@ -91,8 +97,14 @@ BEGIN
 END;
 $$;
 CREATE TRIGGER lifecycle_document_draft_immutable
-BEFORE INSERT OR UPDATE OR DELETE ON public.project_lifecycle_document_drafts
+BEFORE INSERT OR UPDATE ON public.project_lifecycle_document_drafts
 FOR EACH ROW EXECUTE FUNCTION public.lifecycle_document_draft_guard();
+CREATE OR REPLACE FUNCTION public.lifecycle_document_draft_delete_guard()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$ BEGIN RAISE EXCEPTION 'Lifecycle document draft receipts are immutable'; END; $$;
+CREATE TRIGGER lifecycle_document_draft_no_delete
+BEFORE DELETE ON public.project_lifecycle_document_drafts
+FOR EACH ROW EXECUTE FUNCTION public.lifecycle_document_draft_delete_guard();
 
 -- Server-only helper. It rechecks the actor and all authoritative records
 -- before receipt disclosure, staging, or final commit.
@@ -173,7 +185,9 @@ AS $$
 $$;
 
 REVOKE ALL ON FUNCTION public.lifecycle_document_template_revision_guard() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.lifecycle_document_template_revision_delete_guard() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.lifecycle_document_draft_guard() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.lifecycle_document_draft_delete_guard() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.commit_lifecycle_document_draft(uuid,text,text,integer,text,text,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
