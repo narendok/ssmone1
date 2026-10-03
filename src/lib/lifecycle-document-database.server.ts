@@ -45,21 +45,28 @@ export function createLifecycleDocumentDatabaseBridge(
       p_project_id: projectId,
       p_template_key: input.rendered.templatePin.templateKey,
       p_template_version: input.rendered.templatePin.version,
+      p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
       p_request_key: input.requestKey,
-      p_source_fingerprint: input.sourceFingerprint,
     });
     if (error) throwRpcError(error, "Document draft authorization failed.");
   };
 
   return {
     authorize,
-    async findReceipt(requestKey) {
+    async findReceipt(input) {
       const { data, error } = await supabase.rpc("find_lifecycle_document_draft_receipt", {
-        p_request_key: requestKey,
+        p_project_id: projectId,
+        p_target_folder_id: targetFolderId,
+        p_template_key: input.rendered.templatePin.templateKey,
+        p_template_version: input.rendered.templatePin.version,
+        p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
+        p_request_key: input.requestKey,
       });
       if (error) throwRpcError(error, "Document draft receipt lookup failed.");
       if (!data) return null;
-      return toReceipt(data as DocumentDraftRpcResult);
+      const result = Array.isArray(data) ? data[0] : data;
+      if (!result) return null;
+      return toReceipt(result as DocumentDraftRpcResult);
     },
     async commit(input: CommitInput, staged: StagedDocument) {
       const { data, error } = await supabase.rpc("commit_lifecycle_document_draft", {
@@ -69,6 +76,7 @@ export function createLifecycleDocumentDatabaseBridge(
         p_source_fingerprint: input.sourceFingerprint,
         p_template_key: input.rendered.templatePin.templateKey,
         p_template_version: input.rendered.templatePin.version,
+        p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
         p_file_name: input.rendered.fileName,
         p_mime_type: input.rendered.mimeType,
         p_storage_bucket: staged.bucket,
@@ -79,6 +87,20 @@ export function createLifecycleDocumentDatabaseBridge(
       if (error || !data) throwRpcError(error, "Document draft transaction failed.");
       const result = data as DocumentDraftRpcResult;
       return { receipt: toReceipt(result), usesStagedObject: result.uses_staged_object !== false };
+    },
+    async registerAttempt(input, staged) {
+      const { error } = await supabase.rpc("register_lifecycle_document_storage_attempt", {
+        p_project_id: projectId,
+        p_template_key: input.rendered.templatePin.templateKey,
+        p_template_version: input.rendered.templatePin.version,
+        p_template_document_revision_id: input.rendered.templatePin.documentRevisionId,
+        p_request_key: input.requestKey,
+        p_storage_bucket: staged.bucket,
+        p_storage_path: staged.path,
+        p_sha256_checksum: staged.sha256,
+        p_size_bytes: staged.sizeBytes,
+      });
+      if (error) throwRpcError(error, "Document storage attempt registration failed.");
     },
     async canDiscard(staged) {
       const { data, error } = await supabase.rpc("can_discard_lifecycle_document_object", {

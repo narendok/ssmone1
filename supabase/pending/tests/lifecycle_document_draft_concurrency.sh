@@ -11,6 +11,11 @@ set -euo pipefail
 : "${FILE_NAME:?}" "${SHA256_CHECKSUM:?}" "${SIZE_BYTES:?}"
 : "${STORAGE_PATH_A:?}" "${STORAGE_PATH_B:?}"
 
+if [[ "$REQUEST_KEY_A" != "$REQUEST_KEY_B" ]]; then
+  echo "REQUEST_KEY_A and REQUEST_KEY_B must match for semantic replay" >&2
+  exit 1
+fi
+
 run_attempt() {
   local request_key="$1" storage_path="$2"
   psql "$ISOLATED_DATABASE_URL" --set=ON_ERROR_STOP=1 \
@@ -40,15 +45,30 @@ run_attempt "$REQUEST_KEY_B" "$STORAGE_PATH_B" & second=$!
 wait "$first"; wait "$second"
 
 psql "$ISOLATED_DATABASE_URL" --set=ON_ERROR_STOP=1 \
-  -v project_id="$PROJECT_ID" -v request_key="$REQUEST_KEY_A" <<'SQL'
+  -v manager_user_id="$MANAGER_USER_ID" -v project_id="$PROJECT_ID" -v request_key="$REQUEST_KEY_A" \
+  -v storage_path_a="$STORAGE_PATH_A" -v storage_path_b="$STORAGE_PATH_B" <<'SQL'
+SELECT set_config('request.jwt.claim.sub', :'manager_user_id', false);
+SELECT set_config('request.jwt.claim.role', 'authenticated', false);
 DO $assert$
 DECLARE
   v_project_id uuid := :'project_id'::uuid;
   v_request_key uuid := :'request_key'::uuid;
+  v_path_a text := :'storage_path_a';
+  v_path_b text := :'storage_path_b';
+  v_canonical_path text;
 BEGIN
   IF (SELECT count(*) FROM public.project_lifecycle_document_drafts
       WHERE project_id = v_project_id AND request_key = v_request_key) <> 1 THEN
     RAISE EXCEPTION 'Concurrent replay did not converge to exactly one receipt';
+  END IF;
+  SELECT storage_path INTO v_canonical_path FROM public.project_lifecycle_document_drafts
+  WHERE project_id = v_project_id AND request_key = v_request_key;
+  IF v_canonical_path NOT IN (v_path_a, v_path_b) THEN RAISE EXCEPTION 'Concurrent receipt is not bound to either staged attempt'; END IF;
+  IF NOT public.can_discard_lifecycle_document_object(v_project_id, v_request_key, 'project-drive', CASE WHEN v_canonical_path = v_path_a THEN v_path_b ELSE v_path_a END) THEN
+    RAISE EXCEPTION 'Losing concurrent attempt is not eligible for exact cleanup';
+  END IF;
+  IF public.can_discard_lifecycle_document_object(v_project_id, v_request_key, 'project-drive', v_canonical_path) THEN
+    RAISE EXCEPTION 'Canonical concurrent attempt became eligible for cleanup';
   END IF;
 END;
 $assert$;

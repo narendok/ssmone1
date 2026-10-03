@@ -127,10 +127,25 @@ $fixture$;
 -- staged object only after can_discard confirms every Drive reference is absent.
 ROLLBACK;
 
--- Rollback proof: this outer transaction leaves no receipt, node, revision,
--- register, audit record, or consumed attempt after ROLLBACK. The runner must
--- call can_discard as the manager after rollback, then remove the isolated
--- object only when it returns true.
--- Concurrency is provided by lifecycle_document_draft_concurrency.sh, which
--- executes two psql sessions with distinct staged objects and asserts one
--- semantic receipt plus cleanup permission only for the losing path.
+-- This same psql connection now starts a fresh transaction. It proves the
+-- rollback did not retain a receipt and returns true only for exact manager
+-- cleanup of the no-longer-referenced staged object.
+SELECT set_config('request.jwt.claim.sub', :'manager_user_id', false);
+SELECT set_config('request.jwt.claim.role', 'authenticated', false);
+DO $fixture$
+DECLARE
+  v_project_id uuid := :'project_id'::uuid;
+  v_request_key uuid := :'request_key'::uuid;
+  v_storage_path text := :'storage_path';
+BEGIN
+  IF EXISTS (SELECT 1 FROM public.project_lifecycle_document_drafts WHERE project_id = v_project_id AND request_key = v_request_key) THEN
+    RAISE EXCEPTION 'ROLLBACK retained a lifecycle draft receipt';
+  END IF;
+  IF NOT public.can_discard_lifecycle_document_object(v_project_id, v_request_key, 'project-drive', v_storage_path) THEN
+    RAISE EXCEPTION 'ROLLBACK did not leave the exact staged object eligible for verified cleanup';
+  END IF;
+END;
+$fixture$;
+
+-- The independent concurrency runner commits two distinct staged paths using
+-- one request key and asserts one canonical receipt and losing-path cleanup.

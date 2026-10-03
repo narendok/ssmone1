@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { mapLifecycleProjectDocumentFields } from "@/lib/lifecycle-document-fields";
+import { loadLifecycleDocumentPreflight } from "@/lib/lifecycle-document-preflight.server";
 
 const uuid = z.string().uuid();
 const departmentType = z.enum(["hardware", "firmware", "mechanical", "qa", "procurement", "production", "executive"]);
@@ -31,6 +31,7 @@ const documentDraftSchema = z.object({
   projectId: uuid,
   templateId: uuid,
   templateVersion: z.number().int().positive(),
+  templateDocumentRevisionId: uuid,
   targetFolderId: uuid,
   requestKey: uuid,
 });
@@ -149,26 +150,11 @@ export const generateLifecycleDocumentDraft = createServerFn({ method: "POST" })
     if (!project.project_drive_node_id || !project.revision) {
       throw new Error("Project Drive root and revision are required for document draft generation.");
     }
-    const { data: template, error: templateError } = await context.supabase
-      .from("department_process_templates")
-      .select("department_id,version,status")
-      .eq("id", data.templateId)
-      .maybeSingle();
-    if (templateError || !template) lifecycleError(templateError, "Template was not found.");
-    if (template.department_id !== project.department_id || template.version !== data.templateVersion || template.status !== "ACTIVE") {
-      throw new Error("An active template with the pinned project department version is required.");
-    }
     await requireLifecycleManager(context, project.department_id);
-    const { data: department, error: departmentError } = await context.supabase
-      .from("departments")
-      .select("id,name,is_active")
-      .eq("id", project.department_id)
-      .maybeSingle();
-    if (departmentError || !department) lifecycleError(departmentError, "Owning department was not found.");
-    // This preflight verifies that project-derived source fields exist. The
-    // document body, source snapshot, template pin, target ancestry, and
-    // final authorization are reloaded and validated by the pending DB RPC.
-    mapLifecycleProjectDocumentFields(project, department);
+    // Preflight reads the immutable content revision, canonical project fields,
+    // and target scope from the caller-authorized database view. No browser
+    // content or field values are accepted. The commit RPC repeats these checks.
+    await loadLifecycleDocumentPreflight(context.supabase, data);
     await lifecycleMutationGate();
     return { result: null, actorId: context.userId };
   });

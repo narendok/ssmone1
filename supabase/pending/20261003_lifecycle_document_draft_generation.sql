@@ -138,6 +138,61 @@ CREATE TRIGGER lifecycle_document_template_revision_no_delete
 BEFORE DELETE ON public.department_process_template_document_revisions
 FOR EACH ROW EXECUTE FUNCTION public.lifecycle_document_template_revision_delete_guard();
 
+-- Browser settings remain read-only. These service-only routines are the
+-- proposed governed content-management boundary: they derive actor/time,
+-- append immutable content only to DRAFT versions, and require the existing
+-- department-lead authorization contract.
+CREATE OR REPLACE FUNCTION public.create_lifecycle_document_template_revision(
+  p_template_id uuid, p_content text
+) RETURNS TABLE(id uuid, template_id uuid, revision_number integer, content_sha256 text)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_actor uuid := public.lifecycle_actor(); v_template public.department_process_templates%ROWTYPE;
+  v_revision_number integer; v_checksum text;
+BEGIN
+  IF btrim(coalesce(p_content, '')) = '' THEN RAISE EXCEPTION 'Immutable template content is required'; END IF;
+  SELECT * INTO v_template FROM public.department_process_templates WHERE id = p_template_id FOR UPDATE;
+  IF NOT FOUND OR v_template.status <> 'DRAFT' THEN RAISE EXCEPTION 'Only a DRAFT template may receive a new immutable content revision'; END IF;
+  IF NOT public.lifecycle_can_manage_department(v_actor, v_template.department_id)
+     OR NOT public.can_access_department_drive(v_actor, v_template.department_id, NULL) THEN RAISE EXCEPTION 'Not authorized'; END IF;
+  v_checksum := encode(digest(convert_to(p_content, 'UTF8'), 'sha256'), 'hex');
+  SELECT coalesce(max(revision.revision_number), 0) + 1 INTO v_revision_number
+  FROM public.department_process_template_document_revisions revision WHERE revision.template_id = v_template.id FOR UPDATE;
+  INSERT INTO public.department_process_template_document_revisions(template_id, revision_number, content, content_sha256, created_by)
+  VALUES (v_template.id, v_revision_number, p_content, v_checksum, v_actor)
+  RETURNING department_process_template_document_revisions.id INTO id;
+  template_id := v_template.id; revision_number := v_revision_number; content_sha256 := v_checksum;
+  RETURN NEXT;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.activate_lifecycle_document_template(
+  p_template_id uuid, p_template_document_revision_id uuid
+) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_actor uuid := public.lifecycle_actor(); v_template public.department_process_templates%ROWTYPE;
+BEGIN
+  SELECT * INTO v_template FROM public.department_process_templates WHERE id = p_template_id FOR UPDATE;
+  IF NOT FOUND OR v_template.status <> 'DRAFT' THEN RAISE EXCEPTION 'Only a DRAFT template may be activated'; END IF;
+  IF NOT public.lifecycle_can_manage_department(v_actor, v_template.department_id)
+     OR NOT public.can_access_department_drive(v_actor, v_template.department_id, NULL) THEN RAISE EXCEPTION 'Not authorized'; END IF;
+  PERFORM 1 FROM public.department_process_template_document_revisions revision
+  WHERE revision.id = p_template_document_revision_id AND revision.template_id = v_template.id FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Activation requires a pinned immutable content revision'; END IF;
+  UPDATE public.department_process_templates SET status = 'ACTIVE', activated_at = now() WHERE id = v_template.id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.retire_lifecycle_document_template(p_template_id uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_actor uuid := public.lifecycle_actor(); v_template public.department_process_templates%ROWTYPE;
+BEGIN
+  SELECT * INTO v_template FROM public.department_process_templates WHERE id = p_template_id FOR UPDATE;
+  IF NOT FOUND OR v_template.status <> 'ACTIVE' THEN RAISE EXCEPTION 'Only an ACTIVE template may be retired'; END IF;
+  IF NOT public.lifecycle_can_manage_department(v_actor, v_template.department_id)
+     OR NOT public.can_access_department_drive(v_actor, v_template.department_id, NULL) THEN RAISE EXCEPTION 'Not authorized'; END IF;
+  UPDATE public.department_process_templates SET status = 'RETIRED', retired_at = now() WHERE id = v_template.id;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.lifecycle_document_draft_guard()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
@@ -443,6 +498,9 @@ REVOKE ALL ON FUNCTION public.lifecycle_document_template_revision_delete_guard(
 REVOKE ALL ON FUNCTION public.lifecycle_document_draft_guard() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.lifecycle_document_draft_delete_guard() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.lifecycle_document_storage_attempt_guard() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.create_lifecycle_document_template_revision(uuid,text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.activate_lifecycle_document_template(uuid,uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.retire_lifecycle_document_template(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.authorize_lifecycle_document_draft(uuid,text,integer,uuid,uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.register_lifecycle_document_storage_attempt(uuid,text,integer,uuid,uuid,text,text,text,bigint) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid,uuid,text,integer,uuid,uuid) FROM PUBLIC, anon, authenticated;
@@ -453,6 +511,9 @@ GRANT EXECUTE ON FUNCTION public.register_lifecycle_document_storage_attempt(uui
 GRANT EXECUTE ON FUNCTION public.find_lifecycle_document_draft_receipt(uuid,uuid,text,integer,uuid,uuid) TO service_role;
 GRANT EXECUTE ON FUNCTION public.commit_lifecycle_document_draft(uuid,uuid,uuid,text,integer,uuid,text,text,text,text,text,bigint) TO service_role;
 GRANT EXECUTE ON FUNCTION public.can_discard_lifecycle_document_object(uuid,uuid,text,text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.create_lifecycle_document_template_revision(uuid,text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.activate_lifecycle_document_template(uuid,uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.retire_lifecycle_document_template(uuid) TO service_role;
 
 -- Required acceptance before applying:
 -- 1. Run tests/lifecycle_document_draft_acceptance.sql against an isolated DB

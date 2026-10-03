@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderLifecycleDocument } from "./lifecycle-document-renderer";
 import { persistLifecycleDocumentDraft } from "./lifecycle-document-persistence";
 
-const template = { templateKey: "OEM-TRACKER", version: 3, title: "OEM tracker", content: "Project: {{PROJECT_CODE}}\nRevision: {{PROJECT_REVISION}}\nOwner: {{DEPARTMENT}}" };
+const template = { templateKey: "OEM-TRACKER", version: 3, title: "OEM tracker", documentRevisionId: "template-revision-3", content: "Project: {{PROJECT_CODE}}\nRevision: {{PROJECT_REVISION}}\nOwner: {{DEPARTMENT}}" };
 const fields = { PROJECT_CODE: "PROJECT-2026-0005", PROJECT_REVISION: "TEST-01", DEPARTMENT: "Hardware & R&D" };
 
 describe("lifecycle document renderer", () => {
@@ -10,7 +10,7 @@ describe("lifecycle document renderer", () => {
     expect(renderLifecycleDocument(template, fields)).toEqual({
       fileName: "PROJECT-2026-0005-OEM-TRACKER-v3.txt", mimeType: "text/plain",
       content: "Project: PROJECT-2026-0005\nRevision: TEST-01\nOwner: Hardware & R&D",
-      templatePin: { templateKey: "OEM-TRACKER", version: 3 },
+      templatePin: { templateKey: "OEM-TRACKER", version: 3, documentRevisionId: "template-revision-3" },
     });
   });
 
@@ -33,6 +33,10 @@ describe("lifecycle document renderer", () => {
 
   it("rejects empty template content", () => {
     expect(() => renderLifecycleDocument({ ...template, content: "  " }, fields)).toThrow("required");
+  });
+
+  it("requires an immutable content revision pin", () => {
+    expect(() => renderLifecycleDocument({ ...template, documentRevisionId: " " }, fields)).toThrow("revision");
   });
 
   it("replays an identical receipt and rejects a conflicting request key", async () => {

@@ -6,7 +6,7 @@ export type DocumentDraftTransaction = {
   // Recheck the authenticated actor and project/template/target scope even
   // when an existing receipt can be returned. Never trust a cached role.
   authorize(input: { rendered: RenderedLifecycleDocument; requestKey: string; sourceFingerprint: string }): Promise<void>;
-  findReceipt(requestKey: string): Promise<DocumentDraftReceipt | null>;
+  findReceipt(input: { rendered: RenderedLifecycleDocument; requestKey: string; sourceFingerprint: string }): Promise<DocumentDraftReceipt | null>;
   persist(input: { rendered: RenderedLifecycleDocument; requestKey: string; sourceFingerprint: string }): Promise<DocumentDraftReceipt>;
   rollback(): Promise<void>;
 };
@@ -21,7 +21,7 @@ export async function persistLifecycleDocumentDraft(
   input: { rendered: RenderedLifecycleDocument; requestKey: string; sourceFingerprint: string },
 ) {
   await transaction.authorize(input);
-  const replay = await transaction.findReceipt(input.requestKey);
+  const replay = await transaction.findReceipt(input);
   if (replay) {
     if (replay.requestKey !== input.requestKey) throw new Error("Document receipt does not match the request key.");
     if (replay.sourceFingerprint !== input.sourceFingerprint) throw new Error("Request key conflicts with different document source data.");

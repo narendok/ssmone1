@@ -3,7 +3,7 @@ import { persistLifecycleDocumentDraft } from "./lifecycle-document-persistence"
 
 const input = {
   requestKey: "request", sourceFingerprint: "source",
-  rendered: { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Project draft", templatePin: { templateKey: "PRS", version: 1 } },
+  rendered: { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Project draft", templatePin: { templateKey: "PRS", version: 1, documentRevisionId: "revision" } },
 };
 const receipt = { requestKey: "request", nodeId: "node", revisionId: "revision", registerId: "register", auditEventId: "audit", sourceFingerprint: "source" };
 function transaction() {

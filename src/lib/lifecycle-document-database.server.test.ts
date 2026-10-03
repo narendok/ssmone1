@@ -17,7 +17,7 @@ function fixture(responses: Record<string, { data: unknown; error: { message: st
   return { rpc, bridge: createLifecycleDocumentDatabaseBridge({ rpc } as never, "project", "target-folder") };
 }
 
-const rendered = { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Draft", templatePin: { templateKey: "OEM", version: 1 } };
+const rendered = { fileName: "draft.txt", mimeType: "text/plain" as const, content: "Draft", templatePin: { templateKey: "OEM", version: 1, documentRevisionId: "template-revision" } };
 const input = { requestKey: receipt.request_key, sourceFingerprint: receipt.source_fingerprint, rendered };
 const staged = { bucket: "project-drive" as const, path: "project/attempt-draft.txt", sha256: "a".repeat(64), sizeBytes: 5 };
 
@@ -40,6 +40,22 @@ describe("lifecycle document database bridge", () => {
     });
     expect(f.rpc).toHaveBeenCalledWith("commit_lifecycle_document_draft", expect.objectContaining({
       p_project_id: "project", p_target_folder_id: "target-folder", p_storage_path: staged.path, p_sha256_checksum: staged.sha256, p_size_bytes: 5,
+    }));
+  });
+
+  it("binds receipt lookup and storage-attempt registration to project, target, template revision, and request", async () => {
+    const f = fixture({
+      find_lifecycle_document_draft_receipt: { data: [receipt], error: null },
+      register_lifecycle_document_storage_attempt: { data: null, error: null },
+    });
+    await expect(f.bridge.findReceipt(input)).resolves.toEqual({ requestKey: input.requestKey, nodeId: "node", revisionId: "revision", registerId: "register", auditEventId: "audit", sourceFingerprint: "fingerprint" });
+    await f.bridge.registerAttempt(input, staged);
+    expect(f.rpc).toHaveBeenCalledWith("find_lifecycle_document_draft_receipt", expect.objectContaining({
+      p_project_id: "project", p_target_folder_id: "target-folder", p_template_key: "OEM", p_template_version: 1,
+      p_template_document_revision_id: "template-revision", p_request_key: input.requestKey,
+    }));
+    expect(f.rpc).toHaveBeenCalledWith("register_lifecycle_document_storage_attempt", expect.objectContaining({
+      p_project_id: "project", p_template_document_revision_id: "template-revision", p_storage_path: staged.path,
     }));
   });
 
