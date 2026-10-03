@@ -110,5 +110,6 @@
 - [x] Make administrator workspace context switching primary; remove redundant My Day switching and add all-departments task visibility.
 - [x] Focus navigation and quick work links on the selected administrator department workspace without altering authorization.
 - [ ] Add user-approved real departmental operating records through their established workflows. **Blocker:** source records and owners have not been supplied; the workspace must not invent business data.
+- [ ] Complete the authorized OEM Tracker SAMPLE ONLY acceptance fixture without duplicating the project. Reuse the three existing suspended, no-login sample employee profiles; the only verified new-employee workflow requires a hired application and provisions an auth invitation, which is prohibited. **In progress:** exact sample project/task/portal verification is underway.
 - [x] Complete department cleanup and department-scoped Drive/project workflow.
 - [x] Restore department Drive navigation with Common, Internal Project, Client Project, PPAP, Starred, and BOM filters; add Platform Owner editable folder categories for future projects.
