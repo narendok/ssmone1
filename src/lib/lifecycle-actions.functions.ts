@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { renderLifecycleDocument } from "@/lib/lifecycle-document-renderer";
 import { mapLifecycleProjectDocumentFields } from "@/lib/lifecycle-document-fields";
 
 const uuid = z.string().uuid();
@@ -34,10 +33,6 @@ const documentDraftSchema = z.object({
   templateVersion: z.number().int().positive(),
   targetFolderId: uuid,
   requestKey: uuid,
-  sourceFingerprint: z.string().trim().min(1).max(4000),
-  templateContent: z.string().trim().min(1).max(100_000),
-  templateKey: z.string().trim().min(1).max(120),
-  fields: z.record(z.string(), z.string().nullable()),
 });
 
 function lifecycleError(error: { message?: string } | null, fallback: string): never {
@@ -137,11 +132,9 @@ export const materializeLifecycleDraft = createServerFn({ method: "POST" })
   });
 
 /**
- * Deliberately gated facade for the future document-producing action. Unlike
- * lifecycle materialization, this must render content, store a Drive file,
- * create a persisted source revision and audit-linked controlled draft in one
- * replay-safe server transaction. It is not available until isolated tests
- * prove authorization, rollback, concurrency and non-admin RLS behavior.
+ * Deliberately gated document-producing facade. The pending database contract
+ * server-loads immutable template content and source fields, then atomically
+ * persists a Drive revision, DRAFT register, audit event, and receipt.
  */
 export const generateLifecycleDocumentDraft = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -172,15 +165,10 @@ export const generateLifecycleDocumentDraft = createServerFn({ method: "POST" })
       .eq("id", project.department_id)
       .maybeSingle();
     if (departmentError || !department) lifecycleError(departmentError, "Owning department was not found.");
-    const sourceFields = mapLifecycleProjectDocumentFields(project, department);
-    // Render before crossing the mutation gate so missing mapped fields fail
-    // without any persistence attempt; orchestration remains disabled below.
-    const rendered = renderLifecycleDocument({
-      templateKey: data.templateKey,
-      version: data.templateVersion,
-      title: data.templateKey,
-      content: data.templateContent,
-    }, sourceFields);
+    // This preflight verifies that project-derived source fields exist. The
+    // document body, source snapshot, template pin, target ancestry, and
+    // final authorization are reloaded and validated by the pending DB RPC.
+    mapLifecycleProjectDocumentFields(project, department);
     await lifecycleMutationGate();
-    return { result: rendered, actorId: context.userId };
+    return { result: null, actorId: context.userId };
   });
