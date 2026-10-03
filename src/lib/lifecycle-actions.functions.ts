@@ -26,6 +26,14 @@ const templateStageSchema = z.object({
 });
 
 const templateIdSchema = z.object({ templateId: uuid });
+const templateContentRevisionSchema = z.object({
+  templateId: uuid,
+  content: z.string().trim().min(1).max(200_000),
+});
+const templateActivationSchema = z.object({
+  templateId: uuid,
+  templateDocumentRevisionId: uuid,
+});
 const generationSchema = z.object({ projectId: uuid, templateId: uuid, requestKey: uuid });
 const documentDraftSchema = z.object({
   projectId: uuid,
@@ -99,15 +107,35 @@ export const cloneLifecycleTemplate = createServerFn({ method: "POST" })
     return { templateId: "", actorId: context.userId };
   });
 
+/**
+ * Source-only façade for the pending append-only template-content routine.
+ * It deliberately performs no RPC while the lifecycle mutation gate is shut.
+ */
+export const createLifecycleTemplateContentRevision = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => templateContentRevisionSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { data: template, error } = await context.supabase
+      .from("department_process_templates")
+      .select("department_id,status")
+      .eq("id", data.templateId)
+      .maybeSingle();
+    if (error || !template) lifecycleError(error, "Template was not found.");
+    await requireLifecycleManager(context, template.department_id);
+    if (template.status !== "DRAFT") throw new Error("Immutable content can be appended only to a DRAFT template version.");
+    await lifecycleMutationGate();
+    return { templateDocumentRevisionId: "", actorId: context.userId };
+  });
+
 export const activateLifecycleTemplate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => templateIdSchema.parse(data))
+  .inputValidator((data) => templateActivationSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { data: template, error } = await context.supabase.from("department_process_templates").select("department_id").eq("id", data.templateId).maybeSingle();
     if (error || !template) lifecycleError(error, "Template was not found.");
     await requireLifecycleManager(context, template.department_id);
     await lifecycleMutationGate();
-    return { templateId: data.templateId, actorId: context.userId, status: "ACTIVE" as const };
+    return { templateId: data.templateId, templateDocumentRevisionId: data.templateDocumentRevisionId, actorId: context.userId, status: "ACTIVE" as const };
   });
 
 export const retireLifecycleTemplate = createServerFn({ method: "POST" })

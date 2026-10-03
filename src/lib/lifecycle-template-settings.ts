@@ -50,6 +50,6 @@ export function isLifecycleTemplateActionAvailable() {
 export function lifecycleTemplateMutationStatus() {
   return {
     available: isLifecycleTemplateActionAvailable(),
-    message: "Protected template actions are acceptance-pending and cannot change records from this register.",
+    message: "Protected draft content, cloning, activation, retirement, and stage actions are acceptance-pending and cannot change records from this register.",
   } as const;
 }
