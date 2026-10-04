@@ -1,5 +1,6 @@
--- UNAPPLIED REVIEW PROPOSAL — source-only. Do not apply before the isolated
--- acceptance suite in tests/lifecycle_document_draft_acceptance.sql passes.
+-- PRODUCTION-UNAPPLIED REVIEW PROPOSAL. Install only in a confirmed isolated
+-- acceptance backend to run tests/lifecycle_document_draft_acceptance.sql.
+-- Do not apply to the shared/company backend before full acceptance passes.
 --
 -- This is a single database transaction for Drive metadata, the immutable
 -- revision, DRAFT controlled-document registration, activity audit, and its
@@ -133,7 +134,7 @@ RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     IF NEW.created_by IS DISTINCT FROM auth.uid() THEN RAISE EXCEPTION 'Template revision actor provenance is server-owned'; END IF;
-    IF NEW.content_sha256 <> encode(digest(convert_to(NEW.content, 'UTF8'), 'sha256'), 'hex') THEN RAISE EXCEPTION 'Template revision checksum is invalid'; END IF;
+    IF NEW.content_sha256 <> encode(extensions.digest(convert_to(NEW.content, 'UTF8'), 'sha256'), 'hex') THEN RAISE EXCEPTION 'Template revision checksum is invalid'; END IF;
     NEW.created_at := now();
     RETURN NEW;
   END IF;
@@ -166,7 +167,7 @@ BEGIN
   IF NOT FOUND OR v_template.status <> 'DRAFT' THEN RAISE EXCEPTION 'Only a DRAFT template may receive a new immutable content revision'; END IF;
   IF NOT public.lifecycle_can_manage_department(v_actor, v_template.department_id)
      OR NOT public.can_access_department_drive(v_actor, v_template.department_id, NULL) THEN RAISE EXCEPTION 'Not authorized'; END IF;
-  v_checksum := encode(digest(convert_to(p_content, 'UTF8'), 'sha256'), 'hex');
+  v_checksum := encode(extensions.digest(convert_to(p_content, 'UTF8'), 'sha256'), 'hex');
   SELECT coalesce(max(revision.revision_number), 0) + 1 INTO v_revision_number
   -- The parent template is already locked, serializing append operations.
   -- PostgreSQL does not allow FOR UPDATE on an aggregate query.
@@ -313,7 +314,7 @@ CREATE OR REPLACE FUNCTION public.find_lifecycle_document_draft_receipt(
   p_template_version integer, p_template_document_revision_id uuid,
   p_request_key uuid
 ) RETURNS TABLE(request_key uuid, node_id uuid, revision_id uuid, register_id uuid,
-  audit_event_id uuid, source_fingerprint text, uses_staged_object boolean)
+  audit_event_id uuid, source_fingerprint text, storage_bucket text, storage_path text)
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_actor uuid := public.lifecycle_actor(); v_project public.projects%ROWTYPE;
 BEGIN
@@ -322,7 +323,8 @@ BEGIN
      OR NOT public.can_access_department_drive(v_actor, v_project.department_id, v_project.id) THEN RAISE EXCEPTION 'Not authorized'; END IF;
   RETURN QUERY
   SELECT receipt.request_key, receipt.generated_drive_node_id, receipt.generated_revision_id,
-    receipt.document_control_register_id, receipt.audit_event_id, receipt.source_fingerprint, false
+    receipt.document_control_register_id, receipt.audit_event_id, receipt.source_fingerprint,
+    receipt.storage_bucket, receipt.storage_path
   FROM public.project_lifecycle_document_drafts receipt
   JOIN public.department_process_templates template ON template.id = receipt.template_id
   WHERE receipt.project_id = p_project_id AND receipt.request_key = p_request_key
@@ -356,7 +358,7 @@ DECLARE
   v_attempt public.lifecycle_document_storage_attempts%ROWTYPE; v_receipt_id uuid;
 BEGIN
   IF p_request_key IS NULL OR p_template_document_revision_id IS NULL
-     OR btrim(coalesce(p_file_name,'')) = '' OR btrim(coalesce(p_mime_type,'')) = ''
+     OR btrim(coalesce(p_file_name,'')) = '' OR p_mime_type IS DISTINCT FROM 'text/plain'
      OR p_storage_bucket <> 'project-drive' OR p_storage_path <> p_project_id::text || '/' || regexp_replace(p_storage_path, '^' || p_project_id::text || '/', '')
      OR p_size_bytes < 0 OR p_sha256_checksum !~ '^[a-f0-9]{64}$' THEN
     RAISE EXCEPTION 'Invalid document draft payload';
@@ -408,18 +410,6 @@ BEGIN
      OR coalesce(v_ancestry_invalid, true) THEN
     RAISE EXCEPTION 'Target ancestry changed during locking';
   END IF;
-  SELECT * INTO v_prior FROM public.project_lifecycle_document_drafts
-  WHERE project_id = v_project.id AND request_key = p_request_key FOR UPDATE;
-  IF FOUND THEN
-    IF v_prior.created_by = v_actor AND v_prior.template_id = v_template.id
-       AND v_prior.template_version = v_template.version AND v_prior.template_document_revision_id = v_template_revision.id
-       AND v_prior.target_drive_node_id = v_target.id THEN
-      RETURN QUERY SELECT v_prior.request_key, v_prior.generated_drive_node_id, v_prior.generated_revision_id,
-        v_prior.document_control_register_id, v_prior.audit_event_id, v_prior.source_fingerprint, false;
-      RETURN;
-    END IF;
-    RAISE EXCEPTION 'Request key conflicts with a different document draft payload';
-  END IF;
   -- Only these four canonical server-owned values may appear in a template.
   -- Validate malformed braces before a single substitution pass. Each original
   -- placeholder is expanded directly, so braces in project data stay literal.
@@ -446,16 +436,33 @@ BEGIN
     v_remaining := v_match[3];
   END LOOP;
   v_rendered_content := v_rendered_content || v_remaining;
-  v_rendered_sha256 := encode(digest(convert_to(v_rendered_content, 'UTF8'), 'sha256'), 'hex');
-  v_source_fingerprint := encode(digest(convert_to(concat_ws('|', v_project.id, v_target.id, v_template.id, v_template.version, v_template_revision.id, v_rendered_sha256), 'UTF8'), 'sha256'), 'hex');
+  v_rendered_sha256 := encode(extensions.digest(convert_to(v_rendered_content, 'UTF8'), 'sha256'), 'hex');
+  v_source_fingerprint := encode(extensions.digest(convert_to(concat_ws('|', v_project.id, v_target.id, v_template.id, v_template.version, v_template_revision.id, v_rendered_sha256), 'UTF8'), 'sha256'), 'hex');
   v_expected_name := regexp_replace(v_project.code || '-' || v_template.template_key || '-v' || v_template.version::text, '[^A-Za-z0-9._-]+', '_', 'g') || '.txt';
   IF p_file_name <> v_expected_name OR p_sha256_checksum <> v_rendered_sha256 OR p_size_bytes <> octet_length(convert_to(v_rendered_content, 'UTF8')) THEN RAISE EXCEPTION 'Staged object does not match the server-rendered immutable template snapshot'; END IF;
-  SELECT * INTO v_attempt FROM public.lifecycle_document_storage_attempts
-  WHERE project_id = v_project.id AND request_key = p_request_key AND storage_bucket = p_storage_bucket
-    AND storage_path = p_storage_path AND sha256_checksum = p_sha256_checksum AND size_bytes = p_size_bytes
-    AND uploaded_by = v_actor AND consumed_at IS NULL FOR UPDATE;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Staged storage object lacks a verified owned attempt receipt'; END IF;
   v_payload_hash := md5(concat_ws('|', v_project.id, v_actor, v_target.id, v_template.id, v_template.version, v_template_revision.id, p_request_key, v_source_fingerprint, p_file_name, p_mime_type, p_sha256_checksum, p_size_bytes));
+  -- Re-render under the project/template locks before replay. A new attempt
+  -- path is allowed for an identical concurrent request; changed source data
+  -- or document metadata must never reuse the original receipt.
+  SELECT receipt.* INTO v_prior FROM public.project_lifecycle_document_drafts receipt
+  WHERE receipt.project_id = v_project.id AND receipt.request_key = p_request_key FOR UPDATE;
+  IF FOUND THEN
+    IF v_prior.created_by = v_actor AND v_prior.template_id = v_template.id
+       AND v_prior.template_version = v_template.version AND v_prior.template_document_revision_id = v_template_revision.id
+       AND v_prior.target_drive_node_id = v_target.id
+       AND v_prior.source_fingerprint = v_source_fingerprint AND v_prior.payload_hash = v_payload_hash
+       AND v_prior.sha256_checksum = p_sha256_checksum AND v_prior.size_bytes = p_size_bytes THEN
+      RETURN QUERY SELECT v_prior.request_key, v_prior.generated_drive_node_id, v_prior.generated_revision_id,
+        v_prior.document_control_register_id, v_prior.audit_event_id, v_prior.source_fingerprint, false;
+      RETURN;
+    END IF;
+    RAISE EXCEPTION 'Request key conflicts with a different document draft payload';
+  END IF;
+  SELECT attempt.* INTO v_attempt FROM public.lifecycle_document_storage_attempts attempt
+  WHERE attempt.project_id = v_project.id AND attempt.request_key = p_request_key AND attempt.storage_bucket = p_storage_bucket
+    AND attempt.storage_path = p_storage_path AND attempt.sha256_checksum = p_sha256_checksum AND attempt.size_bytes = p_size_bytes
+    AND attempt.uploaded_by = v_actor AND attempt.consumed_at IS NULL FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Staged storage object lacks a verified owned attempt receipt'; END IF;
   INSERT INTO public.drive_nodes(project_id, department_id, parent_id, name, slug, node_type, file_type, mime_type,
     file_size_bytes, storage_bucket, storage_path, sha256_checksum, current_version, is_locked, created_by, metadata)
   VALUES (v_project.id, v_project.department_id, v_target.id, p_file_name,

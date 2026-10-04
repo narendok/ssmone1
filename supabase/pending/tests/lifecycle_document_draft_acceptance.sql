@@ -73,6 +73,76 @@ BEGIN
 END;
 $$;
 
+-- A different staging path for an identical concurrent request must reuse
+-- the canonical result; the storage runner proves cleanup of its losing object.
+CREATE TEMP TABLE lifecycle_acceptance_concurrent_replay AS
+SELECT * FROM public.commit_lifecycle_document_draft(
+  :'project_id'::uuid, :'target_folder_id'::uuid, :'request_key'::uuid,
+  :'template_key', :'template_version'::integer, :'template_revision_id'::uuid,
+  :'file_name', :'mime_type', 'project-drive', :'project_id' || '/second-attempt.txt',
+  :'sha256_checksum', :'size_bytes'::bigint
+);
+DO $$
+BEGIN
+  IF (SELECT node_id FROM lifecycle_acceptance_first) IS DISTINCT FROM
+     (SELECT node_id FROM lifecycle_acceptance_concurrent_replay) THEN
+    RAISE EXCEPTION 'A second staging path created a different receipt';
+  END IF;
+  IF (SELECT uses_staged_object FROM lifecycle_acceptance_concurrent_replay) THEN
+    RAISE EXCEPTION 'Replay consumed the losing staging object';
+  END IF;
+END;
+$$;
+
+-- The same-key fast path may not bypass canonical metadata validation.
+DO $fixture$
+DECLARE
+  v_variant integer;
+  v_project_id uuid := current_setting('lifecycle_test.project_id')::uuid;
+  v_request_key uuid := current_setting('lifecycle_test.request_key')::uuid;
+  v_target_folder_id uuid := current_setting('lifecycle_test.target_folder_id')::uuid;
+  v_template_key text := current_setting('lifecycle_test.template_key');
+  v_template_version integer := current_setting('lifecycle_test.template_version')::integer;
+  v_template_revision_id uuid := current_setting('lifecycle_test.template_revision_id')::uuid;
+  v_file_name text := current_setting('lifecycle_test.file_name');
+  v_storage_path text := current_setting('lifecycle_test.storage_path');
+  v_sha256_checksum text := current_setting('lifecycle_test.sha256_checksum');
+  v_size_bytes bigint := current_setting('lifecycle_test.size_bytes')::bigint;
+BEGIN
+  FOR v_variant IN 1..3 LOOP
+    BEGIN
+      PERFORM * FROM public.commit_lifecycle_document_draft(
+        v_project_id, v_target_folder_id, v_request_key,
+        v_template_key, v_template_version, v_template_revision_id,
+        v_file_name, CASE WHEN v_variant = 1 THEN 'application/pdf' ELSE 'text/plain' END,
+        'project-drive', v_storage_path,
+        CASE WHEN v_variant = 2 THEN repeat('0', 64) ELSE v_sha256_checksum END,
+        CASE WHEN v_variant = 3 THEN v_size_bytes + 1 ELSE v_size_bytes END
+      );
+      RAISE EXCEPTION 'Replay accepted changed document metadata';
+    EXCEPTION WHEN others THEN
+      IF SQLERRM NOT IN ('Invalid document draft payload',
+        'Staged object does not match the server-rendered immutable template snapshot',
+        'Request key conflicts with a different document draft payload') THEN RAISE; END IF;
+    END;
+  END LOOP;
+  -- Use an exception subtransaction so the synthetic project edit is rolled
+  -- back together with the expected rejection. No real project is modified.
+  BEGIN
+    UPDATE public.projects SET code = code || '-CHANGED' WHERE id = v_project_id;
+    PERFORM * FROM public.commit_lifecycle_document_draft(
+      v_project_id, v_target_folder_id, v_request_key,
+      v_template_key, v_template_version, v_template_revision_id,
+      v_file_name, 'text/plain', 'project-drive', v_storage_path,
+      v_sha256_checksum, v_size_bytes
+    );
+    RAISE EXCEPTION 'Replay accepted changed project source';
+  EXCEPTION WHEN others THEN
+    IF SQLERRM <> 'Staged object does not match the server-rendered immutable template snapshot' THEN RAISE; END IF;
+  END;
+END;
+$fixture$;
+
 -- A semantic conflict uses the same project request key against another target.
 DO $fixture$
 DECLARE

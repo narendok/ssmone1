@@ -11,6 +11,7 @@ import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 const prior = readFileSync(new URL("../../migrations/20261002220916_5d158822-de77-479d-a8af-54037acc96ad.sql", import.meta.url), "utf8");
 const pending = readFileSync(new URL("../20261003_lifecycle_document_draft_generation.sql", import.meta.url), "utf8");
 const transport = readFileSync(new URL("../20261004_lifecycle_document_actor_transport.sql", import.meta.url), "utf8");
+const managedTransitions = readFileSync(new URL("./managed-template-transition.fixture.sql", import.meta.url), "utf8");
 const id = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
 const actor = id(1), department = id(10), template = id(20), revision = id(21), earlier = id(22), project = id(30);
 let db;
@@ -27,7 +28,9 @@ const routine = (source, name) => statement(source, `CREATE OR REPLACE FUNCTION 
 before(async () => {
   db = new PGlite({ extensions: { pgcrypto } });
   await db.exec(`
-    CREATE EXTENSION pgcrypto;
+    CREATE SCHEMA extensions;
+    CREATE EXTENSION pgcrypto WITH SCHEMA extensions;
+    SET search_path = public, extensions;
     CREATE SCHEMA auth;
     CREATE SCHEMA storage;
     CREATE ROLE anon;
@@ -54,21 +57,53 @@ before(async () => {
     CREATE FUNCTION public.lifecycle_can_manage_department(p_actor uuid, p_department uuid)
       RETURNS boolean LANGUAGE sql STABLE AS
       $$ SELECT p_actor = '${actor}'::uuid AND p_department = '${department}'::uuid $$;
+    ALTER TABLE public.departments ADD COLUMN code text DEFAULT 'HW', ADD COLUMN name text DEFAULT 'Hardware';
+    ALTER TABLE public.projects ADD COLUMN code text DEFAULT 'OEM-TEST', ADD COLUMN name text DEFAULT 'Synthetic project';
+    CREATE TABLE public.drive_nodes (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(), project_id uuid REFERENCES public.projects(id),
+      department_id uuid REFERENCES public.departments(id), parent_id uuid REFERENCES public.drive_nodes(id),
+      name text, slug text, node_type text, file_type text, mime_type text, file_size_bytes bigint,
+      storage_bucket text, storage_path text, sha256_checksum text, current_version integer,
+      is_locked boolean DEFAULT false, is_trashed boolean DEFAULT false, created_by uuid, metadata jsonb
+    );
+    INSERT INTO public.drive_nodes(id,project_id,department_id,node_type)
+      VALUES ('${id(31)}','${project}','${department}','FOLDER');
+    INSERT INTO public.drive_nodes(id,project_id,department_id,parent_id,node_type)
+      VALUES ('${id(32)}','${project}','${department}','${id(31)}','FOLDER');
+    CREATE TABLE public.drive_node_revisions (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(), node_id uuid REFERENCES public.drive_nodes(id),
+      version integer, file_size_bytes bigint, storage_path text, sha256_checksum text,
+      change_summary text, uploaded_by uuid
+    );
+    CREATE TABLE public.document_control_registers (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(), drive_node_id uuid REFERENCES public.drive_nodes(id),
+      department_id uuid, document_number text, title text, document_status text, controlled_version integer,
+      created_by uuid, project_id uuid, source_revision_id uuid REFERENCES public.drive_node_revisions(id), approval_note text
+    );
+    CREATE TABLE public.activity_log (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(), actor_user_id uuid, module_key text, entity_type text,
+      entity_id uuid, action text, summary text, after_data jsonb, reason text
+    );
+    -- Numbering is an explicit fixture; these tests do not establish the
+    -- actual managed sequence, audit triggers, policies or Storage behavior.
+    CREATE FUNCTION public.next_business_number(text,text,text) RETURNS text LANGUAGE sql AS $$ SELECT 'TEST-DOC-0001' $$;
   `);
   await db.exec(statement(prior, "CREATE TABLE public.department_process_templates ("));
   await db.exec(statement(pending, "CREATE TABLE public.department_process_template_document_revisions ("));
   await db.exec(statement(pending, "ALTER TABLE public.department_process_template_document_revisions\n  ADD CONSTRAINT"));
   await db.exec(statement(pending, "ALTER TABLE public.department_process_templates"));
   await db.exec(statement(pending, "CREATE TABLE public.lifecycle_document_storage_attempts ("));
+  await db.exec(statement(pending, "CREATE TABLE public.project_lifecycle_document_drafts ("));
   for (const name of ["lifecycle_actor", "lifecycle_template_guard", "activate_department_process_template", "retire_department_process_template"]) {
     await db.exec(routine(prior, name));
   }
   await db.exec(statement(prior, "CREATE TRIGGER lifecycle_template_guard_trigger"));
-  for (const name of ["lifecycle_document_template_revision_guard", "create_lifecycle_document_template_revision", "activate_lifecycle_document_template", "retire_lifecycle_document_template", "authorize_lifecycle_document_draft", "lifecycle_document_storage_attempt_guard", "register_lifecycle_document_storage_attempt"]) {
+  for (const name of ["lifecycle_document_template_revision_guard", "create_lifecycle_document_template_revision", "activate_lifecycle_document_template", "retire_lifecycle_document_template", "authorize_lifecycle_document_draft", "lifecycle_document_storage_attempt_guard", "register_lifecycle_document_storage_attempt", "lifecycle_document_draft_guard", "commit_lifecycle_document_draft", "find_lifecycle_document_draft_receipt", "can_discard_lifecycle_document_object"]) {
     await db.exec(routine(pending, name));
   }
   await db.exec(statement(pending, "CREATE TRIGGER lifecycle_document_template_revision_immutable"));
   await db.exec(statement(pending, "CREATE TRIGGER lifecycle_document_storage_attempt_immutable"));
+  await db.exec(statement(pending, "CREATE TRIGGER lifecycle_document_draft_immutable"));
   await db.exec(transport);
 });
 after(async () => { if (db) await db.close(); });
@@ -200,6 +235,22 @@ test("transport restores original claims and transition context after activation
   assert.ok(!row.transition || row.transition !== "on");
 });
 
+test("transport restores the transition-target flag used by the actual managed guard", async () => {
+  // These helper/guard definitions were captured from the isolated managed
+  // backend. Its target flag differs from the older migration fixture above.
+  // Department permission predicates remain limited test fixtures.
+  await db.exec(managedTransitions);
+  await db.query("SELECT set_config('request.jwt.claim.role','service_role',true)");
+  await db.query("SELECT set_config('lifecycle.template_transition_target','outer-template-target',true)");
+  await db.query("SELECT public.execute_lifecycle_document_action($1,'activate_lifecycle_document_template',$2::jsonb)",
+    [actor, JSON.stringify({ p_template_id: template, p_template_document_revision_id: revision })]);
+  const { rows: [row] } = await db.query("SELECT current_setting('lifecycle.template_transition_target',true) AS target");
+  assert.equal(row.target, "outer-template-target");
+  const { rows: [stored] } = await db.query("SELECT status,active_document_revision_id FROM public.department_process_templates WHERE id=$1", [template]);
+  assert.equal(stored.status, "ACTIVE");
+  assert.equal(stored.active_document_revision_id, revision);
+});
+
 test("ordinary database roles cannot execute the transport, even with a spoofed claim", async () => {
   for (const role of ["anon", "authenticated"]) {
     await db.exec("SAVEPOINT browser_denial;");
@@ -249,4 +300,91 @@ test("storage registration through transport returns a scalar UUID and verified 
   await db.exec("RESET ROLE;");
   const { rows: [row] } = await db.query("SELECT uploaded_by FROM public.lifecycle_document_storage_attempts WHERE id=$1", [response.result]);
   assert.equal(row.uploaded_by, actor);
+});
+
+async function preparedCommit() {
+  await activate();
+  const path = `${project}/${id(71)}-draft.txt`;
+  const { rows: [metadata] } = await db.query("SELECT encode(extensions.digest(convert_to($1,'UTF8'),'sha256'),'hex') checksum, octet_length(convert_to($1,'UTF8')) bytes",
+    ["Approved OEM-TEST / TEST-01"]);
+  // Fake Storage metadata exists ONLY in this embedded test dependency schema.
+  // Real managed acceptance requires a physically uploaded/downloaded object.
+  await db.query("INSERT INTO storage.objects VALUES ('project-drive',$1)", [path]);
+  await db.query("SELECT public.register_lifecycle_document_storage_attempt($1,'OEM-TRACKER',1,$2,$3,'project-drive',$4,$5,$6)",
+    [project, revision, id(50), path, metadata.checksum, metadata.bytes]);
+  return [project, id(32), id(50), "OEM-TRACKER", 1, revision, "OEM-TEST-OEM-TRACKER-v1.txt",
+    "text/plain", "project-drive", path, metadata.checksum, metadata.bytes];
+}
+const commitDraft = (args) => db.query("SELECT * FROM public.commit_lifecycle_document_draft($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)", args);
+async function rejectCommit(args, error) {
+  await db.exec("SAVEPOINT rejected_commit;");
+  await assert.rejects(commitDraft(args), error);
+  await db.exec("ROLLBACK TO rejected_commit;");
+}
+
+test("actual SQL commit persists linked Drive revision, DRAFT register, audit and owned receipt", async () => {
+  const args = await preparedCommit();
+  const { rows: [receipt] } = await commitDraft(args);
+  assert.equal(receipt.uses_staged_object, true);
+  const { rows: [stored] } = await db.query(`SELECT node.created_by, revision.version,
+    register.document_status, register.document_number, audit.actor_user_id,
+    attempt.consumed_by_receipt_id=draft.id AS consumed
+    FROM public.project_lifecycle_document_drafts draft
+    JOIN public.drive_nodes node ON node.id=draft.generated_drive_node_id
+    JOIN public.drive_node_revisions revision ON revision.id=draft.generated_revision_id
+    JOIN public.document_control_registers register ON register.id=draft.document_control_register_id
+    JOIN public.activity_log audit ON audit.id=draft.audit_event_id
+    JOIN public.lifecycle_document_storage_attempts attempt ON attempt.consumed_by_receipt_id=draft.id
+    WHERE draft.request_key=$1`, [id(50)]);
+  assert.equal(stored.created_by, actor);
+  assert.equal(stored.actor_user_id, actor);
+  assert.equal(stored.version, 1);
+  assert.equal(stored.document_status, "DRAFT");
+  assert.equal(stored.document_number, "TEST-DOC-0001");
+  assert.equal(stored.consumed, true);
+});
+
+test("identical replay with a second staging path reuses the canonical receipt", async () => {
+  const args = await preparedCommit();
+  const { rows: [first] } = await commitDraft(args);
+  const { rows: [replay] } = await commitDraft(args.with(9, `${project}/${id(72)}-draft.txt`));
+  assert.equal(replay.node_id, first.node_id);
+  assert.equal(replay.uses_staged_object, false);
+  const { rows: [count] } = await db.query("SELECT count(*) total FROM public.project_lifecycle_document_drafts");
+  assert.equal(Number(count.total), 1);
+});
+
+test("same-key replay rejects changed MIME, checksum and size before returning a receipt", async () => {
+  const args = await preparedCommit();
+  await commitDraft(args);
+  await rejectCommit(args.with(7, "application/pdf"), /Invalid document draft payload/);
+  await rejectCommit(args.with(10, "0".repeat(64)), /server-rendered immutable template snapshot/);
+  await rejectCommit(args.with(11, Number(args[11]) + 1), /server-rendered immutable template snapshot/);
+});
+
+test("same-key replay rejects changed project data even with newly rendered metadata", async () => {
+  const args = await preparedCommit();
+  await commitDraft(args);
+  await db.query("UPDATE public.projects SET code='OEM-CHANGED' WHERE id=$1", [project]);
+  await rejectCommit(args, /server-rendered immutable template snapshot/);
+  const { rows: [metadata] } = await db.query("SELECT encode(extensions.digest(convert_to($1,'UTF8'),'sha256'),'hex') checksum, octet_length(convert_to($1,'UTF8')) bytes",
+    ["Approved OEM-CHANGED / TEST-01"]);
+  await rejectCommit(args.with(6, "OEM-CHANGED-OEM-TRACKER-v1.txt").with(10, metadata.checksum).with(11, metadata.bytes),
+    /Request key conflicts with a different document draft payload/);
+});
+
+test("an audit insertion failure rolls back Drive, revision, register and receipt together", async () => {
+  const args = await preparedCommit();
+  await db.exec(`CREATE FUNCTION public.fixture_reject_audit() RETURNS trigger LANGUAGE plpgsql AS
+    $$ BEGIN RAISE EXCEPTION 'Fixture audit failure'; END; $$;
+    CREATE TRIGGER fixture_reject_audit BEFORE INSERT ON public.activity_log
+      FOR EACH ROW EXECUTE FUNCTION public.fixture_reject_audit();`);
+  await rejectCommit(args, /Fixture audit failure/);
+  const { rows: [remaining] } = await db.query(`SELECT
+    (SELECT count(*) FROM public.drive_nodes WHERE node_type='FILE') files,
+    (SELECT count(*) FROM public.drive_node_revisions) revisions,
+    (SELECT count(*) FROM public.document_control_registers) registers,
+    (SELECT count(*) FROM public.project_lifecycle_document_drafts) receipts,
+    (SELECT count(*) FROM public.lifecycle_document_storage_attempts WHERE consumed_at IS NOT NULL) consumed`);
+  for (const value of Object.values(remaining)) assert.equal(Number(value), 0);
 });

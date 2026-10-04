@@ -16,6 +16,7 @@ DECLARE
   v_previous_role text := current_setting('request.jwt.claim.role', true);
   v_previous_claims text := current_setting('request.jwt.claims', true);
   v_previous_transition text := current_setting('lifecycle.template_transition', true);
+  v_previous_transition_target text := current_setting('lifecycle.template_transition_target', true);
 BEGIN
   IF auth.role() IS DISTINCT FROM 'service_role' THEN
     RAISE EXCEPTION 'Lifecycle actor transport requires the trusted server role';
@@ -117,11 +118,13 @@ BEGIN
     PERFORM set_config('request.jwt.claim.role', coalesce(v_previous_role, ''), true);
     PERFORM set_config('request.jwt.claims', coalesce(v_previous_claims, ''), true);
     PERFORM set_config('lifecycle.template_transition', coalesce(v_previous_transition, ''), true);
+    PERFORM set_config('lifecycle.template_transition_target', coalesce(v_previous_transition_target, ''), true);
   EXCEPTION WHEN OTHERS THEN
     PERFORM set_config('request.jwt.claim.sub', coalesce(v_previous_sub, ''), true);
     PERFORM set_config('request.jwt.claim.role', coalesce(v_previous_role, ''), true);
     PERFORM set_config('request.jwt.claims', coalesce(v_previous_claims, ''), true);
     PERFORM set_config('lifecycle.template_transition', coalesce(v_previous_transition, ''), true);
+    PERFORM set_config('lifecycle.template_transition_target', coalesce(v_previous_transition_target, ''), true);
     RAISE;
   END;
   RETURN v_result;
