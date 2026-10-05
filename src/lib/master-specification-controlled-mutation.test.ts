@@ -21,13 +21,19 @@ describe("Master Specification controlled mutation contract", () => {
     expect(hardening).toContain("public.has_permission(v_actor_id, 'sales.manage')");
     expect(hardening).toContain("FOR UPDATE");
     expect(hardening).toContain("INSERT INTO public.activity_log");
-    expect(hardening).toContain("master_specification_direct_write_guard");
+    expect(hardening).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.master_specifications FROM PUBLIC;");
+    expect(hardening).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.master_specification_versions FROM PUBLIC;");
+    expect(hardening).not.toContain("master_specification_direct_write_guard");
+    expect(hardening).not.toContain("CREATE TRIGGER master_specifications_no_direct_write");
     expect(hardening).toContain("save_master_specification_version");
     expect(hardening).toContain("Do not apply until isolated");
   });
 
   it("requires controlled-save, conflict, direct-write, and audit rollback acceptance", () => {
     expect(acceptance).toContain("Acceptance controlled save");
+    expect(acceptance).toContain("immutable version");
+    expect(acceptance).toContain("has_table_privilege('authenticated'");
+    expect(acceptance).toContain("NULL, NULL, NULL, NULL");
     expect(acceptance).toContain("DIRECT-WRITE-MUST-FAIL");
     expect(acceptance).toContain("SET current_version = current_version + 1");
     expect(acceptance).toContain("DELETE FROM public.master_specifications");
@@ -35,6 +41,6 @@ describe("Master Specification controlled mutation contract", () => {
     expect(acceptance).toContain("wrong_customer_id");
     expect(acceptance).toContain("Stale concurrent writer");
     expect(acceptance).toContain("Audit rollback must fail");
-    expect((acceptance.match(/^ROLLBACK;$/gm) ?? [])).toHaveLength(7);
+    expect((acceptance.match(/^ROLLBACK;$/gm) ?? [])).toHaveLength(8);
   });
 });
