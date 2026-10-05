@@ -15,6 +15,8 @@ import { LogOut, Settings } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
+  pendingMs: 0,
+  pendingComponent: WorkspaceLoading,
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth", search: { next: undefined } });
@@ -22,6 +24,10 @@ export const Route = createFileRoute("/_authenticated")({
   },
   component: AppLayout,
 });
+
+function WorkspaceLoading() {
+  return <main className="flex min-h-screen items-center justify-center p-6"><p className="text-sm text-muted-foreground">Loading workspace…</p></main>;
+}
 
 function AppLayout() {
   const { user, role, displayName, employeeStatus, signOut } = useAuth();
