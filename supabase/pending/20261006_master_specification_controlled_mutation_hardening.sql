@@ -35,7 +35,13 @@ BEGIN
     RAISE EXCEPTION 'Sales management permission is required';
   END IF;
 
-  IF p_expected_version < 0
+  IF p_opportunity_id IS NULL
+     OR p_customer_id IS NULL
+     OR p_expected_version IS NULL
+     OR p_title IS NULL
+     OR p_change_summary IS NULL
+     OR p_specification_data IS NULL
+     OR p_expected_version < 0
      OR char_length(btrim(p_title)) NOT BETWEEN 3 AND 300
      OR char_length(btrim(p_change_summary)) NOT BETWEEN 3 AND 1000
      OR jsonb_typeof(p_specification_data) <> 'object'
@@ -46,7 +52,12 @@ BEGIN
      OR COALESCE(NULLIF(btrim(p_specification_data->>'developmentScope'), ''), '') = ''
      OR COALESCE(NULLIF(btrim(p_specification_data->>'requirementSummary'), ''), '') = ''
      OR jsonb_typeof(p_specification_data->'workstreams') <> 'array'
-     OR jsonb_array_length(p_specification_data->'workstreams') = 0 THEN
+     OR jsonb_array_length(p_specification_data->'workstreams') = 0
+     OR EXISTS (
+       SELECT 1
+       FROM jsonb_array_elements_text(p_specification_data->'workstreams') AS workstream(value)
+       WHERE workstream.value NOT IN ('HARDWARE', 'FIRMWARE', 'MECHANICAL', 'TEST', 'MANUFACTURING')
+     ) THEN
     RAISE EXCEPTION 'Master Specification payload is incomplete or invalid';
   END IF;
 
@@ -137,36 +148,26 @@ $$;
 REVOKE ALL ON FUNCTION public.save_master_specification_version(uuid, uuid, uuid, text, integer, text, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.save_master_specification_version(uuid, uuid, uuid, text, integer, text, jsonb) TO authenticated, service_role;
 
--- Direct Data API writes bypass the controlled transaction above. The revokes,
--- policy removals, and triggers below are coupled to the definer routine in
--- this one proposal so the existing authenticated façade continues to work.
+-- Direct Data API writes bypass the controlled transaction above. The revokes
+-- and policy removals below are coupled to the definer routine in this one
+-- proposal so the existing authenticated façade continues to work. No new
+-- unconditional write trigger is installed: PostgreSQL triggers also execute
+-- for SECURITY DEFINER functions and would block this legitimate routine.
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.master_specifications FROM authenticated;
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.master_specification_versions FROM authenticated;
 DROP POLICY IF EXISTS "Sales users manage master specifications" ON public.master_specifications;
 DROP POLICY IF EXISTS "Sales users append master specification versions" ON public.master_specification_versions;
 
-CREATE OR REPLACE FUNCTION public.master_specification_direct_write_guard()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public, pg_temp
-AS $$
-BEGIN
-  RAISE EXCEPTION 'Master Specification records may only be changed through save_master_specification_version';
-END;
-$$;
+-- Explicitly revoke any legacy grants inherited from PUBLIC. The acceptance
+-- runner must inspect information_schema.role_table_grants and has_table_privilege
+-- for PUBLIC/authenticated before approval; neither API role may retain INSERT,
+-- UPDATE, or DELETE outside this function. Existing version UPDATE/DELETE
+-- immutability trigger remains unchanged.
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.master_specifications FROM PUBLIC;
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.master_specification_versions FROM PUBLIC;
 
-DROP TRIGGER IF EXISTS master_specifications_no_direct_write ON public.master_specifications;
-CREATE TRIGGER master_specifications_no_direct_write
-BEFORE INSERT OR UPDATE OR DELETE ON public.master_specifications
-FOR EACH ROW EXECUTE FUNCTION public.master_specification_direct_write_guard();
-
-DROP TRIGGER IF EXISTS master_specification_versions_no_direct_insert ON public.master_specification_versions;
-CREATE TRIGGER master_specification_versions_no_direct_insert
-BEFORE INSERT ON public.master_specification_versions
-FOR EACH ROW EXECUTE FUNCTION public.master_specification_direct_write_guard();
-
--- The two direct-write triggers block any future accidental table mutation.
--- The SECURITY DEFINER routine is the sole intended mutator and is safe only
--- because it derives v_actor_id from auth.uid(), re-checks authorization, has
--- a pinned search path, and receives no actor or role input parameter.
+-- Table access is globally permission-scoped today: the read/write policies
+-- check sales/engineering/admin capability, not an ownership column. This
+-- proposal preserves the existing read RLS exactly; the function's caller
+-- authorization remains global sales.manage/admin until a separately reviewed
+-- row-scoping model exists.

@@ -9,7 +9,15 @@
 -- specification_id, wrong_customer_id, audit_failure_summary
 -- The runner must inject sales_manager_jwt as the real application JWT.
 
--- Case 1: allowed controlled save returns a receipt, one version, and audit.
+-- Preflight: prove authenticated and PUBLIC have no direct mutation privilege,
+-- while the protected routine remains callable through a real auth context.
+SELECT has_table_privilege('authenticated', 'public.master_specifications', 'INSERT') AS authenticated_header_insert;
+SELECT has_table_privilege('PUBLIC', 'public.master_specifications', 'INSERT') AS public_header_insert;
+SELECT has_table_privilege('authenticated', 'public.master_specification_versions', 'INSERT') AS authenticated_version_insert;
+SELECT has_table_privilege('PUBLIC', 'public.master_specification_versions', 'INSERT') AS public_version_insert;
+
+-- Case 1: allowed controlled save proves the existing immutable version
+-- update/delete trigger does not interfere with the SECURITY DEFINER routine.
 BEGIN;
 SET LOCAL request.jwt.claim.sub = :'sales_manager_id';
 SET LOCAL role = authenticated;
@@ -17,6 +25,18 @@ SELECT * FROM public.save_master_specification_version(
   :'specification_id'::uuid, :'opportunity_id'::uuid, :'customer_id'::uuid,
   'Acceptance controlled save', 1, 'Acceptance controlled save',
   '{"proposedName":"Synthetic","customerOrInternalOwner":"Synthetic","industryApplication":"Test","productFamily":"Test","developmentScope":"Test","workstreams":["HARDWARE"],"requirementSummary":"Test"}'::jsonb
+);
+ROLLBACK;
+
+-- Case 1b: NULL mandatory arguments are denied rather than falling through a
+-- SQL three-valued IF predicate. Run each call in a separate transaction in
+-- the real runner and assert the payload-invalid exception.
+BEGIN;
+SET LOCAL request.jwt.claim.sub = :'sales_manager_id';
+SET LOCAL role = authenticated;
+SELECT * FROM public.save_master_specification_version(
+  :'specification_id'::uuid, :'opportunity_id'::uuid, :'customer_id'::uuid,
+  NULL, NULL, NULL, NULL
 );
 ROLLBACK;
 
