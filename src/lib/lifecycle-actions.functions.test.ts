@@ -19,7 +19,9 @@ vi.mock("@/integrations/supabase/client.server", () => {
   throw new Error("Privileged client must not be instantiated before acceptance");
 });
 
-import { createLifecycleTemplateContentRevision, generateLifecycleDocumentDraft } from "./lifecycle-actions.functions";
+import { createLifecycleTemplateContentRevision, generateLifecycleDocumentDraft,
+  createLifecycleTemplateDraft, saveLifecycleTemplateStage, cloneLifecycleTemplate,
+} from "./lifecycle-actions.functions";
 
 const id = (value: number) => `00000000-0000-0000-0000-${String(value).padStart(12, "0")}`;
 function context(permitted = true) {
@@ -49,5 +51,16 @@ describe("lifecycle handler acceptance boundary", () => {
   });
   it("a department/permission denial blocks the save before the acceptance boundary", async () => {
     await expect(invoke(createLifecycleTemplateContentRevision, { templateId: id(4), content: "OEM" }, context(false))).rejects.toThrow("do not have permission");
+  });
+  it.each([
+    [createLifecycleTemplateDraft, { departmentId: id(2), templateKey: "PRS", title: "Requirements", description: null }],
+    [saveLifecycleTemplateStage, { templateId: id(4), stageId: null, stageKey: "FEASIBILITY", title: "Feasibility",
+      description: null, sortOrder: 1, sourceCompanyProcessStageId: id(5), taskDepartment: "hardware", required: true }],
+    [cloneLifecycleTemplate, { templateId: id(4) }],
+  ])("governed template management still blocks mutations until acceptance", async (handler, data) => {
+    const ctx = context();
+    await expect(invoke(handler, data, ctx)).rejects.toThrow("disabled pending reviewed database acceptance");
+    // Only the two read-only permission/scope RPCs ran, not a management RPC.
+    expect(ctx.supabase.rpc).toHaveBeenCalledTimes(2);
   });
 });

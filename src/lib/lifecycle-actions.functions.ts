@@ -93,7 +93,9 @@ export const createLifecycleTemplateDraft = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await requireLifecycleManager(context, data.departmentId);
     await lifecycleMutationGate();
-    return { templateId: "", actorId: context.userId };
+    const { createLifecycleTemplateManagementStore } = await import("@/lib/lifecycle-template-management.server");
+    const templateId = await createLifecycleTemplateManagementStore(context.supabase).create(data);
+    return { templateId, actorId: context.userId };
   });
 
 export const saveLifecycleTemplateStage = createServerFn({ method: "POST" })
@@ -104,7 +106,9 @@ export const saveLifecycleTemplateStage = createServerFn({ method: "POST" })
     if (error || !template) lifecycleError(error, "Template was not found.");
     await requireLifecycleManager(context, template.department_id);
     await lifecycleMutationGate();
-    return { stageId: "", actorId: context.userId };
+    const { createLifecycleTemplateManagementStore } = await import("@/lib/lifecycle-template-management.server");
+    const stageId = await createLifecycleTemplateManagementStore(context.supabase).stage(data);
+    return { stageId, actorId: context.userId };
   });
 
 export const cloneLifecycleTemplate = createServerFn({ method: "POST" })
@@ -115,7 +119,9 @@ export const cloneLifecycleTemplate = createServerFn({ method: "POST" })
     if (error || !template) lifecycleError(error, "Template was not found.");
     await requireLifecycleManager(context, template.department_id);
     await lifecycleMutationGate();
-    return { templateId: "", actorId: context.userId };
+    const { createLifecycleTemplateManagementStore } = await import("@/lib/lifecycle-template-management.server");
+    const templateId = await createLifecycleTemplateManagementStore(context.supabase).clone(data.templateId);
+    return { templateId, actorId: context.userId };
   });
 
 /**
