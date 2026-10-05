@@ -8,6 +8,39 @@ This is a source-and-schema review export. It performs no mutation and does not 
 - Client requirement intake through an external portal and assigned-reviewer response remain **source-only and disabled** pending isolated caller-RLS acceptance.
 - No project conversion, baseline, external sharing, document generation, or production gate enablement is included here.
 
+## 2026-10-06 controlled-write review addendum
+
+### Confirmed Master Specification bypass
+
+The deployed Master Specification contract does **not** currently make the save RPC the exclusive mutation path.
+
+- `authenticated` has `INSERT`, `UPDATE`, and `DELETE` table privileges on `master_specifications`, and the broad `FOR ALL` policy admits every `sales.manage` caller or administrator.
+- `authenticated` has `INSERT` on `master_specification_versions`, and the append policy admits the same callers.
+- The only deployed version trigger rejects `UPDATE` and `DELETE`. It does not validate a new version's source, sequence, actor, change note, pointer, or audit record.
+- There is no deployed header trigger preventing direct source-pair changes, `current_version` mutation, `created_by` spoofing, status mutation, or deletion.
+
+Therefore a `sales.manage` caller can directly create or alter records while bypassing the canonical pairing check, optimistic lock, atomic revision increment, server-owned actor provenance, and activity audit in `save_master_specification_version`. Existing happy-path UI saves do not prove this boundary.
+
+### Source-only correction, deliberately unapplied
+
+- Proposal: `supabase/pending/20261006_master_specification_controlled_mutation_hardening.sql`
+- Isolated acceptance runner: `supabase/pending/tests/master_specification_direct_write_acceptance.sql`
+- Source regression: `src/lib/master-specification-controlled-mutation.test.ts`
+
+The proposal removes direct authenticated write grants and broad write policies, then installs reject-by-default direct-write triggers. It is intentionally **not applied**: the existing security-invoker routine itself presently depends on caller table privileges. The compatible replacement must be a reviewed server-only controlled transaction that re-verifies its authenticated actor and authorization, derives the source pairing, locks the header, atomically appends the revision/pointer/audit, and is accepted before revocation.
+
+The reviewed replacement shape is a narrowly granted `SECURITY DEFINER` database transaction callable only from the existing `requireSupabaseAuth` server façade. It must retain `auth.uid()` authorization inside the routine, retain a pinned `search_path`, and continue to return the same receipt. The browser continues to call only `saveMasterSpecification`; it receives no privileged client, direct table capability, or actor identifier.
+
+Required isolated evidence: direct header insert denial, direct header pointer mutation denial, direct version insert denial, source-pair rejection with rollback, normal server action success, stale-version conflict, concurrent save behavior, immutable historical version, and non-admin caller-RLS proof.
+
+### Client-intake RLS compatibility gap
+
+`submit_external_customer_requirement(...)` is `SECURITY INVOKER`, while the existing `customer_requirements` and `customer_requirement_revisions` write policies are staff-only (`sales.manage`/administrator). An otherwise scoped external contact will therefore reach the scope check and then fail at its first `INSERT` under current RLS. The existing `requirement_feasibility_reviews` write policy is also Sales-only, while the source-only reviewer action checks `engineering.manage`; this conflicts with the intended reviewer path.
+
+The invoker function also directly reads `external_parties` and `sales_opportunities`, whose present read policies do not grant a scoped external contact access. Thus an active scoped caller is expected to fail before the inserts too. The same exact scope predicate must be shared by any future narrow external RLS policies or a definer helper; otherwise the access check and RLS can diverge. No policy was widened in this review.
+
+No policy was widened. The intake remains disabled until an isolated authenticated external-contact acceptance proves the minimal scoped RPC write path and an assigned engineering reviewer acceptance proves the response path without direct-table access.
+
 ## Exact migration and proposal paths
 
 ### Deployed Master Specification migration
