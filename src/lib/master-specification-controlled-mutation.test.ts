@@ -16,16 +16,25 @@ describe("Master Specification controlled mutation contract", () => {
   it("keeps direct-write revocation coupled to a tested controlled entry point", () => {
     expect(hardening).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.master_specifications FROM authenticated;");
     expect(hardening).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.master_specification_versions FROM authenticated;");
-    expect(hardening).toContain("master_specification_write_guard");
+    expect(hardening).toContain("SECURITY DEFINER");
+    expect(hardening).toContain("v_actor_id uuid := auth.uid()");
+    expect(hardening).toContain("public.has_permission(v_actor_id, 'sales.manage')");
+    expect(hardening).toContain("FOR UPDATE");
+    expect(hardening).toContain("INSERT INTO public.activity_log");
+    expect(hardening).toContain("master_specification_direct_write_guard");
     expect(hardening).toContain("save_master_specification_version");
-    expect(hardening).toContain("stay unapplied until");
+    expect(hardening).toContain("Do not apply until isolated");
   });
 
-  it("requires denial proofs for direct header, pointer, and revision writes plus source mismatch rollback", () => {
+  it("requires controlled-save, conflict, direct-write, and audit rollback acceptance", () => {
+    expect(acceptance).toContain("Acceptance controlled save");
     expect(acceptance).toContain("DIRECT-WRITE-MUST-FAIL");
     expect(acceptance).toContain("SET current_version = current_version + 1");
+    expect(acceptance).toContain("DELETE FROM public.master_specifications");
     expect(acceptance).toContain("Direct insert must fail");
     expect(acceptance).toContain("wrong_customer_id");
-    expect((acceptance.match(/^ROLLBACK;$/gm) ?? [])).toHaveLength(4);
+    expect(acceptance).toContain("Stale concurrent writer");
+    expect(acceptance).toContain("Audit rollback must fail");
+    expect((acceptance.match(/^ROLLBACK;$/gm) ?? [])).toHaveLength(7);
   });
 });
