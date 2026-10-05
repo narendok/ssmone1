@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clientRequirementIntakeSchema, clientRequirementState, feasibilityResponseSchema, mayRecordFeasibility } from "./client-requirement-intake";
+import { clientRequirementIntakeSchema, clientRequirementState, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility } from "./client-requirement-intake";
 
 describe("client requirement intake contract", () => {
   it("requires bounded immutable submission content", () => {
