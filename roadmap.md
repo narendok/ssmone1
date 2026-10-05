@@ -2,7 +2,7 @@
 
 ## Current request
 
-- [ ] Finish documented Master Specification acceptance evidence with existing identities only, then complete source-only client requirement intake and assigned engineering feasibility safeguards. **No production migration, permission widening, fixtures, identities, or publication.**
+- [ ] Harden the Master Specification controlled-write contract before any further deployment: the deployed `sales.manage` direct table grants/policies currently bypass source pairing, optimistic version locking, revision progression, actor provenance, and audit. **Source-only proposal and denial acceptance are required before any revocation; no production migration, permission widening, fixtures, identities, or publication.** Client requirement intake and assigned engineering feasibility remain source-only until scoped external RLS compatibility is accepted.
 
 ## Maintenance
 
