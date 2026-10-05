@@ -1,5 +1,9 @@
 # Unified platform roadmap
 
+## Current request
+
+- [ ] Finish documented Master Specification acceptance evidence with existing identities only, then complete source-only client requirement intake and assigned engineering feasibility safeguards. **No production migration, permission widening, fixtures, identities, or publication.**
+
 ## Maintenance
 
 - [ ] Complete backend-level Master Specification acceptance against the managed isolated environment, including denied user, transaction rollback, optimistic conflict/concurrency, immutable revision, and non-admin RLS proof. **Current deployed original contract:** the source-of-truth specification and revision records are live; no additional fixtures will be created. **In progress:** Sales reload query repair removes the undeployed `current_version_id` assumption and waits for authenticated identity hydration before fetching. **Blocked evidence:** accepted isolated manager is an administrator; a scoped non-administrator identity is not available and must not be created for this work.
