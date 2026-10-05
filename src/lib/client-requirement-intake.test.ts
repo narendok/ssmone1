@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clientRequirementIntakeSchema, clientRequirementState, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility } from "./client-requirement-intake";
+import { clientRequirementIntakeSchema, clientRequirementState, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability } from "./client-requirement-intake";
 
 describe("client requirement intake contract", () => {
   it("requires bounded immutable submission content", () => {
@@ -30,5 +30,10 @@ describe("client requirement intake contract", () => {
     expect(mayExposeClientRequirement(access, new Date("2026-10-06T18:00:00.000Z"))).toBe(true);
     expect(mayExposeClientRequirement({ ...access, accessScope: { opportunityIds: ["other"], customerIds: ["customer"] } }, new Date("2026-10-06T18:00:00.000Z"))).toBe(false);
     expect(mayExposeClientRequirement({ ...access, revokedAt: "2026-10-06T17:00:00.000Z" }, new Date("2026-10-06T18:00:00.000Z"))).toBe(false);
+  });
+
+  it("keeps protected mutations unavailable before database acceptance", () => {
+    expect(protectedIntakeAvailability.available).toBe(false);
+    expect(protectedIntakeAvailability.reason).toContain("isolated acceptance");
   });
 });

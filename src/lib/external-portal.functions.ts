@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { clientRequirementState, protectedIntakeAvailability } from "./client-requirement-intake";
 
 const tokenInput = z.object({ token: z.string().uuid() });
 const responseInput = z.object({ reviewId: z.string().uuid(), response: z.string().trim().min(1).max(12000), status: z.enum(["RESPONDED", "CLARIFICATION_REQUIRED"]) });
@@ -24,15 +25,22 @@ export const getExternalPortal = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data: contact, error } = await context.supabase.from("external_contacts").select("id,full_name,external_party_id,external_parties(display_name)").eq("user_id", context.userId).eq("active", true).eq("portal_enabled", true).maybeSingle();
     if (error || !contact) throw new Error("External portal access is not active.");
-    const [{ data: shares }, { data: transmittals }, { data: reviews }, { data: uploads }, { data: rooms }] = await Promise.all([
+    const [{ data: shares }, { data: transmittals }, { data: reviews }, { data: uploads }, { data: rooms }, { data: portalAccess }] = await Promise.all([
       context.supabase.from("external_share_snapshots").select("id,snapshot_code,source_entity_type,permission,expires_at,share_mode").order("created_at", { ascending: false }),
       context.supabase.from("external_transmittals").select("id,transmittal_number,purpose,status,due_date").order("created_at", { ascending: false }),
       context.supabase.from("external_review_requests").select("id,request_type,revision_reference,status,due_date,response").order("created_at", { ascending: false }),
       context.supabase.from("external_upload_requests").select("id,request_code,requested_document,status,due_date").order("created_at", { ascending: false }),
       context.supabase.from("external_data_rooms").select("id,room_code,title,description,expires_at").order("created_at", { ascending: false }),
+      context.supabase.from("external_portal_access").select("id,portal_type,access_scope,expires_at,is_active,deactivated_at,invitation_revoked_at").eq("external_contact_id", contact.id).order("created_at", { ascending: false }),
     ]);
     await context.supabase.rpc("external_log_access", { _entity_type: "external_portal", _entity_id: contact.id, _event_type: "PORTAL_OPENED", _metadata: {} });
-    return { name: contact.full_name, party: (contact.external_parties as unknown as { display_name?: string } | null)?.display_name ?? "External partner", shares: shares ?? [], transmittals: transmittals ?? [], reviews: reviews ?? [], uploadRequests: uploads ?? [], rooms: rooms ?? [] };
+    const access = (portalAccess ?? []).find((item: any) => item.portal_type === "CLIENT_REQUIREMENTS");
+    const requirementAccess = access ? {
+      state: clientRequirementState({ isActive: access.is_active && !access.deactivated_at, revokedAt: access.invitation_revoked_at, expiresAt: access.expires_at }),
+      accessScope: access.access_scope,
+      expiresAt: access.expires_at,
+    } : { state: "NO_ACCESS" as const, accessScope: null, expiresAt: null };
+    return { name: contact.full_name, party: (contact.external_parties as unknown as { display_name?: string } | null)?.display_name ?? "External partner", shares: shares ?? [], transmittals: transmittals ?? [], reviews: reviews ?? [], uploadRequests: uploads ?? [], rooms: rooms ?? [], requirementAccess, protectedIntakeAvailability };
   });
 
 export const respondToExternalReview = createServerFn({ method: "POST" })
