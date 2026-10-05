@@ -1,7 +1,33 @@
 -- SOURCE-ONLY PROPOSAL. Do not apply before scoped client isolation, reviewer authorization,
--- response immutability, expiry/revocation, and rollback acceptance pass in an isolated backend.
+-- response immutability, expiry/revocation, denial, rollback, optimistic-conflict, concurrency,
+-- and non-admin caller-RLS acceptance pass in an isolated backend.
 -- Reuses the existing revisioned customer_requirements and requirement_feasibility_reviews tables.
 -- No automatic approval, project conversion, quotation, or release is created by this contract.
+
+CREATE OR REPLACE FUNCTION public.external_requirement_scope_allows(
+  p_contact_id uuid,
+  p_opportunity_id uuid,
+  p_customer_id uuid
+) RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.external_portal_access access
+    WHERE access.external_contact_id = p_contact_id
+      AND access.is_active
+      AND access.deactivated_at IS NULL
+      AND access.invitation_revoked_at IS NULL
+      AND (access.expires_at IS NULL OR access.expires_at > now())
+      AND access.portal_type = 'CLIENT_REQUIREMENTS'
+      AND jsonb_typeof(access.access_scope) = 'object'
+      AND COALESCE(access.access_scope->'opportunityIds', '[]'::jsonb) @> jsonb_build_array(p_opportunity_id::text)
+      AND COALESCE(access.access_scope->'customerIds', '[]'::jsonb) @> jsonb_build_array(p_customer_id::text)
+  )
+$$;
 
 CREATE OR REPLACE FUNCTION public.submit_external_customer_requirement(
   p_opportunity_id uuid,
@@ -27,13 +53,9 @@ BEGIN
     OR NULLIF(btrim(p_requirement_data->>'description'), '') IS NULL THEN
     RAISE EXCEPTION 'Requirement title and description are required';
   END IF;
-  IF NOT EXISTS (
-    SELECT 1 FROM public.external_portal_access access
-    WHERE access.external_contact_id = v_contact_id
-      AND access.is_active AND access.deactivated_at IS NULL
-      AND (access.expires_at IS NULL OR access.expires_at > now())
-      AND access.portal_type = 'CLIENT_REQUIREMENTS'
-  ) THEN RAISE EXCEPTION 'Client requirement access is inactive, expired, or revoked'; END IF;
+  IF NOT public.external_requirement_scope_allows(v_contact_id, p_opportunity_id, p_customer_id) THEN
+    RAISE EXCEPTION 'Client requirement access is inactive, expired, revoked, or outside its granted scope';
+  END IF;
   IF NOT EXISTS (
     SELECT 1 FROM public.external_parties party
     WHERE party.id = v_party_id AND party.customer_id = p_customer_id
@@ -62,6 +84,53 @@ $$;
 
 REVOKE ALL ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.external_requirement_scope_allows(uuid, uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.external_requirement_scope_allows(uuid, uuid, uuid) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.record_requirement_feasibility_response(
+  p_review_id uuid,
+  p_status text,
+  p_findings text,
+  p_assumptions text,
+  p_risks text
+) RETURNS uuid
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = public
+AS $$
+DECLARE
+  v_review public.requirement_feasibility_reviews%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_permission(auth.uid(), 'engineering.manage') THEN
+    RAISE EXCEPTION 'Engineering management permission is required';
+  END IF;
+  IF p_status NOT IN ('feasible', 'feasible_with_conditions', 'not_feasible')
+     OR NULLIF(btrim(p_findings), '') IS NULL THEN
+    RAISE EXCEPTION 'A terminal feasibility verdict and findings are required';
+  END IF;
+  SELECT * INTO v_review
+  FROM public.requirement_feasibility_reviews
+  WHERE id = p_review_id
+  FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Feasibility review is unavailable'; END IF;
+  IF v_review.status IN ('feasible', 'feasible_with_conditions', 'not_feasible') THEN
+    RAISE EXCEPTION 'Feasibility responses are immutable after submission';
+  END IF;
+  UPDATE public.requirement_feasibility_reviews
+  SET status = p_status,
+      findings = p_findings,
+      assumptions = p_assumptions,
+      risks = p_risks,
+      reviewed_at = now()
+  WHERE id = v_review.id;
+  INSERT INTO public.activity_log(actor_user_id, module_key, entity_type, entity_id, action, summary)
+  VALUES (auth.uid(), 'engineering', 'requirement_feasibility', v_review.id, 'responded', 'Engineering feasibility response recorded.');
+  RETURN v_review.id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.record_requirement_feasibility_response(uuid, text, text, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.record_requirement_feasibility_response(uuid, text, text, text, text) TO authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.requirement_feasibility_response_guard()
 RETURNS trigger
@@ -72,12 +141,13 @@ BEGIN
   IF OLD.status IN ('feasible', 'feasible_with_conditions', 'not_feasible') THEN
     RAISE EXCEPTION 'Feasibility responses are immutable after submission';
   END IF;
-  IF NOT public.has_permission(auth.uid(), 'engineering.manage') THEN
-    IF OLD.reviewer_user_id IS DISTINCT FROM auth.uid()
-      OR NEW.department_id IS DISTINCT FROM OLD.department_id
-      OR NEW.reviewer_user_id IS DISTINCT FROM OLD.reviewer_user_id THEN
-      RAISE EXCEPTION 'Only Engineering management may assign or reassign feasibility reviews';
-    END IF;
+  IF NEW.department_id IS DISTINCT FROM OLD.department_id
+    OR NEW.reviewer_user_id IS DISTINCT FROM OLD.reviewer_user_id THEN
+    RAISE EXCEPTION 'Assignments are immutable after creation; create a new review assignment instead';
+  END IF;
+  IF OLD.reviewer_user_id IS DISTINCT FROM auth.uid()
+     AND NOT public.has_permission(auth.uid(), 'engineering.manage') THEN
+    RAISE EXCEPTION 'Only the assigned reviewer may respond';
   END IF;
   IF NEW.status IN ('feasible', 'feasible_with_conditions', 'not_feasible') THEN
     IF NULLIF(btrim(NEW.findings), '') IS NULL THEN
