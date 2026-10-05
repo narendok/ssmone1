@@ -62,5 +62,6 @@ BEGIN
   RETURN QUERY SELECT v_spec.id, v_version.id, v_version.version_number, v_spec.specification_number;
 END;
 $$;
+GRANT EXECUTE ON FUNCTION public.next_business_number(text, text, text) TO authenticated;
 REVOKE ALL ON FUNCTION public.save_master_specification_version(uuid, uuid, uuid, text, integer, text, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.save_master_specification_version(uuid, uuid, uuid, text, integer, text, jsonb) TO authenticated, service_role;
