@@ -49,7 +49,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.sales_opportunities WHERE id = p_opportunity_id AND customer_id = p_customer_id) THEN RAISE EXCEPTION 'Opportunity/customer source mismatch'; END IF;
   IF p_specification_id IS NULL THEN
     IF p_expected_version <> 0 THEN RAISE EXCEPTION 'Initial version must expect version 0'; END IF;
-    INSERT INTO public.master_specifications (specification_number, opportunity_id, customer_id, title, current_version, created_by) VALUES (public.next_business_number('master_specification', 'MS', NULL), p_opportunity_id, p_customer_id, p_title, 1, auth.uid()) RETURNING * INTO v_spec;
+    INSERT INTO public.master_specifications (specification_number, opportunity_id, customer_id, title, current_version, created_by) VALUES (public.next_business_number('master_specification', NULL, NULL), p_opportunity_id, p_customer_id, p_title, 1, auth.uid()) RETURNING * INTO v_spec;
   ELSE
     SELECT * INTO v_spec FROM public.master_specifications WHERE id = p_specification_id FOR UPDATE;
     IF NOT FOUND OR v_spec.opportunity_id <> p_opportunity_id OR v_spec.customer_id <> p_customer_id THEN RAISE EXCEPTION 'Master Specification source mismatch'; END IF;
