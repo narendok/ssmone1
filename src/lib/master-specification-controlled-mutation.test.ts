@@ -26,6 +26,6 @@ describe("Master Specification controlled mutation contract", () => {
     expect(acceptance).toContain("SET current_version = current_version + 1");
     expect(acceptance).toContain("Direct insert must fail");
     expect(acceptance).toContain("wrong_customer_id");
-    expect((acceptance.match(/ROLLBACK;/g) ?? [])).toHaveLength(4);
+    expect((acceptance.match(/^ROLLBACK;$/gm) ?? [])).toHaveLength(4);
   });
 });

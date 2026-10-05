@@ -29,11 +29,15 @@ Therefore a `sales.manage` caller can directly create or alter records while byp
 
 The proposal removes direct authenticated write grants and broad write policies, then installs reject-by-default direct-write triggers. It is intentionally **not applied**: the existing security-invoker routine itself presently depends on caller table privileges. The compatible replacement must be a reviewed server-only controlled transaction that re-verifies its authenticated actor and authorization, derives the source pairing, locks the header, atomically appends the revision/pointer/audit, and is accepted before revocation.
 
+The reviewed replacement shape is a narrowly granted `SECURITY DEFINER` database transaction callable only from the existing `requireSupabaseAuth` server façade. It must retain `auth.uid()` authorization inside the routine, retain a pinned `search_path`, and continue to return the same receipt. The browser continues to call only `saveMasterSpecification`; it receives no privileged client, direct table capability, or actor identifier.
+
 Required isolated evidence: direct header insert denial, direct header pointer mutation denial, direct version insert denial, source-pair rejection with rollback, normal server action success, stale-version conflict, concurrent save behavior, immutable historical version, and non-admin caller-RLS proof.
 
 ### Client-intake RLS compatibility gap
 
 `submit_external_customer_requirement(...)` is `SECURITY INVOKER`, while the existing `customer_requirements` and `customer_requirement_revisions` write policies are staff-only (`sales.manage`/administrator). An otherwise scoped external contact will therefore reach the scope check and then fail at its first `INSERT` under current RLS. The existing `requirement_feasibility_reviews` write policy is also Sales-only, while the source-only reviewer action checks `engineering.manage`; this conflicts with the intended reviewer path.
+
+The invoker function also directly reads `external_parties` and `sales_opportunities`, whose present read policies do not grant a scoped external contact access. Thus an active scoped caller is expected to fail before the inserts too. The same exact scope predicate must be shared by any future narrow external RLS policies or a definer helper; otherwise the access check and RLS can diverge. No policy was widened in this review.
 
 No policy was widened. The intake remains disabled until an isolated authenticated external-contact acceptance proves the minimal scoped RPC write path and an assigned engineering reviewer acceptance proves the response path without direct-table access.
 
