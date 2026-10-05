@@ -1,0 +1,21 @@
+-- ISOLATED MANAGED BACKEND ONLY. SOURCE-ONLY acceptance contract for
+-- 20261005_client_requirement_intake.sql. It does not create identities or modify production data.
+-- Required psql variables: manager_jwt, reviewer_jwt, outsider_jwt, opportunity_id, customer_id,
+-- external_contact_id, requirement_review_id. Run inside a transaction and ROLLBACK after every case.
+--
+-- Cases to execute with separate authenticated sessions:
+-- 1. outsider: submit_external_customer_requirement must fail before a row/audit record is visible.
+-- 2. expired/revoked/unscoped external contact: submission must fail and create no requirement/revision/audit.
+-- 3. correctly scoped external contact: one requirement + revision 1 + audit record are atomic; force an
+--    activity_log failure to prove the requirement/revision rolls back together.
+-- 4. reviewer: record_requirement_feasibility_response succeeds exactly once; the same retry fails as immutable.
+-- 5. outsider: cannot read the requirement/revision/review through caller RLS, nor call either RPC successfully.
+-- 6. concurrency: two reviewer sessions race the same review; one commits and the other receives the immutable
+--    conflict, leaving exactly one terminal response and one response audit event.
+--
+-- Example session setup (supply a JWT through a secure runner; never commit a token):
+-- BEGIN;
+-- SELECT set_config('request.jwt.claim.sub', :'reviewer_user_id', true);
+-- SELECT set_config('role', 'authenticated', true);
+-- SELECT public.record_requirement_feasibility_response(:'requirement_review_id'::uuid, 'feasible', 'Accepted with stated assumptions.', NULL, NULL);
+-- ROLLBACK;
