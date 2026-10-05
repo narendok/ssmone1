@@ -27,6 +27,11 @@ export const feasibilityResponseSchema = z.object({
 export type ClientRequirementIntake = z.infer<typeof clientRequirementIntakeSchema>;
 export type FeasibilityResponse = z.infer<typeof feasibilityResponseSchema>;
 
+export const protectedIntakeAvailability = {
+  available: false,
+  reason: "Client requirement submission and feasibility responses stay unavailable until the protected database contract passes isolated acceptance.",
+} as const;
+
 export function clientRequirementState(input: { expiresAt: string | null; isActive: boolean; revokedAt: string | null }, now = new Date()): "ACTIVE" | "EXPIRED" | "REVOKED" {
   if (!input.isActive || input.revokedAt) return "REVOKED";
   if (input.expiresAt && new Date(input.expiresAt) <= now) return "EXPIRED";
