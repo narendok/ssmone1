@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { LifecycleTransactionClient } from "@/lib/lifecycle-actor-transport.server";
+import { lifecycleAcceptanceEnabled } from "@/lib/lifecycle-acceptance-gate";
 
 const uuid = z.string().uuid();
 const departmentType = z.enum(["hardware", "firmware", "mechanical", "qa", "procurement", "production", "executive"]);
@@ -69,7 +70,9 @@ async function requireLifecycleManager(
 async function lifecycleMutationGate() {
   // Database action routines deliberately retain service-role-only execution.
   // Releasing an execution bridge requires the separate DB/RLS acceptance pack.
-  throw new Error("Lifecycle mutations are disabled pending reviewed database acceptance.");
+  if (!lifecycleAcceptanceEnabled(process.env.SUPABASE_URL, process.env.LIFECYCLE_DOCUMENT_ACCEPTANCE)) {
+    throw new Error("Lifecycle mutations are disabled pending reviewed database acceptance.");
+  }
 }
 
 async function acceptedLifecycleClient(context: { userId: string }): Promise<LifecycleTransactionClient> {
@@ -179,8 +182,7 @@ export const materializeLifecycleDraft = createServerFn({ method: "POST" })
     const { data: project, error } = await context.supabase.from("projects").select("department_id").eq("id", data.projectId).maybeSingle();
     if (error || !project?.department_id) lifecycleError(error, "Project requires an owning department.");
     await requireLifecycleManager(context, project.department_id);
-    await lifecycleMutationGate();
-    return { result: null, actorId: context.userId };
+    throw new Error("Lifecycle task materialization is not available. Use the document draft workflow.");
   });
 
 /**
@@ -205,4 +207,21 @@ export const generateLifecycleDocumentDraft = createServerFn({ method: "POST" })
     const { runLifecycleDocumentWorkflow } = await import("@/lib/lifecycle-document-workflow.server");
     const result = await runLifecycleDocumentWorkflow(context.supabase, data, () => acceptedLifecycleClient(context));
     return { result, actorId: context.userId };
+  });
+
+export const generateProjectLifecycleDocumentDrafts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => z.object({ projectId: uuid }).parse(data))
+  .handler(async ({ data, context }) => {
+    await lifecycleMutationGate();
+    const { data: project, error } = await context.supabase.from("projects")
+      .select("id,department_id,project_drive_node_id,revision").eq("id", data.projectId).maybeSingle();
+    if (error || !project?.department_id || !project.project_drive_node_id || !project.revision) {
+      lifecycleError(error, "Project department, revision and Drive root are required for automatic drafts.");
+    }
+    await requireLifecycleManager(context, project.department_id);
+    const { generateProjectDocumentDrafts } = await import("@/lib/lifecycle-project-generation.server");
+    return generateProjectDocumentDrafts(context.supabase, context.userId,
+      { id: project.id, department_id: project.department_id, project_drive_node_id: project.project_drive_node_id },
+      () => acceptedLifecycleClient(context));
   });

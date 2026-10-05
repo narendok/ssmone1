@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { lifecycleAcceptanceEnabled } from "./lifecycle-acceptance-gate";
 
 export type LifecycleTemplateRead = {
   id: string;
@@ -64,7 +65,7 @@ export async function fetchLifecycleTemplateSettings(departmentId: string) {
 }
 
 export function isLifecycleTemplateActionAvailable() {
-  return false;
+  return lifecycleAcceptanceEnabled(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_LIFECYCLE_DOCUMENT_ACCEPTANCE);
 }
 
 export function lifecycleTemplateMutationStatus() {
