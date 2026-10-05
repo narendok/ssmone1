@@ -25,3 +25,4 @@
 - Immutable lifecycle document content is append-only on DRAFT template versions; service-only lead-authorized revision, activation, and retirement routines remain gated until isolated acceptance proves their RLS and transaction behavior.
 - Legacy Drive ownership review is read-only and requires an explicit administrator dry-run selection; no folder name, BOM, title, or descendant may infer historical department ownership.
 - App MCP tools always use a caller-token RLS client, remain read-only unless separately reviewed, and require OAuth consent; this keeps connected assistants within each user’s existing workspace access.
+- Master Specification revisions remain append-only behind a permission-checked server action and atomic database routine, preserving actor provenance, source linkage, and optimistic conflicts.
