@@ -23,8 +23,9 @@ export function ProjectDialog({ open, onOpenChange, editing, onSaved, defaultDep
     setSaving(true);
     const payload = { name: name.trim(), ...(editing ? { code: code.trim().toUpperCase() } : {}), color, status, revision: revision.trim() || null, design_link: designLink.trim() || null, project_type: projectType, project_stage: projectStage, health_status: healthStatus, priority, planned_start_date: plannedStartDate || null, target_sop_date: targetSopDate || null, department_id: departmentId, drive_project_class: projectClass };
     try {
-      const query = editing ? sb.from("projects").update(payload).eq("id", editing.id) : sb.from("projects").insert(payload);
-      const { data: savedProject, error } = await query.select("id").single();
+      const { data: savedProject, error } = editing
+        ? await sb.from("projects").update(payload).eq("id", editing.id).select("id").single()
+        : await sb.from("projects").insert(payload).select("id").single();
       if (error || !savedProject) throw new Error(error?.message ?? "Project could not be saved.");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["projects"] }),
