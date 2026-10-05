@@ -15,7 +15,7 @@ it("models the agreed tracker intake without inventing unavailable values", () =
 });
 
 it("uses the immutable specification and version pair instead of an undeployed current-version pointer", () => {
-  const summary: MasterSpecificationSummary = { id: "7a3aba95-61f6-495a-a280-f37a3be77670", opportunity_id: "a6c62c81-1cc2-4804-b1c5-c004c6730b52", specification_number: "MASTER-2026-0001", title: "Synthetic Tracker — Master Specification", status: "draft", current_version: 1 };
+  const summary: MasterSpecificationSummary = { id: "7a3aba95-61f6-495a-a280-f37a3be77670", opportunity_id: "a6c62c81-1cc2-4804-b1c5-c004c6730b52", customer_id: "03e06115-a7d4-4965-9e92-9c37462f5ddc", specification_number: "MASTER-2026-0001", title: "Synthetic Tracker — Master Specification", status: "draft", current_version: 1 };
   expect(summary.current_version).toBe(1);
   expect("current_version_id" in summary).toBe(false);
 });
