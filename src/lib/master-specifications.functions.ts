@@ -5,7 +5,10 @@ import { masterSpecificationSaveSchema, masterSpecificationTitle } from "./maste
 async function requireSalesManage(sb: any, userId: string) { const { data, error } = await sb.rpc("has_permission", { _user_id: userId, _permission_key: "sales.manage" }); if (error || !data) throw new Error("You do not have permission to manage sales records."); }
 
 export const saveMasterSpecification = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => masterSpecificationSaveSchema.parse(data)).handler(async ({ data, context }) => {
-  const sb = context.supabase as any; await requireSalesManage(sb, context.userId);
+  const sb = context.supabase as any;
+  // The protected server boundary verifies the actor before requesting the
+  // database transaction; the transaction independently derives auth.uid().
+  await requireSalesManage(sb, context.userId);
   const { data: opportunity, error: opportunityError } = await sb.from("sales_opportunities").select("id,customer_id").eq("id", data.opportunityId).maybeSingle();
   if (opportunityError || !opportunity) throw new Error("The proposed project is unavailable.");
   const { data: result, error } = await sb.rpc("save_master_specification_version", { p_specification_id: data.specificationId, p_opportunity_id: opportunity.id, p_customer_id: opportunity.customer_id, p_title: masterSpecificationTitle(data.draft), p_expected_version: data.expectedVersion, p_change_summary: data.changeSummary, p_specification_data: data.draft });

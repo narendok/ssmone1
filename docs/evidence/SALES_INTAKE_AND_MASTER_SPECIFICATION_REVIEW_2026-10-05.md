@@ -21,17 +21,19 @@ The deployed Master Specification contract does **not** currently make the save 
 
 Therefore a `sales.manage` caller can directly create or alter records while bypassing the canonical pairing check, optimistic lock, atomic revision increment, server-owned actor provenance, and activity audit in `save_master_specification_version`. Existing happy-path UI saves do not prove this boundary.
 
-### Source-only correction, deliberately unapplied
+### Source-only compatible replacement, deliberately unapplied
 
 - Proposal: `supabase/pending/20261006_master_specification_controlled_mutation_hardening.sql`
 - Isolated acceptance runner: `supabase/pending/tests/master_specification_direct_write_acceptance.sql`
 - Source regression: `src/lib/master-specification-controlled-mutation.test.ts`
 
-The proposal removes direct authenticated write grants and broad write policies, then installs reject-by-default direct-write triggers. It is intentionally **not applied**: the existing security-invoker routine itself presently depends on caller table privileges. The compatible replacement must be a reviewed server-only controlled transaction that re-verifies its authenticated actor and authorization, derives the source pairing, locks the header, atomically appends the revision/pointer/audit, and is accepted before revocation.
+The proposal first replaces `save_master_specification_version(...)` with the compatible controlled transaction, then removes direct authenticated write grants and broad write policies, and finally installs reject-by-default direct-write triggers. The replacement is `SECURITY DEFINER` with `SET search_path = public, pg_temp`; it has no actor or role input. It derives its actor from `auth.uid()`, explicitly re-checks existing `sales.manage`/admin authorization, locks the authoritative Sales opportunity and header, derives the customer pairing from that source, performs the expected-version check, atomically inserts one revision/updates the pointer/writes the audit, and returns the existing receipt shape. The function is `PUBLIC`/`anon` revoked and executable only by `authenticated` and `service_role`.
 
-The reviewed replacement shape is a narrowly granted `SECURITY DEFINER` database transaction callable only from the existing `requireSupabaseAuth` server façade. It must retain `auth.uid()` authorization inside the routine, retain a pinned `search_path`, and continue to return the same receipt. The browser continues to call only `saveMasterSpecification`; it receives no privileged client, direct table capability, or actor identifier.
+It rejects an initial-save replay when the authoritative opportunity already owns a specification instead of silently creating a duplicate. A retry after an uncertain successful response must reopen with the returned `specificationId` and current version; a stale retry is rejected under the header lock. It is intentionally **not applied** until the caller-authenticated acceptance cases below pass.
 
-Required isolated evidence: direct header insert denial, direct header pointer mutation denial, direct version insert denial, source-pair rejection with rollback, normal server action success, stale-version conflict, concurrent save behavior, immutable historical version, and non-admin caller-RLS proof.
+The matching handler remains `src/lib/master-specifications.functions.ts`, export `saveMasterSpecification = createServerFn({ method: "POST" })`, with `requireSupabaseAuth`, `masterSpecificationSaveSchema`, and a caller-RLS lookup of the authoritative opportunity/customer pair. It never receives an actor, role, customer ID, or service credential from the browser. It calls the routine with the derived pair and retains the existing `{ specificationId, versionId, versionNumber, specificationNumber }` receipt.
+
+Required isolated evidence is enumerated in `supabase/pending/tests/master_specification_direct_write_acceptance.sql`: normal controlled save, source-pair rejection, stale expected version, direct header insert/update/delete denial, direct version insert denial, forced audit rollback, and a two-session concurrent expected-version race. Immutable historical revision and non-admin caller-RLS proof remain required additions to the isolated run.
 
 ### Client-intake RLS compatibility gap
 
@@ -138,7 +140,8 @@ The feasibility response routine locks the assigned review, requires a terminal 
 ## Acceptance SQL and test runners
 
 - Master Specification source tests: `src/lib/master-specification.test.ts`
-- Master Specification façade tests: `src/lib/master-specifications.functions.ts` has no dedicated test file in the reviewed source.
+- Master Specification controlled-write source tests: `src/lib/master-specification-controlled-mutation.test.ts`
+- Master Specification façade: `src/lib/master-specifications.functions.ts` (`saveMasterSpecification`, protected server function; source-integrated but pending caller-database acceptance)
 - Client-intake unit tests: `src/lib/client-requirement-intake.test.ts`
 - Client-intake isolated DB acceptance: `supabase/pending/tests/client_requirement_intake_acceptance.sql`
 
