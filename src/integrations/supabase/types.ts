@@ -5762,6 +5762,101 @@ export type Database = {
           },
         ]
       }
+      master_specification_versions: {
+        Row: {
+          change_summary: string
+          created_at: string
+          created_by: string
+          id: string
+          specification_data: Json
+          specification_id: string
+          status: string
+          version_number: number
+        }
+        Insert: {
+          change_summary: string
+          created_at?: string
+          created_by: string
+          id?: string
+          specification_data: Json
+          specification_id: string
+          status?: string
+          version_number: number
+        }
+        Update: {
+          change_summary?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          specification_data?: Json
+          specification_id?: string
+          status?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_specification_versions_specification_id_fkey"
+            columns: ["specification_id"]
+            isOneToOne: false
+            referencedRelation: "master_specifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      master_specifications: {
+        Row: {
+          created_at: string
+          created_by: string
+          current_version: number
+          customer_id: string
+          id: string
+          opportunity_id: string
+          specification_number: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          current_version?: number
+          customer_id: string
+          id?: string
+          opportunity_id: string
+          specification_number: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          current_version?: number
+          customer_id?: string
+          id?: string
+          opportunity_id?: string
+          specification_number?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "master_specifications_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "master_specifications_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "sales_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       material_gate_passes: {
         Row: {
           approved_at: string | null
@@ -12618,6 +12713,23 @@ export type Database = {
           _record_type: string
         }
         Returns: undefined
+      }
+      save_master_specification_version: {
+        Args: {
+          p_change_summary: string
+          p_customer_id: string
+          p_expected_version: number
+          p_opportunity_id: string
+          p_specification_data: Json
+          p_specification_id: string
+          p_title: string
+        }
+        Returns: {
+          specification_id: string
+          specification_number: string
+          version_id: string
+          version_number: number
+        }[]
       }
       seed_mobile_stage5_test_data: { Args: never; Returns: Json }
       short_close_po_item: {
