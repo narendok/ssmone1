@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { generateLifecycleDocumentDraft } from "@/lib/lifecycle-actions.functions";
+import { generateLifecycleDocumentDraft, generateProjectLifecycleDocumentDrafts } from "@/lib/lifecycle-actions.functions";
 import { isLifecycleTemplateActionAvailable } from "@/lib/lifecycle-template-settings";
 import { lifecycleDocumentIntentKey, selectLifecycleDocumentRequest, type DocumentTemplateSelection, type DocumentFolderSelection } from "@/lib/lifecycle-document-selection";
 import type { DocumentDraftReceipt } from "@/lib/lifecycle-document-persistence";
@@ -17,6 +17,7 @@ import type { Project } from "@/lib/projects";
 export function LifecycleDocumentDraftPanel({ project }: { project: Project }) {
   const available = isLifecycleTemplateActionAvailable();
   const saveDraft = useServerFn(generateLifecycleDocumentDraft);
+  const refreshDrafts = useServerFn(generateProjectLifecycleDocumentDrafts);
   const queryClient = useQueryClient();
   const [templateId, setTemplateId] = useState("");
   const [folderId, setFolderId] = useState("");
@@ -76,6 +77,21 @@ export function LifecycleDocumentDraftPanel({ project }: { project: Project }) {
       if (currentScope.current === startedScope) setError(cause instanceof Error ? cause.message : "Draft could not be saved. Retry keeps the same request.");
     } finally { setBusy(false); }
   }
+  async function refreshDepartmentDrafts() {
+    if (!available || busy || !project.revision || !project.project_drive_node_id) return;
+    const startedScope = scope;
+    setBusy(true); setError(null);
+    try {
+      const outcome = await refreshDrafts({ data: { projectId: project.id } });
+      if (currentScope.current === startedScope && outcome.failures.length) {
+        setError(`${outcome.failures.length} drafts need attention: ${outcome.failures[0].message}`);
+      }
+      await queryClient.invalidateQueries({ queryKey: ["lifecycle-generated-documents", project.id] });
+      await queryClient.invalidateQueries({ queryKey: ["drive_children"] });
+    } catch (cause) {
+      if (currentScope.current === startedScope) setError(cause instanceof Error ? cause.message : "Department drafts could not be generated.");
+    } finally { setBusy(false); }
+  }
   return <Card className="space-y-4 p-5">
     <div className="flex items-center justify-between gap-2">
       <h3 className="flex items-center gap-2 font-semibold"><FilePlus2 className="size-4" />Template-backed document draft</h3>
@@ -100,7 +116,10 @@ export function LifecycleDocumentDraftPanel({ project }: { project: Project }) {
       <p className="text-xs text-muted-foreground">Revision: {receipt.revisionId} · Register: {receipt.registerId}</p>
     </div> : <Button size="sm" onClick={() => void generate()} disabled={!available || !selected || busy}>{busy ? "Saving draft…" : error ? "Retry save" : "Generate draft"}</Button>}
     {available && <div className="space-y-2 border-t pt-3">
-      <h4 className="text-sm font-medium">Recent generated documents</h4>
+      <div className="flex items-center justify-between gap-2"><h4 className="text-sm font-medium">Recent generated documents</h4>
+        <Button size="sm" variant="outline" disabled={busy || !project.revision || !project.project_drive_node_id} onClick={() => void refreshDepartmentDrafts()}>Refresh department drafts</Button>
+      </div>
+      <p className="text-xs text-muted-foreground">Active department templates are generated into the project Drive. Unchanged snapshots reuse their saved documents.</p>
       {documents.isError ? <p role="alert" className="text-xs text-destructive">Generated document history could not be loaded with your current access.</p>
         : documents.isLoading ? <p className="text-xs text-muted-foreground">Loading saved documents…</p>
         : !documents.data?.length ? <p className="text-xs text-muted-foreground">No generated documents are visible for this project yet.</p>
