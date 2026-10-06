@@ -1,75 +1,42 @@
--- ISOLATED ACCEPTANCE ONLY. Source contract for the pending Sales-bound requirement proposal.
--- Use real caller-authenticated sessions and existing isolated records; never service-role impersonation.
--- Required variables: sales_manager_id, sales_manager_jwt, opportunity_id, customer_id,
--- master_specification_version_id, stale_master_specification_version_id, wrong_customer_id,
--- request_key. Every mutation case must ROLLBACK.
--- Execute sales_bound_requirement_creation_concurrency_acceptance.sh for the real
--- two-session replay-after-advance and source-lock cases; this psql file remains
--- intentionally single-session and never impersonates service_role.
+-- STRUCTURAL-ONLY SOURCE CHECK. This file is not caller-authenticated database
+-- acceptance. SET LOCAL request.jwt.claim.sub can only model function branch shape
+-- from a privileged psql connection; it cannot prove JWT verification, transport,
+-- RLS, grants, or non-admin caller behavior. Do not run it as evidence of acceptance.
+--
+-- Real caller transport acceptance is specified in
+-- sales_bound_requirement_creation_caller_transport_acceptance.sh and must use two
+-- independently authenticated non-service callers against an explicitly approved
+-- isolated target. No target is selected by this source file.
 \set ON_ERROR_STOP on
 
--- Preflight: only the protected routine may access receipts. Every direct table
--- privilege below must be false for PUBLIC, anon, and authenticated.
-SELECT has_table_privilege('PUBLIC', 'public.sales_requirement_creation_requests', 'SELECT') AS no_public_receipt_read;
-SELECT has_table_privilege('PUBLIC', 'public.sales_requirement_creation_requests', 'INSERT') AS no_public_receipt_insert;
-SELECT has_table_privilege('anon', 'public.sales_requirement_creation_requests', 'SELECT') AS no_anon_receipt_read;
-SELECT has_table_privilege('anon', 'public.sales_requirement_creation_requests', 'INSERT') AS no_anon_receipt_insert;
-SELECT has_table_privilege('authenticated', 'public.sales_requirement_creation_requests', 'SELECT') AS no_authenticated_receipt_read;
-SELECT has_table_privilege('authenticated', 'public.sales_requirement_creation_requests', 'INSERT') AS no_authenticated_receipt_insert;
+-- This preflight is structural only: all values must be false except the protected
+-- function execute privilege. A real caller transport runner repeats these checks
+-- through authenticated application transport and asserts the returned booleans.
+SELECT NOT has_table_privilege('PUBLIC', 'public.sales_requirement_creation_requests', 'SELECT') AS no_public_receipt_read;
+SELECT NOT has_table_privilege('PUBLIC', 'public.sales_requirement_creation_requests', 'INSERT') AS no_public_receipt_insert;
+SELECT NOT has_table_privilege('anon', 'public.sales_requirement_creation_requests', 'SELECT') AS no_anon_receipt_read;
+SELECT NOT has_table_privilege('anon', 'public.sales_requirement_creation_requests', 'INSERT') AS no_anon_receipt_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_requirement_creation_requests', 'SELECT') AS no_authenticated_receipt_read;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_requirement_creation_requests', 'INSERT') AS no_authenticated_receipt_insert;
 SELECT has_function_privilege('authenticated', 'public.create_sales_bound_customer_requirement(uuid, uuid, uuid, text, text, text, uuid)', 'EXECUTE') AS protected_create_callable;
-SELECT has_function_privilege('authenticated', 'public.approve_requirement_baseline(uuid, text)', 'EXECUTE') AS protected_baseline_callable;
-SELECT has_table_privilege('authenticated', 'public.customer_requirements', 'INSERT') AS no_authenticated_requirement_insert;
-SELECT has_table_privilege('authenticated', 'public.customer_requirements', 'UPDATE') AS no_authenticated_requirement_update;
-SELECT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'INSERT') AS no_authenticated_revision_insert;
-SELECT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'UPDATE') AS no_authenticated_revision_update;
+SELECT NOT has_table_privilege('authenticated', 'public.customer_requirements', 'INSERT') AS no_authenticated_requirement_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.customer_requirements', 'UPDATE') AS no_authenticated_requirement_update;
+SELECT NOT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'INSERT') AS no_authenticated_revision_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'UPDATE') AS no_authenticated_revision_update;
 
--- 1. Allowed caller: creates exactly one header, revision 1, audit, and receipt bound to
--- opportunity/customer/current Master Specification version and actor.
-BEGIN;
-SET LOCAL request.jwt.claim.sub = :'sales_manager_id';
-SET LOCAL role = authenticated;
-SELECT public.create_sales_bound_customer_requirement(
-  :'opportunity_id'::uuid, :'customer_id'::uuid, :'master_specification_version_id'::uuid,
-  'Acceptance source-bound requirement', 'ACCEPT-REQ', 'Acceptance-only summary.', :'request_key'::uuid
-);
-ROLLBACK;
+-- No baseline approval privilege or direct baseline-write assertion appears here:
+-- this revision deliberately exports no baseline RPC while revision-bound feasibility
+-- and replay requirements remain unsupported/unverified.
 
--- 2. Identical retry: two calls with the same request key and canonical payload return one ID;
--- counts remain one for header, revision 1, source_bound_created audit, and receipt.
-BEGIN;
-SET LOCAL request.jwt.claim.sub = :'sales_manager_id';
-SET LOCAL role = authenticated;
-SELECT public.create_sales_bound_customer_requirement(:'opportunity_id'::uuid, :'customer_id'::uuid, :'master_specification_version_id'::uuid, 'Retry exact payload', 'RETRY', 'Exact summary.', :'request_key'::uuid);
-SELECT public.create_sales_bound_customer_requirement(:'opportunity_id'::uuid, :'customer_id'::uuid, :'master_specification_version_id'::uuid, 'Retry exact payload', 'RETRY', 'Exact summary.', :'request_key'::uuid);
-ROLLBACK;
-
--- 3. Replay after Master version advance: commit an allowed creation, then use the existing
--- controlled Master Specification save path in a separate caller-authenticated transaction to
--- advance current_version. An exact retry with the original key/payload/version must return its
--- historical requirement ID; it must not revalidate the version as current or create another row.
--- Run this with a dedicated acceptance-only source tuple and roll back/clean it outside this script.
-
--- 4. Changed title, summary, customer, version, or actor with the same request key fails before new rows.
--- 5. Wrong opportunity/customer pair and stale/nonmatching Master version fail before header/revision/audit/receipt.
--- 6. Two concurrent authenticated sessions with the same caller/key/payload serialize on the advisory lock,
--- both return the same requirement ID, and commit one header/revision/audit/receipt only.
--- 7. Concurrent source update: session A calls this routine for a fresh key and pauses after its
--- opportunity/specification FOR UPDATE locks are acquired; session B, authenticated as an authorized
--- source editor, attempts either sales_opportunities.customer_id or master_specifications.current_version
--- update through its controlled source mutation. B must block until A commits/rolls back. If A commits,
--- its persisted receipt/audit source tuple must equal the locked tuple; B then proceeds and cannot alter
--- the already-persisted provenance. If A rolls back, B may proceed and A leaves no receipt/header/revision/audit.
--- 8. Force the source_bound_created audit insert to fail in isolated infrastructure; header, revision,
--- and receipt roll back together. Do not simulate with a service role.
--- 9. After compatible legacy redirect/removal is accepted, direct authenticated INSERT/UPDATE/DELETE on
--- customer_requirements and customer_requirement_revisions must fail, and the legacy multi-call facade
--- must not remain callable. Existing manual/approved rows, including the 24v tracker, remain unchanged.
--- 10. Baseline compatibility: with a caller-authenticated Sales manager and a separately
--- authorized commercial record, approve_requirement_baseline locks the requirement, writes one
--- baseline snapshot, updates the requirement to baselined, updates the linked opportunity, and
--- audits atomically. Force the audit insert to fail and prove all earlier baseline/header changes roll back.
--- Direct authenticated UPDATE on customer_requirements must fail outside this routine.
--- 11. Numbering compatibility: the protected Sales creation and external intake each omit an
--- externally chosen requirement number. Verify the trigger/function assigns nonblank unique numbers
--- from the same customer_requirement numbering rule; concurrent different request keys must produce
--- distinct values without a second allocation per insert.
+-- Required executable assertions in the real caller transport runner:
+-- 1. approved isolated target refusal before any request is sent;
+-- 2. real authenticated Sales creation produces exactly one requirement, revision 1,
+--    source_bound_created audit, and receipt; all are rolled back in an audit-failure case;
+-- 3. identical retry returns the same ID and exact counts stay one;
+-- 4. changed title, summary, customer, version, or caller under the same key rejects;
+-- 5. an exact replay after controlled Master-version advance returns the historical ID,
+--    while a fresh key using the now-stale Master version rejects;
+-- 6. two real authenticated sessions with one key converge to one persisted result;
+-- 7. a protected create holds its source locks while a protected controlled source update
+--    blocks, then resolves without changing the first create's persisted provenance;
+-- 8. direct receipt/requirement/revision writes are denied to each real caller.

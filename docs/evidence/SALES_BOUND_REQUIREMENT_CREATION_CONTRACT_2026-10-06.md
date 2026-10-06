@@ -1,54 +1,47 @@
 # Sales-Bound Requirement Creation — Full Pending Contract Export (2026-10-06 UTC)
 
-**Status:** source-only and disabled. No migration, grant, identity, fixture, or existing record is changed by this export. Database execution evidence is pending and source tests are not database acceptance.
+**Status:** source-only and disabled. No migration, grant, identity, fixture, existing record, generation setting, or publication is changed by this export. No database query or acceptance execution occurred in this update.
 
-## Scope
+## What changed in this review revision
 
-The contract creates a new requirement only when a caller with `sales.manage` is bound to an existing opportunity/customer pair and the **current immutable** Master Specification version for that pair. It does not update the opportunity stage, create feasibility work, convert a project, publish anything, or infer/backfill source metadata for existing requirements—including the existing 24v tracker.
+The prior pending `approve_requirement_baseline(...)` compatibility routine has been removed rather than expanded on unsupported assumptions. The applied feasibility schema has no immutable requirement-revision binding or applicability model, so it cannot prove a terminal verdict belongs to the revision that would be baselined. The Sales façade and visible approval action now fail closed.
 
-## Pending objects
+The prior psql/JWT-GUC harness is now explicitly **structural-only**. It is not evidence of caller authentication, JWT verification, transport, RLS, grants, non-admin behavior, concurrency, or rollback. A separate real-caller transport acceptance specification refuses unapproved/original targets, uses no JWT GUCs or service role, and requires two independent authenticated callers.
 
-- New: `public.sales_requirement_creation_requests` receipt table, used only by the protected routine. It stores the caller, opportunity/customer/version source tuple, canonical payload, and persisted requirement result.
-- New: `public.sales_requirement_creation_canonical_payload(...)` and `public.sales_requirement_creation_payload_hash(...)`, unavailable to browser callers.
-- New: `public.create_sales_bound_customer_requirement(...)`, the single protected creation routine.
-- Existing reused objects: `sales_opportunities`, `customers`, `master_specifications`, `master_specification_versions`, `customer_requirements`, `customer_requirement_revisions`, `activity_log`, `has_permission`, and `next_business_number`.
+## Established facts reused without invention
 
-## Transaction behavior
+- `requirement_baselines_assign_business_code` is the existing server-side number trigger. It calls `next_business_number('baseline', NULL, NULL)` only when the inserted baseline number is blank.
+- `customer_requirements.current_revision` and the `customer_requirement_revisions` uniqueness rule identify the current revision, but `requirement_feasibility_reviews` contains no requirement-revision reference and no applicability field.
+- `requirement_baselines` permits one row per requirement/revision today, but it has no replay receipt.
+- `project_feedback_revisions` read policy requires its joined baseline to remain `active`; the existing direct handover status mutation is therefore a separate state-transition review item, not something this source-only proposal changes.
+- Existing manual/approved records, including the 24v tracker, stay untouched. No source metadata is inferred or backfilled.
 
-1. Derives actor solely from `auth.uid()` and validates `sales.manage` inside a `SECURITY DEFINER` function.
-2. Canonicalizes input, serializes the supplied request key, and checks its receipt **before** current-source verification. Exact historical retries return their original ID even after the Master Specification advances; changed caller/source/payload fails.
-3. On first creation only, locks the authoritative opportunity with `FOR UPDATE`, then its Master Specification with `FOR UPDATE`, matching the controlled Master save's source order. These locks block a concurrent opportunity customer-pair or current-version update until the transaction resolves.
-4. Verifies the requested Master Specification version belongs to that locked pair and equals the locked header's current version.
-5. Creates the numbered requirement, revision 1, activity event, and receipt in one transaction. Any later failure rolls back every earlier insert.
+## Pending Sales-bound creation behavior
 
-## Receipt isolation
+1. Derive the actor only from `auth.uid()` and require `sales.manage`.
+2. Canonicalize the request; lock/read the receipt before current-source validation. Exact historical retries return their original requirement ID after a Master Specification advances. Changed caller, source, or payload rejects.
+3. On first creation only, lock the opportunity and Master Specification with `FOR UPDATE`, then prove the supplied version is current for the locked opportunity/customer pair.
+4. Create requirement, immutable revision 1, audit event, and receipt atomically. Any error rolls back all inserts.
+5. Keep direct receipt access revoked from `PUBLIC`, `anon`, and `authenticated`.
 
-The pending DDL grants receipt-table access only to `service_role` and explicitly revokes all access from `PUBLIC`, `anon`, and `authenticated`. The protected definer routine alone reads/writes caller receipts; browser callers cannot inspect or insert them.
+## Baseline approval remains deliberately unavailable
 
-RLS additionally carries an explicit authenticated deny-all policy. This is defense in depth: direct receipt access remains denied even if a future table grant is introduced accidentally.
+Before a future protected baseline routine can exist, a separate reviewed contract must provide and accept all of the following:
 
-## Pending direct-write decision
+- immutable requirement-revision linkage plus explicit applicability on each feasibility decision;
+- exact expected revision validation and locked retrieval of that immutable revision;
+- validation of applicable terminal decisions without treating stale/unpinned verdicts as ready;
+- customer authorization locked at update strength so status/snapshot changes cannot race approval;
+- server-only baseline number issuance through the existing trigger (no caller number parameter);
+- a stable request key and receipt with exact replay vs. changed-payload rejection;
+- protected direct-write denial for `requirement_baselines`, including review of its downstream status transitions and feedback-visibility dependency;
+- real caller-authenticated isolated acceptance for allow/deny, rollback, replay, concurrency, and non-admin RLS.
 
-This compatibility group retires the legacy `createCustomerRequirement` facade with an explicit error (no fallback) and prepares a protected `approve_requirement_baseline(...)` routine for the live baseline approval flow. Only the accepted migration revokes direct authenticated requirement/revision mutations and removes their broad Sales write policies.
-
-**Acceptance blocker:** all protected creation, external intake, feasibility, and baseline compatibility routines must pass isolated caller-authenticated acceptance together before any revocation can be applied. Existing manual/approved rows, including the 24v tracker, are retained exactly as-is; no source is inferred or backfilled.
-
-## Required isolated acceptance
-
-- Caller-authenticated Sales allowance and non-admin/RLS denial.
-- Opportunity/customer mismatch and unavailable, stale, or cross-source Master-version denial.
-- Exact retry returns the original ID; payload/caller/source change under the same key rejects.
-- Exact replay still returns the historical ID after the Master Specification advances; a fresh key with the earlier version fails.
-- Concurrent same-key calls converge to one requirement, revision, audit, and receipt.
-- A concurrent source-pair/current-version mutation blocks behind the first-create locks and cannot change the verified provenance before that create commits.
-- Forced audit failure rolls back the header, revision, and receipt.
-- Compatibility migration removes or redirects the legacy write path, then proves direct requirement/revision writes fail while all existing manual and approved records remain intact.
-- Protected baseline approval remains supported after revocation: it snapshots the current requirement/commercial state, updates the requirement status, and audits as one transaction.
-- Sales-bound creation uses `next_business_number('customer_requirement', NULL, NULL)`, matching the installed `customer_requirements_assign_business_code` trigger. The supplied nonblank number prevents a second trigger allocation; Sales and client intake share the existing serialized customer-requirement counter.
+No requirement status, opportunity status, handover state, or baseline row is changed while this dependency is unresolved.
 
 ## Full pending SQL
 
-The following is copied verbatim from `supabase/pending/20261006_sales_bound_requirement_creation.sql` at this source revision. It is pending and unapplied.
+Copied verbatim from `supabase/pending/20261006_sales_bound_requirement_creation.sql`.
 
 ```sql
 -- SOURCE-ONLY PROPOSAL. Do not apply until isolated caller-authenticated acceptance
@@ -274,275 +267,208 @@ GRANT EXECUTE ON FUNCTION public.create_sales_bound_customer_requirement(uuid, u
 REVOKE ALL ON FUNCTION public.sales_requirement_creation_canonical_payload(uuid, uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sales_requirement_creation_payload_hash(uuid, uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 
--- COMPATIBILITY GROUP — apply only with 20261005_client_requirement_intake.sql and only
--- after isolated caller-authenticated acceptance. The controlled routines above and the
--- external intake routine remain SECURITY DEFINER entry points after authenticated table
--- writes are removed. The baseline workflow below preserves the one live Sales approval
--- operation that otherwise updates a requirement header.
-
-CREATE OR REPLACE FUNCTION public.approve_requirement_baseline(
-  p_requirement_id uuid,
-  p_baseline_number text DEFAULT NULL
-) RETURNS TABLE(baseline_id uuid, baseline_number text)
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $$
-DECLARE
-  v_actor_id uuid := auth.uid();
-  v_requirement public.customer_requirements%ROWTYPE;
-  v_commercial public.sales_commercial_records%ROWTYPE;
-  v_baseline public.requirement_baselines%ROWTYPE;
-BEGIN
-  IF v_actor_id IS NULL OR NOT public.has_permission(v_actor_id, 'sales.manage') THEN
-    RAISE EXCEPTION 'Sales management permission is required';
-  END IF;
-  IF p_requirement_id IS NULL OR (p_baseline_number IS NOT NULL AND char_length(btrim(p_baseline_number)) > 64) THEN
-    RAISE EXCEPTION 'A requirement and valid optional baseline number are required';
-  END IF;
-
-  SELECT * INTO v_requirement
-  FROM public.customer_requirements
-  WHERE id = p_requirement_id
-  FOR UPDATE;
-  IF NOT FOUND THEN RAISE EXCEPTION 'Requirement not found'; END IF;
-  IF v_requirement.status IN ('baselined', 'archived') THEN
-    RAISE EXCEPTION 'Requirement is already baselined or archived';
-  END IF;
-
-  SELECT * INTO v_commercial
-  FROM public.sales_commercial_records
-  WHERE requirement_id = v_requirement.id AND status = 'customer_authorized'
-  FOR KEY SHARE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Customer commercial authorization is required before creating a baseline';
-  END IF;
-
-  INSERT INTO public.requirement_baselines (
-    requirement_id, baseline_number, revision_number, requirement_snapshot,
-    commercial_snapshot, approved_by
-  ) VALUES (
-    v_requirement.id, nullif(btrim(coalesce(p_baseline_number, '')), ''),
-    v_requirement.current_revision, v_requirement.requirement_data,
-    to_jsonb(v_commercial), v_actor_id
-  ) RETURNING * INTO v_baseline;
-
-  UPDATE public.customer_requirements
-  SET status = 'baselined', approved_at = now()
-  WHERE id = v_requirement.id;
-  UPDATE public.sales_opportunities
-  SET stage = 'approved', status = 'won'
-  WHERE id = v_requirement.opportunity_id;
-  INSERT INTO public.activity_log (
-    actor_user_id, module_key, entity_type, entity_id, action, summary, after_data
-  ) VALUES (
-    v_actor_id, 'sales', 'requirement_baseline', v_baseline.id, 'created',
-    'Created approved requirement baseline.',
-    jsonb_build_object('requirement_id', v_requirement.id, 'revision_number', v_requirement.current_revision)
-  );
-  RETURN QUERY SELECT v_baseline.id, v_baseline.baseline_number;
-END;
-$$;
-
-REVOKE ALL ON FUNCTION public.approve_requirement_baseline(uuid, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.approve_requirement_baseline(uuid, text) TO authenticated, service_role;
-
--- No direct authenticated header or revision mutations remain after the three protected
--- creation paths and baseline approval routine above are accepted. Existing manual and
--- approved rows are retained unchanged; this adds no source backfill for the 24v tracker.
-REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirements FROM PUBLIC, authenticated;
-REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirement_revisions FROM PUBLIC, authenticated;
-DROP POLICY IF EXISTS "Sales users manage requirements" ON public.customer_requirements;
-DROP POLICY IF EXISTS "Sales users manage requirement revisions" ON public.customer_requirement_revisions;
+-- COMPATIBILITY GROUP — source-only and deliberately fail-closed. The applied
+-- feasibility table has no immutable requirement-revision reference, so it cannot
+-- prove that terminal feasibility decisions belong to the revision being approved.
+-- Do not create a baseline approval RPC, receipt, or direct-write revocation until
+-- a separately reviewed revision-bound feasibility contract exists and passes real
+-- caller-authenticated isolated acceptance. This proposal preserves legacy/manual
+-- records exactly and performs no source backfill for the existing 24v tracker.
+--
+-- The existing `requirement_baselines_assign_business_code` trigger remains the
+-- authoritative server-side baseline-number issuer (`next_business_number('baseline', NULL, NULL)`).
+-- Future protected approval must not accept a caller baseline number. It must lock
+-- the requirement, the exact immutable revision, every applicable feasibility
+-- decision, and the authorized commercial record with UPDATE-strength locks; bind
+-- a stable request key to a replay receipt; reject changed replay payloads; snapshot
+-- only the locked source state; and preserve active-baseline downstream visibility.
+--
+-- Required separate dependency: a reviewed schema/contract that records immutable
+-- requirement-revision linkage plus applicability on feasibility decisions. Without
+-- it, current `requirement_feasibility_reviews` rows are unsupported/unverified and
+-- cannot gate baseline approval. The existing customer requirement status enum is
+-- not treated as proof of that missing linkage.
 ```
 
-## Full fail-closed facade
+## Full disabled Sales façade slice
 
-The following is copied verbatim from `src/lib/sales-bound-requirement.functions.ts`. It remains unavailable until the pending database contract has passed isolated acceptance; it has no legacy fallback.
+Copied verbatim from `src/lib/sales.functions.ts`.
 
 ```ts
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+const baselineSchema = z.object({ requirementId: z.string().uuid() });
+const portalSchema = z.object({ customerId: z.string().uuid(), contactId: z.string().uuid().nullable(), label: z.string().trim().min(2).max(160), expiresAt: z.string().min(10).nullable() });
+const handoverSchema = z.object({ baselineId: z.string().uuid(), handoverNotes: nullable(4000) });
 
-const salesBoundRequirementSchema = z.object({
-  opportunityId: z.string().uuid(),
-  customerId: z.string().uuid(),
-  masterSpecificationVersionId: z.string().uuid(),
-  title: z.string().trim().min(3).max(240),
-  customerReference: z.string().trim().max(160).nullable(),
-  summary: z.string().trim().max(8000).nullable(),
-  requestKey: z.string().uuid(),
-});
+async function requireSales(sb: any, userId: string) { const { data, error } = await sb.rpc("has_permission", { _user_id: userId, _permission_key: "sales.manage" }); if (error || !data) throw new Error("You do not have permission to manage sales records."); }
+async function logSalesActivity(sb: any, userId: string, entityType: string, entityId: string, action: string, summary: string) { const { error } = await sb.from("activity_log").insert({ actor_user_id: userId, module_key: "sales", entity_type: entityType, entity_id: entityId, action, summary }); if (error) throw new Error(error.message); }
 
-/** Disabled by the UI until the pending database contract completes isolated acceptance. */
-export const createSalesBoundCustomerRequirement = createServerFn({ method: "POST" })
+export const createCustomer = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => customerSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const normalizedName = data.legalName.replace(/\s+/g, " ").trim(); const { data: nameMatches, error: nameError } = await sb.from("customers").select("id,customer_code,legal_name,primary_email,primary_phone").neq("status", "archived").ilike("legal_name", normalizedName).limit(5); const { data: emailMatches, error: emailError } = data.primaryEmail ? await sb.from("customers").select("id,customer_code,legal_name,primary_email,primary_phone").neq("status", "archived").eq("primary_email", data.primaryEmail).limit(5) : { data: [], error: null }; const { data: phoneMatches, error: phoneError } = data.primaryPhone ? await sb.from("customers").select("id,customer_code,legal_name,primary_email,primary_phone").neq("status", "archived").eq("primary_phone", data.primaryPhone).limit(5) : { data: [], error: null }; if (nameError || emailError || phoneError) throw new Error("Could not check existing customers."); const matches = [...new Map([...(nameMatches ?? []), ...(emailMatches ?? []), ...(phoneMatches ?? [])].map((item: any) => [item.id, item])).values()]; if (matches.length && !data.createAnywayReason) throw new Error(`Possible existing customer: ${(matches ?? []).map((item: any) => `${item.customer_code} — ${item.legal_name}`).join("; ")}. Use the existing customer or confirm why a new record is needed.`); const { data: customer, error } = await sb.from("customers").insert({ legal_name: normalizedName, display_name: data.displayName, customer_type: data.customerType, industry: data.industry, primary_email: data.primaryEmail, primary_phone: data.primaryPhone, account_owner_user_id: data.accountOwnerUserId, created_by: context.userId }).select("id,customer_code").single(); if (error || !customer) throw new Error(error?.message ?? "Could not create customer."); await logSalesActivity(sb, context.userId, "customer", customer.id, "created", `Created customer: ${customer.customer_code} — ${normalizedName}`); if (data.createAnywayReason) await logSalesActivity(sb, context.userId, "customer", customer.id, "duplicate_override", data.createAnywayReason); return { id: customer.id, customerCode: customer.customer_code }; });
+export const createCustomerContact = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => contactSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: contact, error } = await sb.from("customer_contacts").insert({ customer_id: data.customerId, full_name: data.fullName, job_title: data.jobTitle, email: data.email, phone: data.phone, mobile: data.mobile, is_primary: data.isPrimary, created_by: context.userId }).select("id").single(); if (error || !contact) throw new Error(error?.message ?? "Could not create customer contact."); await logSalesActivity(sb, context.userId, "customer_contact", contact.id, "created", `Created customer contact: ${data.fullName}`); return { id: contact.id }; });
+export const createSalesEnquiry = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => enquirySchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: enquiry, error } = await sb.from("sales_enquiries").insert({ enquiry_number: data.enquiryNumber, customer_id: data.customerId, contact_id: data.contactId, source: data.source, enquiry_date: data.enquiryDate, requirement_summary: data.requirementSummary, application: data.application, product_type: data.productType, estimated_volume: data.estimatedVolume, expected_timeline: data.expectedTimeline, priority: data.priority, sales_owner_user_id: data.salesOwnerUserId, next_action: data.nextAction, next_action_date: data.nextActionDate, created_by: context.userId }).select("id,enquiry_number").single(); if (error || !enquiry) throw new Error(error?.message ?? "Could not create enquiry."); await logSalesActivity(sb, context.userId, "sales_enquiry", enquiry.id, "created", `Created enquiry: ${enquiry.enquiry_number ?? "auto-numbered"}`); return { id: enquiry.id, enquiryNumber: enquiry.enquiry_number }; });
+export const createSalesOpportunity = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => opportunitySchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: opportunity, error } = await sb.from("sales_opportunities").insert({ opportunity_number: data.opportunityNumber, customer_id: data.customerId, primary_contact_id: data.contactId, enquiry_id: data.enquiryId, name: data.name, application: data.application, product_type: data.productType, primary_sales_owner_user_id: data.primarySalesOwnerUserId, nda_required: data.ndaRequired, estimated_volume: data.estimatedVolume, target_timeline: data.targetTimeline, priority: data.priority, next_action: data.nextAction, next_action_date: data.nextActionDate, created_by: context.userId }).select("id,opportunity_number").single(); if (error || !opportunity) throw new Error(error?.message ?? "Could not create opportunity."); await logSalesActivity(sb, context.userId, "sales_opportunity", opportunity.id, "created", `Created opportunity: ${data.name}`); return { id: opportunity.id, opportunityNumber: opportunity.opportunity_number }; });
+export const saveNdaRecord = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => ndaSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const signedAt = data.status === "signed" ? new Date().toISOString() : null; const { data: record, error } = await sb.from("sales_nda_records").upsert({ opportunity_id: data.opportunityId, status: data.status, signed_by_name: data.signedByName, signed_by_email: data.signedByEmail, signed_at: signedAt, expiry_date: data.expiryDate, notes: data.notes, created_by: context.userId }, { onConflict: "opportunity_id" }).select("id").single(); if (error || !record) throw new Error(error?.message ?? "Could not save the NDA record."); await sb.from("sales_opportunities").update({ stage: data.status === "signed" || data.status === "not_required" ? "requirement_pending" : "nda_pending" }).eq("id", data.opportunityId); await logSalesActivity(sb, context.userId, "sales_nda_record", record.id, "saved", `Updated NDA status: ${data.status}`); return { id: record.id }; });
+/**
+ * Intentionally unavailable: the accepted compatibility migration removes this
+ * legacy multi-call path instead of redirecting it to an unaccepted RPC. New
+ * requirement creation stays exclusively behind createSalesBoundCustomerRequirement.
+ */
+export const createCustomerRequirement = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => salesBoundRequirementSchema.parse(data))
+  .handler(() => {
+    throw new Error("Legacy customer requirement creation is retired. Use the protected source-bound requirement flow after database acceptance.");
+  });
+export const assignFeasibilityReview = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => feasibilityAssignmentSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: reviewId, error } = await sb.rpc("assign_requirement_feasibility_review", { p_requirement_id: data.requirementId, p_department_id: data.departmentId, p_reviewer_user_id: data.reviewerUserId }); if (error || typeof reviewId !== "string") throw new Error(error?.message ?? "Could not assign feasibility review."); return { id: reviewId }; });
+export const saveCommercialRecord = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => commercialSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: record, error } = await sb.from("sales_commercial_records").upsert({ requirement_id: data.requirementId, quotation_reference: data.quotationReference, currency: data.currency, quoted_amount: data.quotedAmount, status: data.status, authorization_reference: data.authorizationReference, customer_authorized_at: data.status === "customer_authorized" ? new Date().toISOString() : null, notes: data.notes, created_by: context.userId }, { onConflict: "requirement_id" }).select("id").single(); if (error || !record) throw new Error(error?.message ?? "Could not save commercial record."); await logSalesActivity(sb, context.userId, "sales_commercial_record", record.id, "saved", `Commercial status: ${data.status}`); return { id: record.id }; });
+/**
+ * Deliberately fail-closed: the applied feasibility table cannot bind a terminal
+ * verdict to an immutable requirement revision, and no replay-safe baseline
+ * receipt exists. A baseline must not be created until that separate contract
+ * is accepted through real caller-authenticated isolated evidence.
+ */
+export const createRequirementBaseline = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => baselineSchema.parse(data))
   .handler(async ({ data, context }) => {
-    // The RPC is deliberately absent from generated database types until its pending SQL is accepted.
-    // Keeping the facade fail-closed prevents a source-only contract from becoming callable early.
     void data;
     void context;
-    throw new Error("Source-bound requirement creation is unavailable until the protected database contract passes isolated acceptance.");
+    throw new Error("Baseline approval is unavailable until revision-bound feasibility and replay-safe baseline contracts pass isolated caller-authenticated acceptance.");
   });
 ```
 
-## Full executable concurrency harness
+## Full structural-only source check
 
-The following is copied verbatim from `supabase/pending/tests/sales_bound_requirement_creation_concurrency_acceptance.sh`. It is review-only and must run only against an authorized isolated database with an authenticated Sales caller, never a service-role caller.
+Copied verbatim from `supabase/pending/tests/sales_bound_requirement_creation_acceptance.sql`.
+
+```sql
+-- STRUCTURAL-ONLY SOURCE CHECK. This file is not caller-authenticated database
+-- acceptance. SET LOCAL request.jwt.claim.sub can only model function branch shape
+-- from a privileged psql connection; it cannot prove JWT verification, transport,
+-- RLS, grants, or non-admin caller behavior. Do not run it as evidence of acceptance.
+--
+-- Real caller transport acceptance is specified in
+-- sales_bound_requirement_creation_caller_transport_acceptance.sh and must use two
+-- independently authenticated non-service callers against an explicitly approved
+-- isolated target. No target is selected by this source file.
+\set ON_ERROR_STOP on
+
+-- This preflight is structural only: all values must be false except the protected
+-- function execute privilege. A real caller transport runner repeats these checks
+-- through authenticated application transport and asserts the returned booleans.
+SELECT NOT has_table_privilege('PUBLIC', 'public.sales_requirement_creation_requests', 'SELECT') AS no_public_receipt_read;
+SELECT NOT has_table_privilege('PUBLIC', 'public.sales_requirement_creation_requests', 'INSERT') AS no_public_receipt_insert;
+SELECT NOT has_table_privilege('anon', 'public.sales_requirement_creation_requests', 'SELECT') AS no_anon_receipt_read;
+SELECT NOT has_table_privilege('anon', 'public.sales_requirement_creation_requests', 'INSERT') AS no_anon_receipt_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_requirement_creation_requests', 'SELECT') AS no_authenticated_receipt_read;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_requirement_creation_requests', 'INSERT') AS no_authenticated_receipt_insert;
+SELECT has_function_privilege('authenticated', 'public.create_sales_bound_customer_requirement(uuid, uuid, uuid, text, text, text, uuid)', 'EXECUTE') AS protected_create_callable;
+SELECT NOT has_table_privilege('authenticated', 'public.customer_requirements', 'INSERT') AS no_authenticated_requirement_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.customer_requirements', 'UPDATE') AS no_authenticated_requirement_update;
+SELECT NOT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'INSERT') AS no_authenticated_revision_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'UPDATE') AS no_authenticated_revision_update;
+
+-- No baseline approval privilege or direct baseline-write assertion appears here:
+-- this revision deliberately exports no baseline RPC while revision-bound feasibility
+-- and replay requirements remain unsupported/unverified.
+
+-- Required executable assertions in the real caller transport runner:
+-- 1. approved isolated target refusal before any request is sent;
+-- 2. real authenticated Sales creation produces exactly one requirement, revision 1,
+--    source_bound_created audit, and receipt; all are rolled back in an audit-failure case;
+-- 3. identical retry returns the same ID and exact counts stay one;
+-- 4. changed title, summary, customer, version, or caller under the same key rejects;
+-- 5. an exact replay after controlled Master-version advance returns the historical ID,
+--    while a fresh key using the now-stale Master version rejects;
+-- 6. two real authenticated sessions with one key converge to one persisted result;
+-- 7. a protected create holds its source locks while a protected controlled source update
+--    blocks, then resolves without changing the first create's persisted provenance;
+-- 8. direct receipt/requirement/revision writes are denied to each real caller.
+```
+
+## Full real caller-transport acceptance specification
+
+Copied verbatim from `supabase/pending/tests/sales_bound_requirement_creation_caller_transport_acceptance.sh`.
 
 ```bash
 #!/usr/bin/env bash
-# ISOLATED ACCEPTANCE ONLY. Do not run against production and never use service-role impersonation.
-# Required environment: DATABASE_URL, SALES_MANAGER_ID, OPPORTUNITY_ID, CUSTOMER_ID,
-# MASTER_VERSION_ID, SPECIFICATION_ID, REQUEST_KEY, REQUEST_KEY_B, ADVANCE_EXPECTED_VERSION,
-# ADVANCE_TITLE, ADVANCE_SUMMARY, ADVANCE_SPECIFICATION_DATA. The runner supplies a dedicated
-# isolated tuple. It must use an authenticated Sales caller and never service-role impersonation.
+# REAL CALLER-TRANSPORT ACCEPTANCE SPECIFICATION — intentionally non-executable until
+# an approved isolated target and two independently authenticated non-service callers
+# are supplied. This script refuses every unspecified/original target; it never sets
+# request.jwt.claim.* and never connects with a service-role credential.
 set -euo pipefail
 
-: "${DATABASE_URL:?}" "${SALES_MANAGER_ID:?}" "${OPPORTUNITY_ID:?}" "${CUSTOMER_ID:?}"
-: "${MASTER_VERSION_ID:?}" "${SPECIFICATION_ID:?}" "${REQUEST_KEY:?}" "${REQUEST_KEY_B:?}" "${ADVANCE_EXPECTED_VERSION:?}"
-: "${ADVANCE_TITLE:?}" "${ADVANCE_SUMMARY:?}" "${ADVANCE_SPECIFICATION_DATA:?}"
+: "${ISOLATED_TARGET_NAME:?Name the approved isolated target}"
+: "${APPROVED_ISOLATED_TARGET_NAME:?Expected approved isolated target name}"
+: "${SALES_CALLER_TRANSPORT:?Executable that sends one authenticated Sales RPC call}"
+: "${SOURCE_EDITOR_TRANSPORT:?Executable that sends one authenticated controlled source-save call}"
+: "${OPPORTUNITY_ID:?}" "${CUSTOMER_ID:?}" "${MASTER_VERSION_ID:?}" "${SPECIFICATION_ID:?}"
+: "${REQUEST_KEY:?}" "${REQUEST_KEY_B:?}" "${EXPECTED_VERSION:?}"
 
-tmp_dir="$(mktemp -d)"
-cleanup() { rm -rf "$tmp_dir"; }
-trap cleanup EXIT
-
-caller_prelude="SET LOCAL request.jwt.claim.sub = '${SALES_MANAGER_ID}'; SET LOCAL role = authenticated;"
-create_call="SELECT public.create_sales_bound_customer_requirement('${OPPORTUNITY_ID}'::uuid, '${CUSTOMER_ID}'::uuid, '${MASTER_VERSION_ID}'::uuid, 'Concurrency acceptance requirement', 'LOCK-ACCEPT', 'Acceptance-only summary.', '${REQUEST_KEY}'::uuid);"
-
-# Replay after Master version advance: the first committed write is created on an isolated source.
-printf "BEGIN; %s %s COMMIT;" "$caller_prelude" "$create_call" | psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 >"$tmp_dir/created-id"
-created_id="$(tail -n 3 "$tmp_dir/created-id" | head -n 1 | tr -d '[:space:]')"
-
-# Advance via the existing caller-authenticated controlled save. This must make MASTER_VERSION_ID historical.
-printf "BEGIN; %s SELECT * FROM public.save_master_specification_version('${SPECIFICATION_ID}'::uuid, '${OPPORTUNITY_ID}'::uuid, '${CUSTOMER_ID}'::uuid, '${ADVANCE_TITLE}', ${ADVANCE_EXPECTED_VERSION}, '${ADVANCE_SUMMARY}', '${ADVANCE_SPECIFICATION_DATA}'::jsonb); COMMIT;" "$caller_prelude" | psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 >/dev/null
-printf "BEGIN; %s %s COMMIT;" "$caller_prelude" "$create_call" | psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 >"$tmp_dir/replayed-id"
-replayed_id="$(tail -n 3 "$tmp_dir/replayed-id" | head -n 1 | tr -d '[:space:]')"
-test "$created_id" = "$replayed_id" || { echo "Replay after Master version advance returned a different requirement" >&2; exit 1; }
-
-# Changed-payload conflict must reject and leave the receipt result unchanged.
-if printf "BEGIN; %s SELECT public.create_sales_bound_customer_requirement('${OPPORTUNITY_ID}'::uuid, '${CUSTOMER_ID}'::uuid, '${MASTER_VERSION_ID}'::uuid, 'Changed title', 'LOCK-ACCEPT', 'Acceptance-only summary.', '${REQUEST_KEY}'::uuid); ROLLBACK;" "$caller_prelude" | psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 >"$tmp_dir/conflict" 2>&1; then
-  echo "Changed-payload conflict unexpectedly succeeded" >&2; exit 1
+if [[ "$ISOLATED_TARGET_NAME" != "$APPROVED_ISOLATED_TARGET_NAME" ]]; then
+  echo "Refusing unapproved isolated target" >&2
+  exit 64
 fi
-grep -q "Request key conflicts with a different caller or payload" "$tmp_dir/conflict"
-
-# Concurrent source update blocks: hold the same opportunity/specification locks in session A.
-# This test performs no source mutation: B uses lock_timeout and only proves it cannot pass the lock.
-printf "BEGIN; %s SELECT 1 FROM public.sales_opportunities WHERE id = '${OPPORTUNITY_ID}'::uuid FOR UPDATE; SELECT 1 FROM public.master_specifications WHERE opportunity_id = '${OPPORTUNITY_ID}'::uuid FOR UPDATE; SELECT pg_sleep(8); ROLLBACK;" "$caller_prelude" | psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 >"$tmp_dir/holder" 2>&1 &
-holder_pid=$!
-sleep 1
-
-# Concurrent source update blocks: a source editor cannot update current_version while A holds the source locks.
-printf "BEGIN; %s SET LOCAL lock_timeout = '5000ms'; SELECT pg_backend_pid(); UPDATE public.master_specifications SET current_version = current_version WHERE opportunity_id = '${OPPORTUNITY_ID}'::uuid; ROLLBACK;" "$caller_prelude" | psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 >"$tmp_dir/blocker" 2>&1 &
-blocker_pid=$!
-sleep 1
-blocker_backend_pid="$(awk '/^[[:space:]]*[0-9]+[[:space:]]*$/ { gsub(/[[:space:]]/, ""); print; exit }' "$tmp_dir/blocker")"
-test -n "$blocker_backend_pid" || { echo "Could not read the blocker backend PID" >&2; exit 1; }
-if ! psql "$DATABASE_URL" -X -tAc "SELECT wait_event_type = 'Lock' FROM pg_stat_activity WHERE pid = ${blocker_backend_pid};" | grep -qx "t"; then
-  echo "Concurrent source update did not expose the expected lock wait" >&2; exit 1
+if [[ "${ORIGINAL_TARGET_NAME:-}" == "$ISOLATED_TARGET_NAME" ]]; then
+  echo "Refusing original target" >&2
+  exit 64
 fi
-if wait "$blocker_pid"; then
-  echo "Concurrent source update blocks: expected lock timeout" >&2; exit 1
+
+# Transport wrappers must take JSON on stdin, return JSON on stdout, and use their
+# caller's own authenticated application/session transport. They must not interpolate
+# SQL, set JWT GUCs, use database superuser credentials, or use service_role.
+call_sales() { "$SALES_CALLER_TRANSPORT"; }
+call_editor() { "$SOURCE_EDITOR_TRANSPORT"; }
+
+create_payload() {
+  local key="$1" version="$2" title="$3"
+  jq -cn --arg opportunityId "$OPPORTUNITY_ID" --arg customerId "$CUSTOMER_ID" \
+    --arg masterSpecificationVersionId "$version" --arg requestKey "$key" --arg title "$title" \
+    '{opportunityId:$opportunityId,customerId:$customerId,masterSpecificationVersionId:$masterSpecificationVersionId,requestKey:$requestKey,title:$title,customerReference:"TRANSPORT-ACCEPT",summary:"Isolated acceptance only."}'
+}
+
+first="$(create_payload "$REQUEST_KEY" "$MASTER_VERSION_ID" "Transport acceptance requirement" | call_sales)"
+first_id="$(jq -er '.id' <<<"$first")"
+retry="$(create_payload "$REQUEST_KEY" "$MASTER_VERSION_ID" "Transport acceptance requirement" | call_sales)"
+test "$first_id" = "$(jq -er '.id' <<<"$retry")"
+
+# Changed payload must fail; the wrapper's nonzero status is asserted without SQL text.
+if create_payload "$REQUEST_KEY" "$MASTER_VERSION_ID" "Changed title" | call_sales >/dev/null 2>&1; then
+  echo "Changed-payload replay unexpectedly succeeded" >&2; exit 1
 fi
-grep -Eq "canceling statement due to lock timeout|Lock" "$tmp_dir/blocker"
 
-wait "$holder_pid"
+# The controlled editor advances the source with the current expected version.
+# A fresh key intentionally reuses the historical MASTER_VERSION_ID and must fail.
+jq -cn --arg specificationId "$SPECIFICATION_ID" --arg opportunityId "$OPPORTUNITY_ID" \
+  --arg customerId "$CUSTOMER_ID" --argjson expectedVersion "$EXPECTED_VERSION" \
+  '{specificationId:$specificationId,opportunityId:$opportunityId,customerId:$customerId,expectedVersion:$expectedVersion}' | call_editor >/dev/null
+replay="$(create_payload "$REQUEST_KEY" "$MASTER_VERSION_ID" "Transport acceptance requirement" | call_sales)"
+test "$first_id" = "$(jq -er '.id' <<<"$replay")"
+if create_payload "$REQUEST_KEY_B" "$MASTER_VERSION_ID" "Fresh stale version" | call_sales >/dev/null 2>&1; then
+  echo "Fresh stale-version creation unexpectedly succeeded" >&2; exit 1
+fi
 
-# Distinct request keys must allocate distinct nonblank business numbers without relying on a
-# browser-callable numbering function. This also proves the protected insert does not cause a
-# second trigger allocation when it supplies next_business_number itself.
-second_key_call="SELECT public.create_sales_bound_customer_requirement('${OPPORTUNITY_ID}'::uuid, '${CUSTOMER_ID}'::uuid, '${MASTER_VERSION_ID}'::uuid, 'Concurrent number acceptance requirement', 'NUMBER-ACCEPT', 'Second acceptance-only summary.', '${REQUEST_KEY_B}'::uuid);"
-printf "BEGIN; %s %s COMMIT;" "$caller_prelude" "$second_key_call" | psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 >"$tmp_dir/second-id"
-second_id="$(tail -n 3 "$tmp_dir/second-id" | head -n 1 | tr -d '[:space:]')"
-test -n "$second_id" || { echo "Second request did not create a requirement" >&2; exit 1; }
-numbers="$(psql "$DATABASE_URL" -X -Atc "SELECT requirement_number FROM public.customer_requirements WHERE id IN ('${created_id}'::uuid, '${second_id}'::uuid) ORDER BY id;")"
-first_number="$(printf '%s\n' "$numbers" | sed -n '1p')"
-second_number="$(printf '%s\n' "$numbers" | sed -n '2p')"
-test -n "$first_number" && test -n "$second_number" && test "$first_number" != "$second_number" || { echo "Protected calls did not allocate two distinct nonblank requirement numbers" >&2; exit 1; }
-
-echo "PASS: replay-after-version-advance, changed-payload conflict, concurrent source update blocking, and distinct protected business numbers"
+# The approved runner must additionally perform exact count/rollback assertions and
+# overlap two wrapper invocations: protected create first, protected source update
+# second. Capture timestamps plus returned IDs and prove the update waits for the
+# create instead of reproducing locks with direct SQL.
+echo "MANUAL RUNNER STEP REQUIRED: assert audited counts, forced-audit rollback, and protected-create/source-update overlap through caller transport."
 ```
 
-## SQL acceptance case inventory
+## Retired structural concurrency harness
 
-The following pending case inventory is copied verbatim from `supabase/pending/tests/sales_bound_requirement_creation_acceptance.sql`. It documents required database assertions; it has not been executed.
+Copied verbatim from `supabase/pending/tests/sales_bound_requirement_creation_concurrency_acceptance.sh`.
 
-```sql
--- ISOLATED ACCEPTANCE ONLY. Source contract for the pending Sales-bound requirement proposal.
--- Use real caller-authenticated sessions and existing isolated records; never service-role impersonation.
--- Required variables: sales_manager_id, sales_manager_jwt, opportunity_id, customer_id,
--- master_specification_version_id, stale_master_specification_version_id, wrong_customer_id,
--- request_key. Every mutation case must ROLLBACK.
--- Execute sales_bound_requirement_creation_concurrency_acceptance.sh for the real
--- two-session replay-after-advance and source-lock cases; this psql file remains
--- intentionally single-session and never impersonates service_role.
-\set ON_ERROR_STOP on
-
--- Preflight: only the protected routine may access receipts. Every direct table
--- privilege below must be false for PUBLIC, anon, and authenticated.
-SELECT has_table_privilege('PUBLIC', 'public.sales_requirement_creation_requests', 'SELECT') AS no_public_receipt_read;
-SELECT has_table_privilege('PUBLIC', 'public.sales_requirement_creation_requests', 'INSERT') AS no_public_receipt_insert;
-SELECT has_table_privilege('anon', 'public.sales_requirement_creation_requests', 'SELECT') AS no_anon_receipt_read;
-SELECT has_table_privilege('anon', 'public.sales_requirement_creation_requests', 'INSERT') AS no_anon_receipt_insert;
-SELECT has_table_privilege('authenticated', 'public.sales_requirement_creation_requests', 'SELECT') AS no_authenticated_receipt_read;
-SELECT has_table_privilege('authenticated', 'public.sales_requirement_creation_requests', 'INSERT') AS no_authenticated_receipt_insert;
-SELECT has_function_privilege('authenticated', 'public.create_sales_bound_customer_requirement(uuid, uuid, uuid, text, text, text, uuid)', 'EXECUTE') AS protected_create_callable;
-SELECT has_function_privilege('authenticated', 'public.approve_requirement_baseline(uuid, text)', 'EXECUTE') AS protected_baseline_callable;
-SELECT has_table_privilege('authenticated', 'public.customer_requirements', 'INSERT') AS no_authenticated_requirement_insert;
-SELECT has_table_privilege('authenticated', 'public.customer_requirements', 'UPDATE') AS no_authenticated_requirement_update;
-SELECT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'INSERT') AS no_authenticated_revision_insert;
-SELECT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'UPDATE') AS no_authenticated_revision_update;
-
--- 1. Allowed caller: creates exactly one header, revision 1, audit, and receipt bound to
--- opportunity/customer/current Master Specification version and actor.
-BEGIN;
-SET LOCAL request.jwt.claim.sub = :'sales_manager_id';
-SET LOCAL role = authenticated;
-SELECT public.create_sales_bound_customer_requirement(
-  :'opportunity_id'::uuid, :'customer_id'::uuid, :'master_specification_version_id'::uuid,
-  'Acceptance source-bound requirement', 'ACCEPT-REQ', 'Acceptance-only summary.', :'request_key'::uuid
-);
-ROLLBACK;
-
--- 2. Identical retry: two calls with the same request key and canonical payload return one ID;
--- counts remain one for header, revision 1, source_bound_created audit, and receipt.
-BEGIN;
-SET LOCAL request.jwt.claim.sub = :'sales_manager_id';
-SET LOCAL role = authenticated;
-SELECT public.create_sales_bound_customer_requirement(:'opportunity_id'::uuid, :'customer_id'::uuid, :'master_specification_version_id'::uuid, 'Retry exact payload', 'RETRY', 'Exact summary.', :'request_key'::uuid);
-SELECT public.create_sales_bound_customer_requirement(:'opportunity_id'::uuid, :'customer_id'::uuid, :'master_specification_version_id'::uuid, 'Retry exact payload', 'RETRY', 'Exact summary.', :'request_key'::uuid);
-ROLLBACK;
-
--- 3. Replay after Master version advance: commit an allowed creation, then use the existing
--- controlled Master Specification save path in a separate caller-authenticated transaction to
--- advance current_version. An exact retry with the original key/payload/version must return its
--- historical requirement ID; it must not revalidate the version as current or create another row.
--- Run this with a dedicated acceptance-only source tuple and roll back/clean it outside this script.
-
--- 4. Changed title, summary, customer, version, or actor with the same request key fails before new rows.
--- 5. Wrong opportunity/customer pair and stale/nonmatching Master version fail before header/revision/audit/receipt.
--- 6. Two concurrent authenticated sessions with the same caller/key/payload serialize on the advisory lock,
--- both return the same requirement ID, and commit one header/revision/audit/receipt only.
--- 7. Concurrent source update: session A calls this routine for a fresh key and pauses after its
--- opportunity/specification FOR UPDATE locks are acquired; session B, authenticated as an authorized
--- source editor, attempts either sales_opportunities.customer_id or master_specifications.current_version
--- update through its controlled source mutation. B must block until A commits/rolls back. If A commits,
--- its persisted receipt/audit source tuple must equal the locked tuple; B then proceeds and cannot alter
--- the already-persisted provenance. If A rolls back, B may proceed and A leaves no receipt/header/revision/audit.
--- 8. Force the source_bound_created audit insert to fail in isolated infrastructure; header, revision,
--- and receipt roll back together. Do not simulate with a service role.
--- 9. After compatible legacy redirect/removal is accepted, direct authenticated INSERT/UPDATE/DELETE on
--- customer_requirements and customer_requirement_revisions must fail, and the legacy multi-call facade
--- must not remain callable. Existing manual/approved rows, including the 24v tracker, remain unchanged.
--- 10. Baseline compatibility: with a caller-authenticated Sales manager and a separately
--- authorized commercial record, approve_requirement_baseline locks the requirement, writes one
--- baseline snapshot, updates the requirement to baselined, updates the linked opportunity, and
--- audits atomically. Force the audit insert to fail and prove all earlier baseline/header changes roll back.
--- Direct authenticated UPDATE on customer_requirements must fail outside this routine.
--- 11. Numbering compatibility: the protected Sales creation and external intake each omit an
--- externally chosen requirement number. Verify the trigger/function assigns nonblank unique numbers
--- from the same customer_requirement numbering rule; concurrent different request keys must produce
--- distinct values without a second allocation per insert.
+```bash
+#!/usr/bin/env bash
+# RETIRED STRUCTURAL HARNESS. Direct psql/JWT-GUC simulation cannot demonstrate real
+# authenticated caller transport, and direct SQL locks cannot prove protected routine
+# behavior. Use sales_bound_requirement_creation_caller_transport_acceptance.sh only
+# after an approved isolated caller-transport runner supplies exact count, rollback,
+# concurrency, and source-lock assertions.
+set -euo pipefail
+echo "Refusing structural simulation. Run the approved real caller-transport harness instead." >&2
+exit 64
 ```
+
+## Evidence boundary
+
+The source tests below prove only that the exported source carries the stated fail-closed boundaries and acceptance specification. They do not execute SQL or establish any database, transport, lock, rollback, or caller-RLS evidence. That evidence remains pending an approved isolated target and authenticated caller transport.

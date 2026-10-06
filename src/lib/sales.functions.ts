@@ -10,7 +10,7 @@ const opportunitySchema = z.object({ opportunityNumber: z.string().trim().max(64
 const ndaSchema = z.object({ opportunityId: z.string().uuid(), status: z.enum(["not_required", "draft", "sent", "signed", "expired", "declined"]), signedByName: nullable(160), signedByEmail: z.string().trim().email().max(254).nullable(), expiryDate: z.string().min(10).nullable(), notes: nullable(4000) });
 const feasibilityAssignmentSchema = z.object({ requirementId: z.string().uuid(), departmentId: z.string().uuid(), reviewerUserId: z.string().uuid() });
 const commercialSchema = z.object({ requirementId: z.string().uuid(), quotationReference: nullable(160), currency: z.string().trim().min(3).max(8), quotedAmount: z.number().nonnegative().nullable(), status: z.enum(["draft", "internal_review", "sent", "customer_authorized", "declined", "expired"]), authorizationReference: nullable(240), notes: nullable(4000) });
-const baselineSchema = z.object({ requirementId: z.string().uuid(), baselineNumber: z.string().trim().max(64).nullable() });
+const baselineSchema = z.object({ requirementId: z.string().uuid() });
 const portalSchema = z.object({ customerId: z.string().uuid(), contactId: z.string().uuid().nullable(), label: z.string().trim().min(2).max(160), expiresAt: z.string().min(10).nullable() });
 const handoverSchema = z.object({ baselineId: z.string().uuid(), handoverNotes: nullable(4000) });
 
@@ -34,23 +34,19 @@ export const createCustomerRequirement = createServerFn({ method: "POST" })
   });
 export const assignFeasibilityReview = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => feasibilityAssignmentSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: reviewId, error } = await sb.rpc("assign_requirement_feasibility_review", { p_requirement_id: data.requirementId, p_department_id: data.departmentId, p_reviewer_user_id: data.reviewerUserId }); if (error || typeof reviewId !== "string") throw new Error(error?.message ?? "Could not assign feasibility review."); return { id: reviewId }; });
 export const saveCommercialRecord = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => commercialSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: record, error } = await sb.from("sales_commercial_records").upsert({ requirement_id: data.requirementId, quotation_reference: data.quotationReference, currency: data.currency, quoted_amount: data.quotedAmount, status: data.status, authorization_reference: data.authorizationReference, customer_authorized_at: data.status === "customer_authorized" ? new Date().toISOString() : null, notes: data.notes, created_by: context.userId }, { onConflict: "requirement_id" }).select("id").single(); if (error || !record) throw new Error(error?.message ?? "Could not save commercial record."); await logSalesActivity(sb, context.userId, "sales_commercial_record", record.id, "saved", `Commercial status: ${data.status}`); return { id: record.id }; });
-/** Disabled until approve_requirement_baseline passes isolated caller-authenticated acceptance. */
+/**
+ * Deliberately fail-closed: the applied feasibility table cannot bind a terminal
+ * verdict to an immutable requirement revision, and no replay-safe baseline
+ * receipt exists. A baseline must not be created until that separate contract
+ * is accepted through real caller-authenticated isolated evidence.
+ */
 export const createRequirementBaseline = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => baselineSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const sb = context.supabase as any;
-    await requireSales(sb, context.userId);
-    const { data: baseline, error } = await sb.rpc("approve_requirement_baseline", {
-      p_requirement_id: data.requirementId,
-      p_baseline_number: data.baselineNumber,
-    });
-    if (error || !baseline || typeof baseline !== "object") {
-      throw new Error(error?.message ?? "Protected baseline approval is unavailable until the compatibility contract passes isolated acceptance.");
-    }
-    const record = baseline as { baseline_id?: string; baseline_number?: string | null };
-    if (typeof record.baseline_id !== "string") throw new Error("Protected baseline approval returned an invalid result.");
-    return { id: record.baseline_id, baselineNumber: record.baseline_number ?? null };
+    void data;
+    void context;
+    throw new Error("Baseline approval is unavailable until revision-bound feasibility and replay-safe baseline contracts pass isolated caller-authenticated acceptance.");
   });
 export const createCustomerPortalAccess = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => portalSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: portal, error } = await sb.from("customer_portal_access").insert({ customer_id: data.customerId, contact_id: data.contactId, label: data.label, expires_at: data.expiresAt, created_by: context.userId }).select("id,access_token").single(); if (error || !portal) throw new Error(error?.message ?? "Could not create portal access."); await logSalesActivity(sb, context.userId, "customer_portal_access", portal.id, "created", `Created customer portal access: ${data.label}`); return { id: portal.id, token: portal.access_token }; });
 export const initiateSalesHandover = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => handoverSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: handover, error } = await sb.from("sales_project_handovers").upsert({ baseline_id: data.baselineId, status: "initiated", handover_notes: data.handoverNotes, initiated_by: context.userId, initiated_at: new Date().toISOString() }, { onConflict: "baseline_id" }).select("id").single(); if (error || !handover) throw new Error(error?.message ?? "Could not initiate handover."); await sb.from("requirement_baselines").update({ status: "project_initiated" }).eq("id", data.baselineId); await logSalesActivity(sb, context.userId, "sales_project_handover", handover.id, "initiated", "Initiated approved-baseline project handover"); return { id: handover.id }; });
