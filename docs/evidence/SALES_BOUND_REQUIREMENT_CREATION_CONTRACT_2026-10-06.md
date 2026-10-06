@@ -247,6 +247,8 @@ REVOKE ALL ON FUNCTION public.sales_requirement_creation_payload_hash(uuid, uuid
 -- No legacy row is backfilled: a review with NULL provenance remains unavailable.
 -- Lock order: advisory(request_key) -> receipt -> requirement -> current revision
 -- -> feasibility reviews -> Master version -> commercial record.
+-- The deployed requirement_baselines_assign_business_code trigger remains the sole
+-- baseline-number issuer; this contract supplies a NULL baseline_number.
 
 CREATE TABLE public.sales_baseline_approval_requests (
   request_key uuid PRIMARY KEY,
