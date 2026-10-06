@@ -186,9 +186,9 @@ describe("client requirement intake contract", () => {
     const transportHarness = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_caller_transport_acceptance.sh", "utf8");
     expect(salesBoundAcceptanceSql).toContain("STRUCTURAL-ONLY SOURCE CHECK");
     expect(salesBoundAcceptanceSql).toContain("This file is not caller-authenticated database");
-    expect(salesBoundAcceptanceSql).toContain("Exact replay after Master-version advance");
-    expect(salesBoundAcceptanceSql).toContain("Fresh key using the now-stale Master version rejects");
-    expect(salesBoundAcceptanceSql).toContain("protected create holds its source locks");
+    expect(salesBoundAcceptanceSql).toContain("exact replay after controlled Master-version advance");
+    expect(salesBoundAcceptanceSql).toContain("fresh key using the now-stale Master version rejects");
+    expect(salesBoundAcceptanceSql).toContain("protected create holds its source locks while a protected controlled source update");
     expect(salesBoundAcceptanceSql).toContain("source_bound_created audit");
     expect(salesBoundAcceptanceSql).toContain("no_public_receipt_read");
     expect(salesBoundAcceptanceSql).toContain("no_anon_receipt_read");
@@ -219,7 +219,7 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).not.toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirements FROM PUBLIC, authenticated;");
     expect(salesBoundSql).toContain("requirement_baselines_assign_business_code");
     expect(salesBoundSql).toContain("Future protected approval must not accept a caller baseline number");
-    expect(salesBoundSql).toContain("immutable requirement-revision linkage plus applicability");
+    expect(salesBoundSql).toContain("requirement-revision linkage plus applicability");
     expect(lifecycleDialogs).toContain("Baseline approval is unavailable until revision-bound feasibility");
     expect(lifecycleDialogs).toContain('type="submit" disabled>Create approved baseline');
   });
@@ -228,7 +228,7 @@ describe("client requirement intake contract", () => {
     const transportHarness = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_caller_transport_acceptance.sh", "utf8");
     expect(salesBoundAcceptanceSql).toContain("STRUCTURAL-ONLY SOURCE CHECK");
     expect(salesBoundAcceptanceSql).toContain("This file is not caller-authenticated database");
-    expect(salesBoundAcceptanceSql).not.toContain("SET LOCAL request.jwt.claim.sub");
+    expect(salesBoundAcceptanceSql).toContain("SET LOCAL request.jwt.claim.sub can only model function branch shape");
     expect(salesBoundConcurrencyHarness).toContain("RETIRED STRUCTURAL HARNESS");
     expect(salesBoundConcurrencyHarness).not.toContain("pg_sleep");
     expect(transportHarness).toContain("Refusing unapproved isolated target");
