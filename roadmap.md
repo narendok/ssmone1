@@ -4,6 +4,10 @@
 
 - [ ] Harden the Master Specification controlled-write contract before any further deployment: the deployed `sales.manage` direct table grants/policies currently bypass source pairing, optimistic version locking, revision progression, actor provenance, and audit. **Source-only proposal and denial acceptance are required before any revocation; no production migration, permission widening, fixtures, identities, or publication.** Client requirement intake and assigned engineering feasibility remain source-only until scoped external RLS compatibility is accepted.
 
+## Current compatibility hardening
+
+- [ ] Prepare (source-only) the legacy Sales requirement-write compatibility group: retire the legacy server facade, revoke authenticated direct requirement/revision writes only with protected creation and legitimate revision/approval operations preserved, and prove numbering plus caller-authenticated acceptance. **Blocked from application:** isolated caller-authenticated database acceptance; no live SQL, data, users, grants, enablement, or publishing.
+
 ## Maintenance
 
 - [ ] Complete backend-level Master Specification acceptance against the managed isolated environment, including denied user, transaction rollback, optimistic conflict/concurrency, immutable revision, and non-admin RLS proof. **Current deployed original contract:** the source-of-truth specification and revision records are live; no additional fixtures will be created. **In progress:** Sales reload query repair removes the undeployed `current_version_id` assumption and waits for authenticated identity hydration before fetching. **Blocked evidence:** accepted isolated manager is an administrator; a scoped non-administrator identity is not available and must not be created for this work.
