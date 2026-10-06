@@ -28,4 +28,14 @@ describe("isolated Sales acceptance runner boundary", () => {
     expect(facade).not.toContain(".insert(");
     expect(facade).not.toContain(".update(");
   });
+
+  it("uses a connection-target allowlist before the shell runner can do any work", () => {
+    const runner = readFileSync("supabase/pending/tests/run_client_requirement_intake_isolated_acceptance.sh", "utf8");
+    expect(runner).toContain('ISOLATED_DATABASE_URL');
+    expect(runner).toContain('"$ISOLATED_DATABASE_URL" == *"$ORIGINAL_PROJECT_REF"*');
+    expect(runner).toContain('"$ISOLATED_DATABASE_URL" != *"$ISOLATED_PROJECT_REF"*');
+    expect(runner).not.toContain("service_role");
+    expect(runner).not.toContain("request.jwt.claim");
+    expect(runner).not.toContain("psql ");
+  });
 });

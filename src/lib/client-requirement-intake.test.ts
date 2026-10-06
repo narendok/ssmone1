@@ -98,6 +98,13 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).not.toContain("GRANT EXECUTE ON FUNCTION public.external_requirement_scope_allows");
   });
 
+  it("keeps upgraded legacy null-payload receipts deliberately non-replayable", () => {
+    expect(pendingSql).toContain("Existing NULL payloads remain deliberately non-replayable");
+    expect(pendingSql).toContain("v_prior.payload_canonical IS NOT NULL");
+    expect(pendingSql).toContain("Request key conflicts with a different caller or payload");
+    expect(acceptanceSql).toContain("legacy replay fails closed");
+  });
+
   it("uses protected assignment and response routines instead of a caller-settable reviewer marker", () => {
     expect(pendingSql).toContain("A clean installation has no former three-argument scope helper");
     expect(pendingSql).toContain("never use CASCADE here");
