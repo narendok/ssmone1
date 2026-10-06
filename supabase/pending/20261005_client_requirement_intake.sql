@@ -342,7 +342,11 @@ DECLARE
   v_revision public.customer_requirement_revisions%ROWTYPE;
   v_master_version public.master_specification_versions%ROWTYPE;
   v_master_version_id uuid;
+  v_source_opportunity_id uuid;
+  v_source_customer_id uuid;
+  v_source_version_number integer;
   v_workstreams jsonb;
+  v_review_found boolean := false;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.has_permission(auth.uid(), 'sales.manage') THEN
     RAISE EXCEPTION 'Sales management permission is required';
@@ -371,25 +375,42 @@ BEGIN
   END IF;
   BEGIN
     v_master_version_id := (v_revision.requirement_data #>> '{source,master_specification_version_id}')::uuid;
+    v_source_opportunity_id := (v_revision.requirement_data #>> '{source,opportunity_id}')::uuid;
+    v_source_customer_id := (v_revision.requirement_data #>> '{source,customer_id}')::uuid;
+    v_source_version_number := (v_revision.requirement_data #>> '{source,master_specification_version_number}')::integer;
   EXCEPTION WHEN invalid_text_representation THEN
-    RAISE EXCEPTION 'Current immutable customer requirement revision has an invalid Master Specification version source';
+    RAISE EXCEPTION 'Current immutable customer requirement revision has an invalid Master Specification source tuple';
   END;
+  IF v_source_opportunity_id IS NULL OR v_source_customer_id IS NULL OR v_source_version_number IS NULL THEN
+    RAISE EXCEPTION 'Current immutable customer requirement revision lacks a complete Master Specification source tuple; legacy provenance is unavailable';
+  END IF;
+  IF v_source_opportunity_id IS DISTINCT FROM v_requirement.opportunity_id
+     OR v_source_customer_id IS DISTINCT FROM v_requirement.customer_id THEN
+    RAISE EXCEPTION 'Current immutable customer requirement revision source does not match its requirement opportunity and customer';
+  END IF;
 
   SELECT * INTO v_review
   FROM public.requirement_feasibility_reviews
   WHERE source_revision_id = v_revision.id
     AND department_id = p_department_id
   FOR UPDATE;
+  v_review_found := FOUND;
 
-  SELECT * INTO v_master_version
-  FROM public.master_specification_versions
-  WHERE id = v_master_version_id
+  SELECT version.* INTO v_master_version
+  FROM public.master_specification_versions version
+  JOIN public.master_specifications specification ON specification.id = version.master_specification_id
+  WHERE version.id = v_master_version_id
+    AND version.version_number = v_source_version_number
+    AND specification.opportunity_id = v_requirement.opportunity_id
+    AND specification.customer_id = v_requirement.customer_id
   FOR KEY SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Pinned Master Specification version is unavailable for the immutable requirement revision'; END IF;
 
   v_workstreams := v_master_version.specification_data->'workstreams';
-  IF jsonb_typeof(v_workstreams) IS DISTINCT FROM 'array'
-     OR jsonb_array_length(v_workstreams) = 0
+  IF jsonb_typeof(v_workstreams) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION 'Master Specification workstreams are missing, null, non-string, unknown, or incomplete; applicability is TBC';
+  END IF;
+  IF jsonb_array_length(v_workstreams) = 0
      OR EXISTS (
        SELECT 1
        FROM jsonb_array_elements(v_workstreams) AS workstream(value)
@@ -407,7 +428,7 @@ BEGIN
       AND membership.department_id = p_department_id
   ) THEN RAISE EXCEPTION 'Assigned reviewer is not an active member of the selected department'; END IF;
 
-  IF FOUND THEN
+  IF v_review_found THEN
     IF v_review.status NOT IN ('pending', 'in_review') THEN
       RAISE EXCEPTION 'A terminal review is immutable history; a new requirement revision is required for another feasibility review';
     END IF;
@@ -497,9 +518,12 @@ BEGIN
      OR jsonb_typeof(v_review.applicable_workstreams) IS DISTINCT FROM 'array' THEN
     RAISE EXCEPTION 'Feasibility review lacks immutable provenance and cannot receive a protected response';
   END IF;
-  SELECT * INTO v_master_version FROM public.master_specification_versions
-  WHERE id = v_review.master_specification_version_id
-    AND version_number = v_review.master_specification_version_number FOR KEY SHARE;
+  SELECT version.* INTO v_master_version FROM public.master_specification_versions version
+  JOIN public.master_specifications specification ON specification.id = version.master_specification_id
+  WHERE version.id = v_review.master_specification_version_id
+    AND version.version_number = v_review.master_specification_version_number
+    AND specification.opportunity_id = v_requirement.opportunity_id
+    AND specification.customer_id = v_requirement.customer_id FOR KEY SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Pinned Master Specification version is unavailable'; END IF;
   IF v_review.reviewer_user_id IS NULL OR v_review.department_id IS NULL THEN
     RAISE EXCEPTION 'Feasibility review requires an assigned reviewer and department';
