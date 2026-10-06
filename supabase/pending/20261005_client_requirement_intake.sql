@@ -1,8 +1,10 @@
 -- SOURCE-ONLY PROPOSAL. Do not apply before scoped client isolation, reviewer authorization,
 -- response immutability, expiry/revocation, denial, rollback, optimistic-conflict, concurrency,
--- and non-admin caller-RLS acceptance pass in an isolated backend.
+-- direct-table denial, and non-admin caller-RLS acceptance pass in an isolated backend.
 -- Reuses the existing revisioned customer_requirements and requirement_feasibility_reviews tables.
 -- No automatic approval, project conversion, quotation, or release is created by this contract.
+-- This intentionally leaves direct external table RLS unchanged. The only proposed external
+-- write entry point is the narrowly scoped SECURITY DEFINER routine below.
 
 CREATE OR REPLACE FUNCTION public.external_requirement_scope_allows(
   p_contact_id uuid,
@@ -37,15 +39,16 @@ CREATE OR REPLACE FUNCTION public.submit_external_customer_requirement(
   p_requirement_data jsonb
 ) RETURNS uuid
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public
+SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
+  v_actor_id uuid := auth.uid();
   v_requirement public.customer_requirements%ROWTYPE;
-  v_contact_id uuid := public.external_current_contact_id(auth.uid());
+  v_contact_id uuid := public.external_current_contact_id(v_actor_id);
   v_party_id uuid := public.external_current_party_id();
 BEGIN
-  IF auth.uid() IS NULL OR v_contact_id IS NULL OR v_party_id IS NULL THEN
+  IF v_actor_id IS NULL OR v_contact_id IS NULL OR v_party_id IS NULL THEN
     RAISE EXCEPTION 'An active external contact is required';
   END IF;
   IF jsonb_typeof(p_requirement_data) <> 'object'
@@ -53,6 +56,8 @@ BEGIN
     OR NULLIF(btrim(p_requirement_data->>'description'), '') IS NULL THEN
     RAISE EXCEPTION 'Requirement title and description are required';
   END IF;
+  -- The caller identity comes only from auth.uid(). Contact, party, expiry, revocation,
+  -- and explicit opportunity/customer grants are all re-derived under the function owner.
   IF NOT public.external_requirement_scope_allows(v_contact_id, p_opportunity_id, p_customer_id) THEN
     RAISE EXCEPTION 'Client requirement access is inactive, expired, revoked, or outside its granted scope';
   END IF;
@@ -69,15 +74,26 @@ BEGIN
     requirement_data, submitted_at, created_by
   ) VALUES (
     p_opportunity_id, p_customer_id, p_title, 'submitted', 1, p_customer_reference,
-    p_requirement_data, now(), auth.uid()
+    p_requirement_data, now(), v_actor_id
   ) RETURNING * INTO v_requirement;
   INSERT INTO public.customer_requirement_revisions (
     requirement_id, revision_number, change_summary, requirement_data, status, created_by
   ) VALUES (
-    v_requirement.id, 1, 'Client-submitted requirement', p_requirement_data, 'submitted', auth.uid()
+    v_requirement.id, 1, 'Client-submitted requirement', p_requirement_data, 'submitted', v_actor_id
   );
-  INSERT INTO public.activity_log(actor_user_id, module_key, entity_type, entity_id, action, summary)
-  VALUES (auth.uid(), 'sales', 'customer_requirement', v_requirement.id, 'external_submitted', 'Client submitted a requirement.');
+  INSERT INTO public.activity_log (
+    actor_user_id, module_key, entity_type, entity_id, action, summary, after_data
+  ) VALUES (
+    v_actor_id, 'sales', 'customer_requirement', v_requirement.id, 'external_submitted',
+    'Client submitted a requirement.',
+    jsonb_build_object(
+      'opportunity_id', p_opportunity_id,
+      'customer_id', p_customer_id,
+      'external_contact_id', v_contact_id,
+      'external_party_id', v_party_id,
+      'revision_number', 1
+    )
+  );
   RETURN v_requirement.id;
 END;
 $$;
@@ -164,6 +180,7 @@ CREATE TRIGGER requirement_feasibility_response_guard_trigger
 BEFORE UPDATE ON public.requirement_feasibility_reviews
 FOR EACH ROW EXECUTE FUNCTION public.requirement_feasibility_response_guard();
 
--- Policies must be reviewed alongside the existing external contact identity helpers.
--- The current live tables expose staff-only policies; this proposal intentionally does not widen
--- direct external SELECT/INSERT until isolated caller-RLS acceptance proves exact party scoping.
+-- Direct external table RLS is deliberately unchanged: this routine is the only proposed
+-- external write path. It derives the authenticated actor, contact, party, active/revoked/
+-- expired grant and opportunity/customer scope before its atomic requirement, revision, and
+-- audit inserts. The acceptance runner must prove direct reads/writes remain denied.

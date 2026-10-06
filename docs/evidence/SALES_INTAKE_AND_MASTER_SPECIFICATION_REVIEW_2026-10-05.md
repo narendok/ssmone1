@@ -41,11 +41,13 @@ The present deployed Sales access model is **global permission scoped**, not rec
 
 ### Client-intake RLS compatibility gap
 
-`submit_external_customer_requirement(...)` is `SECURITY INVOKER`, while the existing `customer_requirements` and `customer_requirement_revisions` write policies are staff-only (`sales.manage`/administrator). An otherwise scoped external contact will therefore reach the scope check and then fail at its first `INSERT` under current RLS. The existing `requirement_feasibility_reviews` write policy is also Sales-only, while the source-only reviewer action checks `engineering.manage`; this conflicts with the intended reviewer path.
+The previous `submit_external_customer_requirement(...)` draft was `SECURITY INVOKER`, while the existing `customer_requirements` and `customer_requirement_revisions` write policies are staff-only (`sales.manage`/administrator). It could never complete an otherwise valid external submission.
 
-The invoker function also directly reads `external_parties` and `sales_opportunities`, whose present read policies do not grant a scoped external contact access. Thus an active scoped caller is expected to fail before the inserts too. The same exact scope predicate must be shared by any future narrow external RLS policies or a definer helper; otherwise the access check and RLS can diverge. No policy was widened in this review.
+The pending replacement at `supabase/pending/20261005_client_requirement_intake.sql` is now a narrow `SECURITY DEFINER` transaction with `SET search_path = public, pg_temp`. It derives the actor only from `auth.uid()`, resolves the active external contact and party via the established helpers, verifies active/non-revoked/non-expired `CLIENT_REQUIREMENTS` access with explicit opportunity and customer scope, verifies the party/customer and authoritative opportunity/customer pairing, then atomically inserts the requirement, immutable revision 1, and provenance-rich audit. The caller supplies no contact, party, actor, role, or privilege parameter.
 
-No policy was widened. The intake remains disabled until an isolated authenticated external-contact acceptance proves the minimal scoped RPC write path and an assigned engineering reviewer acceptance proves the response path without direct-table access.
+No direct external table policy or grant is widened: the pending routine is the sole proposed external write path, and the acceptance runner explicitly requires direct requirement/revision/audit reads and writes to remain denied. The existing feasibility-review policy mismatch remains a separate, pending reviewer-contract gap; it is not loosened or enabled by this correction.
+
+The intake UI remains disabled until an isolated authenticated external-contact acceptance proves the protected RPC, atomic audit rollback, expiry/revocation/wrong-pair denial, direct-table denial, and caller RLS. No policy or live data changed.
 
 ## Exact migration and proposal paths
 
@@ -130,7 +132,7 @@ GRANT EXECUTE ON FUNCTION public.save_master_specification_version(uuid, uuid, u
 
 ### Pending client intake proposal
 
-The proposed routines are `SECURITY INVOKER`; no external-table policy widening is proposed. External callers are restricted inside the requirement RPC by a current external-contact lookup, active/revoked/expiry checks, and explicit `access_scope` membership for both opportunity and customer.
+The pending external submission routine is `SECURITY DEFINER`, not `SECURITY INVOKER`; no external-table policy widening is proposed. It derives caller/contact/party identity from authenticated session helpers and restricts the scoped write by active/revoked/expiry checks plus explicit `access_scope` membership for both opportunity and customer.
 
 ```sql
 REVOKE ALL ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon;
@@ -149,7 +151,7 @@ The feasibility response routine locks the assigned review, requires a terminal 
 - Client-intake unit tests: `src/lib/client-requirement-intake.test.ts`
 - Client-intake isolated DB acceptance: `supabase/pending/tests/client_requirement_intake_acceptance.sql`
 
-The intake acceptance SQL requires secure, separate authenticated sessions and provides cases for outsider denial, expired/revoked/unscoped access, forced audit rollback, one-time reviewer response, caller-RLS denial, and concurrent reviewer conflict. It intentionally does not contain credentials.
+The intake acceptance SQL requires secure, separate authenticated sessions and provides cases for outsider denial, expired/revoked/unscoped access, wrong-pair denial, direct-table denial, forced audit rollback, one-time reviewer response, caller-RLS denial, and concurrent reviewer conflict. It intentionally does not contain credentials.
 
 ## Read-only acceptance inspection and execution blocker
 

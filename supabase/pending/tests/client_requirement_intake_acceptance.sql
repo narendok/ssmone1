@@ -1,21 +1,42 @@
 -- ISOLATED MANAGED BACKEND ONLY. SOURCE-ONLY acceptance contract for
 -- 20261005_client_requirement_intake.sql. It does not create identities or modify production data.
--- Required psql variables: manager_jwt, reviewer_jwt, outsider_jwt, opportunity_id, customer_id,
--- external_contact_id, requirement_review_id. Run inside a transaction and ROLLBACK after every case.
+-- Required psql variables: scoped_external_jwt, expired_external_jwt, revoked_external_jwt,
+-- outsider_jwt, reviewer_jwt, opportunity_id, customer_id, wrong_customer_id,
+-- requirement_review_id. Run every mutation case in a separate transaction and ROLLBACK.
 --
 -- Cases to execute with separate authenticated sessions:
--- 1. outsider: submit_external_customer_requirement must fail before a row/audit record is visible.
--- 2. expired/revoked/unscoped external contact: submission must fail and create no requirement/revision/audit.
--- 3. correctly scoped external contact: one requirement + revision 1 + audit record are atomic; force an
---    activity_log failure to prove the requirement/revision rolls back together.
--- 4. reviewer: record_requirement_feasibility_response succeeds exactly once; the same retry fails as immutable.
--- 5. outsider: cannot read the requirement/revision/review through caller RLS, nor call either RPC successfully.
--- 6. concurrency: two reviewer sessions race the same review; one commits and the other receives the immutable
+-- 1. outsider: RPC fails before a row/audit record is visible; direct requirement/revision/audit reads and writes fail.
+-- 2. expired, revoked, and unscoped contact: each RPC call fails and creates no requirement/revision/audit.
+-- 3. wrong opportunity/customer pairing: fails before a row/audit record is visible.
+-- 4. correctly scoped caller: exactly one requirement + revision 1 + audit record commits with actor/contact/party provenance.
+-- 5. forced audit failure: requirement and revision roll back together (no partial submission).
+-- 6. reviewer: record_requirement_feasibility_response succeeds exactly once; retry fails as immutable.
+-- 7. concurrency: two reviewer sessions race the same review; one commits and the other receives the immutable
 --    conflict, leaving exactly one terminal response and one response audit event.
 --
--- Example session setup (supply a JWT through a secure runner; never commit a token):
+-- Preflight in the scoped external session (must be false; no direct table access is introduced):
+-- SELECT has_table_privilege('authenticated', 'public.customer_requirements', 'INSERT') AS direct_requirement_insert;
+-- SELECT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'INSERT') AS direct_revision_insert;
+-- SELECT has_table_privilege('authenticated', 'public.activity_log', 'INSERT') AS direct_audit_insert;
+-- SELECT has_function_privilege('authenticated',
+--   'public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb)', 'EXECUTE') AS scoped_rpc_execute;
+--
+-- Example caller-authenticated session setup (supply a JWT through a secure runner; never commit a token):
 -- BEGIN;
--- SELECT set_config('request.jwt.claim.sub', :'reviewer_user_id', true);
+-- SELECT set_config('request.jwt.claim.sub', :'scoped_external_user_id', true);
 -- SELECT set_config('role', 'authenticated', true);
--- SELECT public.record_requirement_feasibility_response(:'requirement_review_id'::uuid, 'feasible', 'Accepted with stated assumptions.', NULL, NULL);
+-- SELECT public.submit_external_customer_requirement(
+--   :'opportunity_id'::uuid, :'customer_id'::uuid, 'Acceptance-only external requirement',
+--   'EXT-ACCEPTANCE', jsonb_build_object('description', 'Acceptance-only submission; transaction will roll back.')
+-- );
 -- ROLLBACK;
+--
+-- Required assertions after the successful scoped call, before ROLLBACK:
+-- * header has submitted status, current_revision = 1, and created_by = scoped authenticated actor.
+-- * revision has revision_number = 1, submitted status, same created_by, and exact immutable payload.
+-- * audit after_data has the verified opportunity/customer/contact/party identifiers and revision_number = 1.
+-- * scoped external caller still cannot SELECT the new header/revision/audit directly through RLS.
+--
+-- Forced audit rollback case: run against a disposable acceptance configuration that rejects
+-- only this function's `external_submitted` audit insert, then prove no header or revision
+-- persists. Do not simulate this with a service-role or bypass-RLS executor.
