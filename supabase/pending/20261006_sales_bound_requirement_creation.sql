@@ -19,7 +19,13 @@ CREATE TABLE public.sales_requirement_creation_requests (
   CHECK (jsonb_typeof(payload_canonical) = 'object')
 );
 GRANT ALL ON TABLE public.sales_requirement_creation_requests TO service_role;
+REVOKE ALL ON TABLE public.sales_requirement_creation_requests FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.sales_requirement_creation_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "No direct receipt access"
+  ON public.sales_requirement_creation_requests
+  FOR ALL TO authenticated
+  USING (false)
+  WITH CHECK (false);
 
 CREATE OR REPLACE FUNCTION public.sales_requirement_creation_canonical_payload(
   p_opportunity_id uuid,
@@ -97,29 +103,6 @@ BEGIN
     RAISE EXCEPTION 'A request key, bound sources, and valid requirement fields are required';
   END IF;
 
-  -- Serialize both source verification and first-time receipt creation. The locked
-  -- opportunity makes a later source-pair change visible before a new write commits.
-  PERFORM 1
-  FROM public.sales_opportunities
-  WHERE id = p_opportunity_id AND customer_id = p_customer_id
-  FOR KEY SHARE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Opportunity/customer source mismatch';
-  END IF;
-
-  SELECT specification.id, version.version_number
-  INTO v_source_specification_id, v_source_version_number
-  FROM public.master_specification_versions version
-  JOIN public.master_specifications specification ON specification.id = version.specification_id
-  WHERE version.id = p_master_specification_version_id
-    AND specification.opportunity_id = p_opportunity_id
-    AND specification.customer_id = p_customer_id
-    AND version.version_number = specification.current_version
-  FOR KEY SHARE OF specification, version;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Master Specification version is unavailable for this opportunity and customer';
-  END IF;
-
   v_payload_canonical := public.sales_requirement_creation_canonical_payload(
     p_opportunity_id, p_customer_id, p_master_specification_version_id,
     p_title, p_customer_reference, p_summary
@@ -130,6 +113,9 @@ BEGIN
   );
 
   PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0));
+  -- Global lock order for every future contract touching these resources:
+  -- advisory(request_key) -> receipt row -> sales opportunity -> Master Specification.
+  -- The controlled Master Specification save owns the trailing source order.
   SELECT * INTO v_prior
   FROM public.sales_requirement_creation_requests
   WHERE request_key = p_request_key
@@ -144,6 +130,33 @@ BEGIN
       RETURN v_prior.requirement_id;
     END IF;
     RAISE EXCEPTION 'Request key conflicts with a different caller or payload';
+  END IF;
+
+  -- First creation takes the same source-lock order as the controlled Master
+  -- Specification save: opportunity, then specification. FOR UPDATE blocks a
+  -- concurrent customer-pair/current-version mutation until this transaction
+  -- commits. A historical exact receipt has already returned above and never
+  -- requires its once-current version to remain current.
+  PERFORM 1
+  FROM public.sales_opportunities
+  WHERE id = p_opportunity_id AND customer_id = p_customer_id
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Opportunity/customer source mismatch';
+  END IF;
+
+  SELECT specification.id, version.version_number
+  INTO v_source_specification_id, v_source_version_number
+  FROM public.master_specifications specification
+  JOIN public.master_specification_versions version
+    ON version.specification_id = specification.id
+  WHERE version.id = p_master_specification_version_id
+    AND specification.opportunity_id = p_opportunity_id
+    AND specification.customer_id = p_customer_id
+    AND version.version_number = specification.current_version
+  FOR UPDATE OF specification;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Master Specification version is unavailable for this opportunity and customer';
   END IF;
 
   INSERT INTO public.customer_requirements (
