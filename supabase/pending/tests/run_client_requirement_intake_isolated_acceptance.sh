@@ -31,7 +31,8 @@ status: BLOCKED — no mutation or database query was attempted
 required before executable caller acceptance:
 - approved scoped external-contact authenticated identity;
 - approved assigned engineering-reviewer authenticated identity;
-- authenticated application-RPC runner for the isolated backend;
+- pending application RPCs installed on the isolated backend; the normal
+  caller-authenticated server-function transport is verified separately;
 - disposable audit-failure boundary;
 - two independent approved caller sessions for replay and expected-version concurrency.
 
