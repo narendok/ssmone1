@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFeasibilityPlanningSnapshot, displayPlanningValue } from "./feasibility-planning";
+import { buildBaselineReadinessSnapshot, buildFeasibilityPlanningSnapshot, displayPlanningValue } from "./feasibility-planning";
 
 const requirement = { id: "requirement-1", opportunity_id: "opportunity-1", current_revision: 2 };
 const revision = { id: "revision-2", requirement_id: "requirement-1", revision_number: 2, source_master_specification_version_id: "master-version-3" };
@@ -53,5 +53,30 @@ describe("buildFeasibilityPlanningSnapshot", () => {
     expect(displayPlanningValue(null)).toBe("TBC");
     expect(displayPlanningValue(" ")).toBe("TBC");
     expect(displayPlanningValue("CAN bus")).toBe("CAN bus");
+  });
+});
+
+describe("buildBaselineReadinessSnapshot", () => {
+  it("lists missing feasibility, commercial authorization, and unresolved conditions as blockers", () => {
+    const state = buildBaselineReadinessSnapshot({
+      planning: [buildFeasibilityPlanningSnapshot({ review: pinnedReview, requirements: [requirement], revisions: [revision], masterSpecifications: [specification] })],
+      requiredDepartments: ["HARDWARE", "FIRMWARE"],
+      commercialStatus: "sent",
+      customerAuthorizedAt: null,
+      unresolvedConditions: ["Environmental rating TBC", null],
+    });
+    expect(state).toMatchObject({ state: "BLOCKED", canApprove: false });
+    expect(state.blockers).toEqual(expect.arrayContaining(["FIRMWARE feasibility review is missing.", "Customer commercial authorization is missing.", "Unresolved condition: Environmental rating TBC"]));
+  });
+
+  it("never enables approval even when read-only readiness is complete", () => {
+    const ready = buildFeasibilityPlanningSnapshot({ review: pinnedReview, requirements: [requirement], revisions: [revision], masterSpecifications: [specification] });
+    const state = buildBaselineReadinessSnapshot({ planning: [ready], requiredDepartments: ["HARDWARE"], commercialStatus: "customer_authorized", customerAuthorizedAt: "2026-10-06T14:24:00.000Z", unresolvedConditions: [] });
+    expect(state).toMatchObject({ state: "READY", canApprove: false });
+  });
+
+  it("does not report empty readiness after a source query error", () => {
+    const state = buildBaselineReadinessSnapshot({ sourceError: new Error("RLS denied"), planning: [], requiredDepartments: [], commercialStatus: "customer_authorized", customerAuthorizedAt: "2026-10-06T14:24:00.000Z", unresolvedConditions: [] });
+    expect(state).toMatchObject({ state: "SOURCE_ERROR", canApprove: false });
   });
 });

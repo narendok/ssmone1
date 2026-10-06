@@ -138,6 +138,8 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("IF v_review_found THEN");
     expect(pendingSql).toContain("specification.opportunity_id = v_requirement.opportunity_id");
     expect(pendingSql).toContain("specification.customer_id = v_requirement.customer_id");
+    expect(pendingSql).toContain("specification.id = version.specification_id");
+    expect(pendingSql).not.toContain("version.master_specification_id");
     expect(pendingSql).toContain("version.version_number = v_source_version_number");
     expect(pendingSql).toContain("legacy provenance is unavailable");
     expect(pendingSql).toContain("Master Specification workstreams are missing, null, non-string, unknown, or incomplete; applicability is TBC");
@@ -260,8 +262,10 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("requirement_baselines_assign_business_code");
     expect(salesBoundSql).toContain("Future protected approval must not accept a caller baseline number");
     expect(salesBoundSql).toContain("requirement-revision linkage plus applicability");
-    expect(lifecycleDialogs).toContain("Baseline approval is unavailable until revision-bound feasibility");
-    expect(lifecycleDialogs).toContain('type="submit" disabled>Create approved baseline');
+    expect(lifecycleDialogs).toContain("Read-only readiness");
+    expect(lifecycleDialogs).toContain("The deployed read model cannot verify the current immutable requirement revision");
+    expect(lifecycleDialogs).toContain("Create approved baseline</Button>");
+    expect(lifecycleDialogs).toContain("disabled>Create approved baseline");
   });
 
   it("labels direct psql simulation structural-only and requires a real caller transport target refusal", () => {

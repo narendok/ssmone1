@@ -110,3 +110,47 @@ export function buildFeasibilityPlanningSnapshot(input: {
 export function displayPlanningValue(value: string | null | undefined): string {
   return value?.trim() || "TBC";
 }
+
+export type BaselineReadinessState = "READY" | "BLOCKED" | "SOURCE_ERROR";
+
+export type BaselineReadinessSnapshot = {
+  state: BaselineReadinessState;
+  blockers: string[];
+  canApprove: boolean;
+  message: string;
+};
+
+/**
+ * Read-only baseline readiness composition. It never authorizes, persists, or
+ * approves a baseline. Every applicable department must expose a matching,
+ * pinned terminal feasibility review, commercial authorization must be present,
+ * and unresolved conditions block readiness.
+ */
+export function buildBaselineReadinessSnapshot(input: {
+  sourceError?: Error | null;
+  planning: FeasibilityPlanningSnapshot[];
+  requiredDepartments: string[];
+  commercialStatus: string | null | undefined;
+  customerAuthorizedAt: string | null | undefined;
+  unresolvedConditions: Array<string | null | undefined>;
+}): BaselineReadinessSnapshot {
+  if (input.sourceError) {
+    return { state: "SOURCE_ERROR", blockers: ["Read-only source records could not be verified."], canApprove: false, message: "Readiness is unavailable because source verification failed." };
+  }
+
+  const blockers: string[] = [];
+  for (const department of input.requiredDepartments) {
+    const matching = input.planning.find((item) => item.applicableWorkstreams?.includes(department));
+    if (!matching) blockers.push(`${department} feasibility review is missing.`);
+    else if (!matching.canSatisfyPlanningGate) blockers.push(`${department} feasibility is ${matching.state.replaceAll("_", " ").toLowerCase()}.`);
+    else if (!matching.isTerminalVerdict) blockers.push(`${department} feasibility verdict is pending.`);
+  }
+  if (input.commercialStatus !== "customer_authorized" || !input.customerAuthorizedAt) {
+    blockers.push("Customer commercial authorization is missing.");
+  }
+  for (const condition of input.unresolvedConditions) {
+    if (condition?.trim()) blockers.push(`Unresolved condition: ${condition.trim()}`);
+  }
+  if (blockers.length) return { state: "BLOCKED", blockers, canApprove: false, message: "Baseline approval remains disabled until every listed blocker is resolved by an accepted protected contract." };
+  return { state: "READY", blockers: [], canApprove: false, message: "Read-only readiness is complete, but baseline approval remains disabled until its protected contract passes caller-authenticated acceptance." };
+}
