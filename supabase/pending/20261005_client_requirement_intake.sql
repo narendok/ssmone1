@@ -6,6 +6,44 @@
 -- This intentionally leaves direct external table RLS unchanged. The only proposed external
 -- write entry point is the narrowly scoped SECURITY DEFINER routine below.
 
+CREATE TABLE IF NOT EXISTS public.external_requirement_submission_requests (
+  request_key uuid PRIMARY KEY,
+  external_contact_id uuid NOT NULL REFERENCES public.external_contacts(id) ON DELETE RESTRICT,
+  opportunity_id uuid NOT NULL REFERENCES public.sales_opportunities(id) ON DELETE RESTRICT,
+  customer_id uuid NOT NULL REFERENCES public.customers(id) ON DELETE RESTRICT,
+  requested_by uuid NOT NULL,
+  payload_hash text NOT NULL,
+  requirement_id uuid NOT NULL UNIQUE REFERENCES public.customer_requirements(id) ON DELETE RESTRICT,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (length(btrim(payload_hash)) > 0)
+);
+
+REVOKE ALL ON TABLE public.external_requirement_submission_requests FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.external_requirement_submission_requests TO service_role;
+ALTER TABLE public.external_requirement_submission_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION public.external_requirement_submission_payload_hash(
+  p_opportunity_id uuid,
+  p_customer_id uuid,
+  p_title text,
+  p_customer_reference text,
+  p_requirement_data jsonb
+) RETURNS text
+LANGUAGE sql
+IMMUTABLE
+SET search_path = public
+AS $$
+  SELECT md5(
+    jsonb_build_object(
+      'opportunity_id', p_opportunity_id,
+      'customer_id', p_customer_id,
+      'title', btrim(p_title),
+      'customer_reference', nullif(btrim(coalesce(p_customer_reference, '')), ''),
+      'requirement_data', p_requirement_data
+    )::text
+  )
+$$;
+
 CREATE OR REPLACE FUNCTION public.external_requirement_scope_allows(
   p_contact_id uuid,
   p_opportunity_id uuid,
@@ -36,7 +74,8 @@ CREATE OR REPLACE FUNCTION public.submit_external_customer_requirement(
   p_customer_id uuid,
   p_title text,
   p_customer_reference text,
-  p_requirement_data jsonb
+  p_requirement_data jsonb,
+  p_request_key uuid
 ) RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -47,9 +86,14 @@ DECLARE
   v_requirement public.customer_requirements%ROWTYPE;
   v_contact_id uuid := public.external_current_contact_id(v_actor_id);
   v_party_id uuid := public.external_current_party_id();
+  v_payload_hash text;
+  v_prior public.external_requirement_submission_requests%ROWTYPE;
 BEGIN
   IF v_actor_id IS NULL OR v_contact_id IS NULL OR v_party_id IS NULL THEN
     RAISE EXCEPTION 'An active external contact is required';
+  END IF;
+  IF p_request_key IS NULL THEN
+    RAISE EXCEPTION 'A request key is required';
   END IF;
   IF jsonb_typeof(p_requirement_data) <> 'object'
     OR NULLIF(btrim(p_title), '') IS NULL
@@ -69,6 +113,24 @@ BEGIN
     SELECT 1 FROM public.sales_opportunities opportunity
     WHERE opportunity.id = p_opportunity_id AND opportunity.customer_id = p_customer_id
   ) THEN RAISE EXCEPTION 'Opportunity/customer source mismatch'; END IF;
+  v_payload_hash := public.external_requirement_submission_payload_hash(
+    p_opportunity_id, p_customer_id, p_title, p_customer_reference, p_requirement_data
+  );
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0));
+  SELECT * INTO v_prior
+  FROM public.external_requirement_submission_requests
+  WHERE request_key = p_request_key
+  FOR UPDATE;
+  IF FOUND THEN
+    IF v_prior.requested_by = v_actor_id
+       AND v_prior.external_contact_id = v_contact_id
+       AND v_prior.opportunity_id = p_opportunity_id
+       AND v_prior.customer_id = p_customer_id
+       AND v_prior.payload_hash = v_payload_hash THEN
+      RETURN v_prior.requirement_id;
+    END IF;
+    RAISE EXCEPTION 'Request key conflicts with a different caller or payload';
+  END IF;
   INSERT INTO public.customer_requirements (
     opportunity_id, customer_id, title, status, current_revision, customer_reference,
     requirement_data, submitted_at, created_by
@@ -91,17 +153,24 @@ BEGIN
       'customer_id', p_customer_id,
       'external_contact_id', v_contact_id,
       'external_party_id', v_party_id,
+      'request_key', p_request_key,
       'revision_number', 1
     )
+  );
+  INSERT INTO public.external_requirement_submission_requests (
+    request_key, external_contact_id, opportunity_id, customer_id, requested_by, payload_hash, requirement_id
+  ) VALUES (
+    p_request_key, v_contact_id, p_opportunity_id, p_customer_id, v_actor_id, v_payload_hash, v_requirement.id
   );
   RETURN v_requirement.id;
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb, uuid) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.external_requirement_scope_allows(uuid, uuid, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.external_requirement_scope_allows(uuid, uuid, uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.external_requirement_submission_payload_hash(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.record_requirement_feasibility_response(
   p_review_id uuid,

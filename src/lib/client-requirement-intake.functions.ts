@@ -17,6 +17,7 @@ export const submitClientRequirement = createServerFn({ method: "POST" })
       p_title: data.title,
       p_customer_reference: data.customerReference,
       p_requirement_data: { description: data.description },
+      p_request_key: data.requestKey,
     });
     if (error || typeof requirementId !== "string") throw new Error(error?.message ?? "Could not submit the requirement.");
     return { requirementId };

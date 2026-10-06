@@ -5,6 +5,7 @@ const boundedText = (max: number) => z.string().trim().min(1).max(max);
 export const clientRequirementIntakeSchema = z.object({
   opportunityId: z.string().uuid(),
   customerId: z.string().uuid(),
+  requestKey: z.string().uuid(),
   title: boundedText(240),
   description: boundedText(12_000),
   customerReference: z.string().trim().max(240).nullable(),

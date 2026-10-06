@@ -9,9 +9,12 @@
 -- 2. expired, revoked, and unscoped contact: each RPC call fails and creates no requirement/revision/audit.
 -- 3. wrong opportunity/customer pairing: fails before a row/audit record is visible.
 -- 4. correctly scoped caller: exactly one requirement + revision 1 + audit record commits with actor/contact/party provenance.
--- 5. forced audit failure: requirement and revision roll back together (no partial submission).
--- 6. reviewer: record_requirement_feasibility_response succeeds exactly once; retry fails as immutable.
--- 7. concurrency: two reviewer sessions race the same review; one commits and the other receives the immutable
+-- 5. same scoped caller + same request key + identical payload replays the original requirement ID without a second header, revision, or audit.
+-- 6. same request key with a changed title, reference, description, opportunity, customer, or caller fails without a new row.
+-- 7. two scoped sessions using the same caller, request key, and payload concurrently converge to one receipt and one requirement.
+-- 8. forced audit failure: requirement and revision roll back together (no partial submission).
+-- 9. reviewer: record_requirement_feasibility_response succeeds exactly once; retry fails as immutable.
+-- 10. concurrency: two reviewer sessions race the same review; one commits and the other receives the immutable
 --    conflict, leaving exactly one terminal response and one response audit event.
 --
 -- Preflight in the scoped external session (must be false; no direct table access is introduced):
@@ -27,7 +30,8 @@
 -- SELECT set_config('role', 'authenticated', true);
 -- SELECT public.submit_external_customer_requirement(
 --   :'opportunity_id'::uuid, :'customer_id'::uuid, 'Acceptance-only external requirement',
---   'EXT-ACCEPTANCE', jsonb_build_object('description', 'Acceptance-only submission; transaction will roll back.')
+--   'EXT-ACCEPTANCE', jsonb_build_object('description', 'Acceptance-only submission; transaction will roll back.'),
+--   :'request_key'::uuid
 -- );
 -- ROLLBACK;
 --
@@ -35,7 +39,21 @@
 -- * header has submitted status, current_revision = 1, and created_by = scoped authenticated actor.
 -- * revision has revision_number = 1, submitted status, same created_by, and exact immutable payload.
 -- * audit after_data has the verified opportunity/customer/contact/party identifiers and revision_number = 1.
+-- * audit after_data has the request_key, matching the stored receipt.
 -- * scoped external caller still cannot SELECT the new header/revision/audit directly through RLS.
+
+-- Retry/replay assertion: repeat the same authenticated call with the same request_key and byte-equivalent
+-- request payload. It must return the same requirement ID. The receipt table must contain exactly one row
+-- for request_key, and the header/revision/audit counts for that ID must each remain one.
+--
+-- Key-reuse conflict assertion: using the same request_key with a changed title, customer reference,
+-- description, opportunity, customer, or authenticated caller must raise
+-- "Request key conflicts with a different caller or payload" and create no rows.
+--
+-- Same-key concurrency assertion: execute two authenticated sessions concurrently with the same caller,
+-- request_key, and exact payload. Both must return the same requirement ID; after commit, exactly one
+-- external_requirement_submission_requests row, one customer_requirements row, one revision 1 row,
+-- and one external_submitted audit row may exist for that receipt.
 --
 -- Forced audit rollback case: run against a disposable acceptance configuration that rejects
 -- only this function's `external_submitted` audit insert, then prove no header or revision
