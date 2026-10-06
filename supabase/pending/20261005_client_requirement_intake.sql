@@ -398,7 +398,7 @@ BEGIN
 
   SELECT version.* INTO v_master_version
   FROM public.master_specification_versions version
-  JOIN public.master_specifications specification ON specification.id = version.master_specification_id
+  JOIN public.master_specifications specification ON specification.id = version.specification_id
   WHERE version.id = v_master_version_id
     AND version.version_number = v_source_version_number
     AND specification.opportunity_id = v_requirement.opportunity_id
@@ -519,7 +519,7 @@ BEGIN
     RAISE EXCEPTION 'Feasibility review lacks immutable provenance and cannot receive a protected response';
   END IF;
   SELECT version.* INTO v_master_version FROM public.master_specification_versions version
-  JOIN public.master_specifications specification ON specification.id = version.master_specification_id
+  JOIN public.master_specifications specification ON specification.id = version.specification_id
   WHERE version.id = v_review.master_specification_version_id
     AND version.version_number = v_review.master_specification_version_number
     AND specification.opportunity_id = v_requirement.opportunity_id

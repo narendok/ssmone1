@@ -138,6 +138,8 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("IF v_review_found THEN");
     expect(pendingSql).toContain("specification.opportunity_id = v_requirement.opportunity_id");
     expect(pendingSql).toContain("specification.customer_id = v_requirement.customer_id");
+    expect(pendingSql).toContain("specification.id = version.specification_id");
+    expect(pendingSql).not.toContain("version.master_specification_id");
     expect(pendingSql).toContain("version.version_number = v_source_version_number");
     expect(pendingSql).toContain("legacy provenance is unavailable");
     expect(pendingSql).toContain("Master Specification workstreams are missing, null, non-string, unknown, or incomplete; applicability is TBC");

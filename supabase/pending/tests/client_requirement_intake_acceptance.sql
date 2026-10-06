@@ -43,6 +43,26 @@
 --    review's requirement_id, requirement opportunity/customer, department, assigned reviewer, and terminal status.
 --    Force that audit insert to fail in the isolated backend and prove the response update rolls back.
 --
+-- Schema contract preflight (read-only; run against the explicitly approved isolated backend only).
+-- This is executable catalog validation, not a regex/source assertion. It must return TRUE
+-- for the deployed authoritative column and false for the retired/invented spelling:
+-- SELECT EXISTS (
+--   SELECT 1 FROM information_schema.columns
+--   WHERE table_schema = 'public' AND table_name = 'master_specification_versions'
+--     AND column_name = 'specification_id' AND data_type = 'uuid' AND is_nullable = 'NO'
+-- ) AS master_version_uses_specification_id;
+-- SELECT NOT EXISTS (
+--   SELECT 1 FROM information_schema.columns
+--   WHERE table_schema = 'public' AND table_name = 'master_specification_versions'
+--     AND column_name = 'master_specification_id'
+-- ) AS no_invented_master_specification_id;
+-- SELECT EXISTS (
+--   SELECT 1 FROM pg_constraint constraint
+--   WHERE constraint.conrelid = 'public.master_specification_versions'::regclass
+--     AND pg_get_constraintdef(constraint.oid) =
+--       'FOREIGN KEY (specification_id) REFERENCES master_specifications(id) ON DELETE RESTRICT'
+-- ) AS master_version_specification_fk_matches_authoritative_schema;
+
 -- Preflight in the scoped external session (must be false; no direct table access is introduced):
 -- SELECT has_table_privilege('authenticated', 'public.customer_requirements', 'INSERT') AS direct_requirement_insert;
 -- SELECT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'INSERT') AS direct_revision_insert;

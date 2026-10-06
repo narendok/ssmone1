@@ -2,6 +2,27 @@
 
 Status: **pending source only**. Nothing in this document has been run against a database. It is a verbatim source export for independent review and must not be applied independently.
 
+## Observed authoritative schema evidence (read-only query, 2026-10-06 UTC)
+
+Observed through a read-only backend catalog query; no pending source was applied:
+
+```text
+public.master_specification_versions
+  id                 uuid, NOT NULL
+  specification_id   uuid, NOT NULL
+  version_number     integer, NOT NULL
+  change_summary     text, NOT NULL
+  specification_data jsonb, NOT NULL
+  status             text, NOT NULL
+  created_by         uuid, NOT NULL
+  created_at         timestamptz, NOT NULL
+
+Foreign key: master_specification_versions_specification_id_fkey
+  FOREIGN KEY (specification_id) REFERENCES master_specifications(id) ON DELETE RESTRICT
+```
+
+The original authoritative migration and deployed `save_master_specification_version` both insert through `specification_id`. The feasibility joins in the pending reviewer SQL were reconciled to `version.specification_id`; no `version.master_specification_id` reference remains. The Sales-bound protected requirement-create contract already used the same column.
+
 ## Exact pending reviewer SQL
 
 ```sql
@@ -405,7 +426,7 @@ BEGIN
 
   SELECT version.* INTO v_master_version
   FROM public.master_specification_versions version
-  JOIN public.master_specifications specification ON specification.id = version.master_specification_id
+  JOIN public.master_specifications specification ON specification.id = version.specification_id
   WHERE version.id = v_master_version_id
     AND version.version_number = v_source_version_number
     AND specification.opportunity_id = v_requirement.opportunity_id
@@ -526,7 +547,7 @@ BEGIN
     RAISE EXCEPTION 'Feasibility review lacks immutable provenance and cannot receive a protected response';
   END IF;
   SELECT version.* INTO v_master_version FROM public.master_specification_versions version
-  JOIN public.master_specifications specification ON specification.id = version.master_specification_id
+  JOIN public.master_specifications specification ON specification.id = version.specification_id
   WHERE version.id = v_review.master_specification_version_id
     AND version.version_number = v_review.master_specification_version_number
     AND specification.opportunity_id = v_requirement.opportunity_id
@@ -582,107 +603,74 @@ GRANT EXECUTE ON FUNCTION public.record_requirement_feasibility_response(uuid, t
 
 ## Exact façade source
 
-### Engineering response façade — `src/lib/client-requirement-intake.functions.ts`
-
 ```ts
-import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { clientRequirementIntakeSchema, feasibilityResponseSchema } from "./client-requirement-intake";
+import { z } from "zod";
 
-async function requireEngineeringManage(sb: any, userId: string) {
-  const { data, error } = await sb.rpc("has_permission", { _user_id: userId, _permission_key: "engineering.manage" });
-  if (error || !data) throw new Error("You do not have permission to manage engineering feasibility.");
+const boundedText = (max: number) => z.string().trim().min(1).max(max);
+
+export const clientRequirementIntakeSchema = z.object({
+  opportunityId: z.string().uuid(),
+  customerId: z.string().uuid(),
+  requestKey: z.string().uuid(),
+  title: boundedText(240),
+  description: boundedText(12_000),
+  customerReference: z.string().trim().max(240).nullable(),
+});
+
+export const feasibilityAssignmentSchema = z.object({
+  requirementId: z.string().uuid(),
+  reviewerUserId: z.string().uuid(),
+  departmentId: z.string().uuid(),
+});
+
+export const feasibilityResponseSchema = z.object({
+  reviewId: z.string().uuid(),
+  verdict: z.enum(["feasible", "feasible_with_conditions", "not_feasible"]),
+  findings: boundedText(12_000),
+  assumptions: z.string().trim().max(12_000).nullable(),
+  risks: z.string().trim().max(12_000).nullable(),
+});
+
+export type ClientRequirementIntake = z.infer<typeof clientRequirementIntakeSchema>;
+export type FeasibilityResponse = z.infer<typeof feasibilityResponseSchema>;
+
+export function clientRequirementRequestKey(current: string | null): string {
+  return current ?? crypto.randomUUID();
 }
 
-export const submitClientRequirement = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((data) => clientRequirementIntakeSchema.parse(data))
-  .handler(async ({ data, context }) => {
-    const { data: requirementId, error } = await (context.supabase as any).rpc("submit_external_customer_requirement", {
-      p_opportunity_id: data.opportunityId,
-      p_customer_id: data.customerId,
-      p_title: data.title,
-      p_customer_reference: data.customerReference,
-      p_requirement_data: { description: data.description },
-      p_request_key: data.requestKey,
-    });
-    if (error || typeof requirementId !== "string") throw new Error(error?.message ?? "Could not submit the requirement.");
-    return { requirementId };
-  });
+export const protectedIntakeAvailability = {
+  available: false,
+  reason: "Client requirement submission and feasibility responses stay unavailable until the protected database contract passes isolated acceptance.",
+} as const;
 
-export const recordAssignedFeasibility = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((data) => feasibilityResponseSchema.parse(data))
-  .handler(async ({ data, context }) => {
-    const sb = context.supabase as any;
-    await requireEngineeringManage(sb, context.userId);
-    const { data: review, error } = await sb.rpc("record_requirement_feasibility_response", {
-      p_review_id: data.reviewId,
-      p_status: data.verdict,
-      p_findings: data.findings,
-      p_assumptions: data.assumptions,
-      p_risks: data.risks,
-    });
-    if (error || typeof review !== "string") throw new Error(error?.message ?? "Could not record the feasibility response.");
-    return { reviewId: review };
-  });
-```
+export const controlledRequirementAvailability = {
+  available: false,
+  reason: "Creating a requirement bound to an immutable Master Specification version stays unavailable until the protected database contract passes isolated acceptance.",
+  dependency: "A protected atomic requirement-creation routine must verify the opportunity/customer pair, pin the selected Master Specification version, create revision 1 and its audit receipt together, and reject replay or mismatched sources.",
+} as const;
 
-### Sales assignment façade — extract from `src/lib/sales.functions.ts`
+export function clientRequirementState(input: { expiresAt: string | null; isActive: boolean; revokedAt: string | null }, now = new Date()): "ACTIVE" | "EXPIRED" | "REVOKED" {
+  if (!input.isActive || input.revokedAt) return "REVOKED";
+  if (input.expiresAt && new Date(input.expiresAt) <= now) return "EXPIRED";
+  return "ACTIVE";
+}
 
-```ts
-import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+export function mayRecordFeasibility(input: { assignedTo: string | null; actorId: string; isEngineeringManager: boolean; isActiveDepartmentMember: boolean; status: string | null }): boolean {
+  return input.assignedTo !== null
+    && input.status !== null
+    && ["pending", "in_review"].includes(input.status)
+    && input.assignedTo === input.actorId
+    && input.isEngineeringManager
+    && input.isActiveDepartmentMember;
+}
 
-const nullable = (max: number) => z.string().trim().max(max).nullable();
-const customerSchema = z.object({ legalName: z.string().trim().min(2).max(240), displayName: nullable(240), customerType: z.enum(["prospect", "customer", "partner", "other"]), industry: nullable(160), primaryEmail: z.string().trim().email().max(254).nullable(), primaryPhone: nullable(64), accountOwnerUserId: z.string().uuid().nullable(), createAnywayReason: nullable(500) });
-const contactSchema = z.object({ customerId: z.string().uuid(), fullName: z.string().trim().min(2).max(160), jobTitle: nullable(160), email: z.string().trim().email().max(254).nullable(), phone: nullable(64), mobile: nullable(64), isPrimary: z.boolean() });
-const enquirySchema = z.object({ enquiryNumber: z.string().trim().max(64).nullable(), customerId: z.string().uuid().nullable(), contactId: z.string().uuid().nullable(), source: z.enum(["manual", "website", "email", "gmail", "referral", "existing_customer", "marketing", "other"]), enquiryDate: z.string().min(10), requirementSummary: z.string().trim().min(3).max(4000), application: nullable(240), productType: nullable(240), estimatedVolume: nullable(240), expectedTimeline: nullable(240), priority: z.enum(["low", "medium", "high", "urgent"]), salesOwnerUserId: z.string().uuid().nullable(), nextAction: nullable(1000), nextActionDate: z.string().min(10).nullable() });
-const opportunitySchema = z.object({ opportunityNumber: z.string().trim().max(64).nullable(), customerId: z.string().uuid(), contactId: z.string().uuid().nullable(), enquiryId: z.string().uuid().nullable(), name: z.string().trim().min(3).max(240), application: nullable(240), productType: nullable(240), primarySalesOwnerUserId: z.string().uuid().nullable(), ndaRequired: z.boolean(), estimatedVolume: nullable(240), targetTimeline: nullable(240), priority: z.enum(["low", "medium", "high", "urgent"]), nextAction: nullable(1000), nextActionDate: z.string().min(10).nullable() });
-const ndaSchema = z.object({ opportunityId: z.string().uuid(), status: z.enum(["not_required", "draft", "sent", "signed", "expired", "declined"]), signedByName: nullable(160), signedByEmail: z.string().trim().email().max(254).nullable(), expiryDate: z.string().min(10).nullable(), notes: nullable(4000) });
-const feasibilityAssignmentSchema = z.object({ requirementId: z.string().uuid(), departmentId: z.string().uuid(), reviewerUserId: z.string().uuid() });
-const commercialSchema = z.object({ requirementId: z.string().uuid(), quotationReference: nullable(160), currency: z.string().trim().min(3).max(8), quotedAmount: z.number().nonnegative().nullable(), status: z.enum(["draft", "internal_review", "sent", "customer_authorized", "declined", "expired"]), authorizationReference: nullable(240), notes: nullable(4000) });
-const baselineSchema = z.object({ requirementId: z.string().uuid() });
-const portalSchema = z.object({ customerId: z.string().uuid(), contactId: z.string().uuid().nullable(), label: z.string().trim().min(2).max(160), expiresAt: z.string().min(10).nullable() });
-const handoverSchema = z.object({ baselineId: z.string().uuid(), handoverNotes: nullable(4000) });
-
-async function requireSales(sb: any, userId: string) { const { data, error } = await sb.rpc("has_permission", { _user_id: userId, _permission_key: "sales.manage" }); if (error || !data) throw new Error("You do not have permission to manage sales records."); }
-async function logSalesActivity(sb: any, userId: string, entityType: string, entityId: string, action: string, summary: string) { const { error } = await sb.from("activity_log").insert({ actor_user_id: userId, module_key: "sales", entity_type: entityType, entity_id: entityId, action, summary }); if (error) throw new Error(error.message); }
-
-export const createCustomer = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => customerSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const normalizedName = data.legalName.replace(/\s+/g, " ").trim(); const { data: nameMatches, error: nameError } = await sb.from("customers").select("id,customer_code,legal_name,primary_email,primary_phone").neq("status", "archived").ilike("legal_name", normalizedName).limit(5); const { data: emailMatches, error: emailError } = data.primaryEmail ? await sb.from("customers").select("id,customer_code,legal_name,primary_email,primary_phone").neq("status", "archived").eq("primary_email", data.primaryEmail).limit(5) : { data: [], error: null }; const { data: phoneMatches, error: phoneError } = data.primaryPhone ? await sb.from("customers").select("id,customer_code,legal_name,primary_email,primary_phone").neq("status", "archived").eq("primary_phone", data.primaryPhone).limit(5) : { data: [], error: null }; if (nameError || emailError || phoneError) throw new Error("Could not check existing customers."); const matches = [...new Map([...(nameMatches ?? []), ...(emailMatches ?? []), ...(phoneMatches ?? [])].map((item: any) => [item.id, item])).values()]; if (matches.length && !data.createAnywayReason) throw new Error(`Possible existing customer: ${(matches ?? []).map((item: any) => `${item.customer_code} — ${item.legal_name}`).join("; ")}. Use the existing customer or confirm why a new record is needed.`); const { data: customer, error } = await sb.from("customers").insert({ legal_name: normalizedName, display_name: data.displayName, customer_type: data.customerType, industry: data.industry, primary_email: data.primaryEmail, primary_phone: data.primaryPhone, account_owner_user_id: data.accountOwnerUserId, created_by: context.userId }).select("id,customer_code").single(); if (error || !customer) throw new Error(error?.message ?? "Could not create customer."); await logSalesActivity(sb, context.userId, "customer", customer.id, "created", `Created customer: ${customer.customer_code} — ${normalizedName}`); if (data.createAnywayReason) await logSalesActivity(sb, context.userId, "customer", customer.id, "duplicate_override", data.createAnywayReason); return { id: customer.id, customerCode: customer.customer_code }; });
-export const createCustomerContact = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => contactSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: contact, error } = await sb.from("customer_contacts").insert({ customer_id: data.customerId, full_name: data.fullName, job_title: data.jobTitle, email: data.email, phone: data.phone, mobile: data.mobile, is_primary: data.isPrimary, created_by: context.userId }).select("id").single(); if (error || !contact) throw new Error(error?.message ?? "Could not create customer contact."); await logSalesActivity(sb, context.userId, "customer_contact", contact.id, "created", `Created customer contact: ${data.fullName}`); return { id: contact.id }; });
-export const createSalesEnquiry = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => enquirySchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: enquiry, error } = await sb.from("sales_enquiries").insert({ enquiry_number: data.enquiryNumber, customer_id: data.customerId, contact_id: data.contactId, source: data.source, enquiry_date: data.enquiryDate, requirement_summary: data.requirementSummary, application: data.application, product_type: data.productType, estimated_volume: data.estimatedVolume, expected_timeline: data.expectedTimeline, priority: data.priority, sales_owner_user_id: data.salesOwnerUserId, next_action: data.nextAction, next_action_date: data.nextActionDate, created_by: context.userId }).select("id,enquiry_number").single(); if (error || !enquiry) throw new Error(error?.message ?? "Could not create enquiry."); await logSalesActivity(sb, context.userId, "sales_enquiry", enquiry.id, "created", `Created enquiry: ${enquiry.enquiry_number ?? "auto-numbered"}`); return { id: enquiry.id, enquiryNumber: enquiry.enquiry_number }; });
-export const createSalesOpportunity = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => opportunitySchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: opportunity, error } = await sb.from("sales_opportunities").insert({ opportunity_number: data.opportunityNumber, customer_id: data.customerId, primary_contact_id: data.contactId, enquiry_id: data.enquiryId, name: data.name, application: data.application, product_type: data.productType, primary_sales_owner_user_id: data.primarySalesOwnerUserId, nda_required: data.ndaRequired, estimated_volume: data.estimatedVolume, target_timeline: data.targetTimeline, priority: data.priority, next_action: data.nextAction, next_action_date: data.nextActionDate, created_by: context.userId }).select("id,opportunity_number").single(); if (error || !opportunity) throw new Error(error?.message ?? "Could not create opportunity."); await logSalesActivity(sb, context.userId, "sales_opportunity", opportunity.id, "created", `Created opportunity: ${data.name}`); return { id: opportunity.id, opportunityNumber: opportunity.opportunity_number }; });
-export const saveNdaRecord = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => ndaSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const signedAt = data.status === "signed" ? new Date().toISOString() : null; const { data: record, error } = await sb.from("sales_nda_records").upsert({ opportunity_id: data.opportunityId, status: data.status, signed_by_name: data.signedByName, signed_by_email: data.signedByEmail, signed_at: signedAt, expiry_date: data.expiryDate, notes: data.notes, created_by: context.userId }, { onConflict: "opportunity_id" }).select("id").single(); if (error || !record) throw new Error(error?.message ?? "Could not save the NDA record."); await sb.from("sales_opportunities").update({ stage: data.status === "signed" || data.status === "not_required" ? "requirement_pending" : "nda_pending" }).eq("id", data.opportunityId); await logSalesActivity(sb, context.userId, "sales_nda_record", record.id, "saved", `Updated NDA status: ${data.status}`); return { id: record.id }; });
-/**
- * Intentionally unavailable: the accepted compatibility migration removes this
- * legacy multi-call path instead of redirecting it to an unaccepted RPC. New
- * requirement creation stays exclusively behind createSalesBoundCustomerRequirement.
- */
-export const createCustomerRequirement = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(() => {
-    throw new Error("Legacy customer requirement creation is retired. Use the protected source-bound requirement flow after database acceptance.");
-  });
-export const assignFeasibilityReview = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => feasibilityAssignmentSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: reviewId, error } = await sb.rpc("assign_requirement_feasibility_review", { p_requirement_id: data.requirementId, p_department_id: data.departmentId, p_reviewer_user_id: data.reviewerUserId }); if (error || typeof reviewId !== "string") throw new Error(error?.message ?? "Could not assign feasibility review."); return { id: reviewId }; });
-export const saveCommercialRecord = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => commercialSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: record, error } = await sb.from("sales_commercial_records").upsert({ requirement_id: data.requirementId, quotation_reference: data.quotationReference, currency: data.currency, quoted_amount: data.quotedAmount, status: data.status, authorization_reference: data.authorizationReference, customer_authorized_at: data.status === "customer_authorized" ? new Date().toISOString() : null, notes: data.notes, created_by: context.userId }, { onConflict: "requirement_id" }).select("id").single(); if (error || !record) throw new Error(error?.message ?? "Could not save commercial record."); await logSalesActivity(sb, context.userId, "sales_commercial_record", record.id, "saved", `Commercial status: ${data.status}`); return { id: record.id }; });
-/**
- * Deliberately fail-closed: the applied feasibility table cannot bind a terminal
- * verdict to an immutable requirement revision, and no replay-safe baseline
- * receipt exists. A baseline must not be created until that separate contract
- * is accepted through real caller-authenticated isolated evidence.
- */
-export const createRequirementBaseline = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((data) => baselineSchema.parse(data))
-  .handler(async ({ data, context }) => {
-    void data;
-    void context;
-    throw new Error("Baseline approval is unavailable until revision-bound feasibility and replay-safe baseline contracts pass isolated caller-authenticated acceptance.");
-  });
-export const createCustomerPortalAccess = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => portalSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: portal, error } = await sb.from("customer_portal_access").insert({ customer_id: data.customerId, contact_id: data.contactId, label: data.label, expires_at: data.expiresAt, created_by: context.userId }).select("id,access_token").single(); if (error || !portal) throw new Error(error?.message ?? "Could not create portal access."); await logSalesActivity(sb, context.userId, "customer_portal_access", portal.id, "created", `Created customer portal access: ${data.label}`); return { id: portal.id, token: portal.access_token }; });
-export const initiateSalesHandover = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => handoverSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: handover, error } = await sb.from("sales_project_handovers").upsert({ baseline_id: data.baselineId, status: "initiated", handover_notes: data.handoverNotes, initiated_by: context.userId, initiated_at: new Date().toISOString() }, { onConflict: "baseline_id" }).select("id").single(); if (error || !handover) throw new Error(error?.message ?? "Could not initiate handover."); await sb.from("requirement_baselines").update({ status: "project_initiated" }).eq("id", data.baselineId); await logSalesActivity(sb, context.userId, "sales_project_handover", handover.id, "initiated", "Initiated approved-baseline project handover"); return { id: handover.id }; });
+export function mayExposeClientRequirement(input: { isActive: boolean; revokedAt: string | null; expiresAt: string | null; accessScope: unknown; opportunityId: string; customerId: string }, now = new Date()): boolean {
+  if (clientRequirementState(input, now) !== "ACTIVE" || !input.accessScope || typeof input.accessScope !== "object") return false;
+  const scope = input.accessScope as { opportunityIds?: unknown; customerIds?: unknown };
+  return Array.isArray(scope.opportunityIds) && Array.isArray(scope.customerIds)
+    && scope.opportunityIds.includes(input.opportunityId)
+    && scope.customerIds.includes(input.customerId);
+}
 ```
 
 ## Exact structural acceptance source
@@ -710,10 +698,16 @@ export const initiateSalesHandover = createServerFn({ method: "POST" }).middlewa
 -- 6. same request key with a changed title, reference, description, opportunity, customer, or caller fails without a new row.
 -- 7. two scoped sessions using the same caller, request key, and payload concurrently converge to one receipt and one requirement.
 -- 8. forced audit failure: requirement and revision roll back together (no partial submission).
--- 9. reviewer: protected assignment locks the requirement, pins its exact current immutable
---    revision plus the current Master Specification version and verified workstreams. A repeated
---    assignment with the same reviewer/source is an exact retry and returns the existing review;
---    reassignment and response must not mutate the pinned provenance.
+-- 9. reviewer: protected assignment locks requirement, source revision, review, then pinned
+--    Master version. It derives that version only from revision.requirement_data.source.
+--    It must reject absent/invalid legacy source IDs plus missing/null/non-string/unknown
+--    workstreams. Execute and assert: (a) first assignment creates one pending review, (b) a
+--    same-revision reassignment returns that same review ID and updates only its open reviewer
+--    state, and (c) after a terminal response plus a new immutable requirement revision, an
+--    assignment for that new revision creates a distinct review while retaining the historical
+--    terminal row unchanged. These are database assertions, not SQL-text checks.
+--    A terminal review remains immutable history; after a new requirement revision, the same
+--    department receives a new revision-scoped review without modifying the historic verdict.
 --    record_requirement_feasibility_response succeeds exactly once; retry fails as immutable.
 -- 10. concurrency: two reviewer sessions race the same review; one commits and the other receives the immutable
 --    conflict, leaving exactly one terminal response and one response audit event.
@@ -727,6 +721,26 @@ export const initiateSalesHandover = createServerFn({ method: "POST" }).middlewa
 --    review's requirement_id, requirement opportunity/customer, department, assigned reviewer, and terminal status.
 --    Force that audit insert to fail in the isolated backend and prove the response update rolls back.
 --
+-- Schema contract preflight (read-only; run against the explicitly approved isolated backend only).
+-- This is executable catalog validation, not a regex/source assertion. It must return TRUE
+-- for the deployed authoritative column and false for the retired/invented spelling:
+-- SELECT EXISTS (
+--   SELECT 1 FROM information_schema.columns
+--   WHERE table_schema = 'public' AND table_name = 'master_specification_versions'
+--     AND column_name = 'specification_id' AND data_type = 'uuid' AND is_nullable = 'NO'
+-- ) AS master_version_uses_specification_id;
+-- SELECT NOT EXISTS (
+--   SELECT 1 FROM information_schema.columns
+--   WHERE table_schema = 'public' AND table_name = 'master_specification_versions'
+--     AND column_name = 'master_specification_id'
+-- ) AS no_invented_master_specification_id;
+-- SELECT EXISTS (
+--   SELECT 1 FROM pg_constraint constraint
+--   WHERE constraint.conrelid = 'public.master_specification_versions'::regclass
+--     AND pg_get_constraintdef(constraint.oid) =
+--       'FOREIGN KEY (specification_id) REFERENCES master_specifications(id) ON DELETE RESTRICT'
+-- ) AS master_version_specification_fk_matches_authoritative_schema;
+
 -- Preflight in the scoped external session (must be false; no direct table access is introduced):
 -- SELECT has_table_privilege('authenticated', 'public.customer_requirements', 'INSERT') AS direct_requirement_insert;
 -- SELECT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'INSERT') AS direct_revision_insert;
@@ -795,6 +809,13 @@ export const initiateSalesHandover = createServerFn({ method: "POST" }).middlewa
 -- caller's existing RLS policy otherwise permits UPDATE.
 --
 -- Reviewer assignment/terminal invariants: prove assignment routine rejects a non-member reviewer;
+-- prove it derives the Master version from source_revision.requirement_data.source rather than
+-- master_specifications.current_version; header advancement must not change a revision-bound
+-- source. Prove the immutable source tuple includes exact opportunity_id, customer_id, Master
+-- version UUID, and version number, and rejects a UUID from another opportunity/customer even
+-- when it exists. Prove absent/invalid legacy source IDs and missing/null/non-string/unknown workstreams
+-- fail closed. Prove revision-scoped uniqueness permits a new department review for a new
+-- requirement revision while preserving the old terminal row unchanged.
 -- prove it creates only pending reviews and may reset/reassign only pending/in_review reviews,
 -- including a repeat assignment to the same reviewer. Prove the exact retry returns the existing review;
 -- reassignment and response must not mutate the pinned provenance. A requirement revision or Master
@@ -809,8 +830,6 @@ export const initiateSalesHandover = createServerFn({ method: "POST" }).middlewa
 
 ## Acceptance boundary
 
-- The SQL and harness remain source-only. The structural SQL uses no service-role credential as proof and cannot establish caller-authenticated RLS behavior.
-- Real caller-transport acceptance remains blocked on the approved isolated target, scoped Sales/reviewer identities, and an authenticated application-RPC runner.
-- Legacy feasibility rows receive no inferred or backfilled provenance. They remain readable but resolve to **unsupported/unverified** in planning.
-- Protected assignment pins the current requirement revision, Master Specification version, and validated workstreams. A source advance leaves historic decisions unchanged; read-only planning reports them **stale**.
-- Unknown or malformed workstreams remain **TBC** and block planning.
+- The schema evidence above came from read-only catalog queries only; it did not execute any pending SQL.
+- The catalog-validation queries in the acceptance source are executable only on an explicitly approved isolated backend. They were not run because no approved isolated caller-authenticated target or identities are available.
+- All test evidence remains source-level until that caller-authenticated isolated acceptance runs.
