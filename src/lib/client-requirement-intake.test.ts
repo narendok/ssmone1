@@ -135,7 +135,7 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("Master Specification workstreams are missing, null, non-string, unknown, or incomplete; applicability is TBC");
     expect(pendingSql).toContain("Open feasibility review is pinned to different immutable provenance");
     expect(pendingSql).toContain("Feasibility review lacks immutable provenance and cannot receive a protected response");
-    expect(pendingSql).toContain("Feasibility source requirement is immutable after assignment");
+    expect(pendingSql).toContain("source_revision_id IS NOT NULL");
     expect(pendingSql).toContain("Feasibility responses require the assigned active engineering reviewer");
     expect(pendingSql).not.toContain("PERFORM set_config('app.requirement_feasibility_response_rpc'");
     expect(pendingSql).not.toContain("current_setting('app.requirement_feasibility_response_rpc'");

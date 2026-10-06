@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildFeasibilityPlanningSnapshot, displayPlanningValue } from "./feasibility-planning";
 
 const requirement = { id: "requirement-1", opportunity_id: "opportunity-1", current_revision: 2 };
-const revision = { id: "revision-2", requirement_id: "requirement-1", revision_number: 2 };
+const revision = { id: "revision-2", requirement_id: "requirement-1", revision_number: 2, source_master_specification_version_id: "master-version-3" };
 const specification = { id: "master-1", opportunity_id: "opportunity-1", current_version: 3 };
 const pinnedReview = { id: "review-1", requirement_id: requirement.id, status: "feasible", source_revision_id: revision.id, source_revision_number: 2, master_specification_version_id: "master-version-3", master_specification_version_number: 3, applicable_workstreams: ["HARDWARE"] };
 
@@ -17,9 +17,9 @@ describe("buildFeasibilityPlanningSnapshot", () => {
     expect(state).toMatchObject({ state: "STALE", canSatisfyPlanningGate: false });
   });
 
-  it("does not let a terminal verdict survive a Master Specification version advance", () => {
+  it("retains a terminal decision when the mutable Master header advances after its immutable revision was pinned", () => {
     const state = buildFeasibilityPlanningSnapshot({ review: pinnedReview, requirements: [requirement], revisions: [revision], masterSpecifications: [{ ...specification, current_version: 4 }] });
-    expect(state).toMatchObject({ state: "STALE", canSatisfyPlanningGate: false });
+    expect(state).toMatchObject({ state: "READY", canSatisfyPlanningGate: true });
   });
 
   it("blocks readiness when verified workstream applicability is unknown", () => {
