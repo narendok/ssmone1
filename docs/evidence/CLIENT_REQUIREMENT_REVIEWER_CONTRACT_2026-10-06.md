@@ -301,6 +301,30 @@ FOR EACH ROW EXECUTE FUNCTION public.requirement_feasibility_response_delete_gua
 - Calls only `record_requirement_feasibility_response(p_review_id, p_status, p_findings, p_assumptions, p_risks)`.
 - The UI remains explicitly disabled pending isolated caller-authenticated acceptance.
 
+## Exact effective permissions and runner boundary
+
+### Pending effective permissions
+
+- `public.requirement_feasibility_reviews`: `authenticated` has no direct create, change, or delete privilege after the proposal; the broad `Sales users manage feasibility reviews` policy is removed. Read access remains governed by the existing `Authenticated users view feasibility reviews` policy.
+- `public.assign_requirement_feasibility_review(uuid, uuid, uuid)`: all execution is removed from `PUBLIC` and `anon`; execution is granted to `authenticated` and `service_role`. The routine itself requires `auth.uid()` plus `sales.manage`.
+- `public.record_requirement_feasibility_response(uuid, text, text, text, text)`: all execution is removed from `PUBLIC` and `anon`; execution is granted to `authenticated` and `service_role`. The routine itself requires `auth.uid()`, `engineering.manage`, exact assigned reviewer identity, active department membership, a terminal non-null verdict, and nonblank findings.
+- `service_role` retains execution only as a backend maintenance capability; it is not accepted as caller-RLS evidence and is never used by the acceptance harness.
+
+### Harness and normal signed-in transport
+
+- Shell environment-gate runner: `supabase/pending/tests/run_client_requirement_intake_isolated_acceptance.sh`. It accepts only an `ISOLATED_DATABASE_URL` whose target contains the allowlisted isolated backend identifier, refuses the original backend before doing work, and never queries or mutates a database.
+- Normal signed-in read-only façade: `src/lib/isolated-sales-acceptance.functions.ts`, export `getIsolatedSalesAcceptancePreflight`. It is a `POST` `createServerFn`, protected by `requireSupabaseAuth`, and uses the existing browser bearer transport registered by `src/start.ts` (`attachSupabaseAuth`). Its handler confirms a verified caller identity but performs no database read, RPC invocation, or write.
+- The normal façade currently uses the project’s caller-RLS backend binding. It proves the signed-in transport, but cannot connect that caller to the separate isolated backend. The isolated backend must expose the pending objects and have approved scoped callers before caller-RLS acceptance can execute there.
+
+### Read-only preflight executed 2026-10-06 UTC
+
+- **Transport:** authenticated server-function call succeeded with the existing signed-in session; verified caller identity was present. No token value was read or exported.
+- **Allowlist:** isolated target accepted; original target rejection is expected by design.
+- **Original backend object inspection:** existing base tables and RLS are present: `customer_requirements`, `customer_requirement_revisions`, `requirement_feasibility_reviews`, `external_contacts`, `external_portal_access`, `employees`, `employee_departments`, and `activity_log`.
+- **Original backend missing pending dependencies:** `external_requirement_submission_requests`; `submit_external_customer_requirement(uuid,uuid,text,text,jsonb,uuid)`; `assign_requirement_feasibility_review(uuid,uuid,uuid)`; `record_requirement_feasibility_response(uuid,text,text,text,text)`; and their pending grants/triggers. The current direct Sales feasibility-management policy remains active until the proposal is applied.
+- **Missing approved identities:** an active scoped external contact for one verified opportunity/customer pair; an active assigned engineering reviewer with department membership; and two separate approved authenticated sessions for concurrency. These are identity/fixture approvals, not schema dependencies.
+- **Still blocked:** audit-failure rollback boundary and caller-authenticated replay/concurrency execution. No mutation was attempted.
+
 ## No-GUC boundary
 
 The extracted SQL contains no `current_setting('app.requirement_feasibility_response_rpc')` or `set_config('app.requirement_feasibility_response_rpc', ...)` authorization branch. Actor identity is derived by each protected routine from `auth.uid()`; direct authenticated review mutation is revoked in the same pending proposal.

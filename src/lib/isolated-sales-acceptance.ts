@@ -10,6 +10,7 @@ export const isolatedSalesAcceptancePreflightSchema = z.object({
 export type IsolatedSalesAcceptancePreflight = {
   available: boolean;
   target: "isolated" | "original" | "unknown";
+  caller: { transport: "authenticated-server-function"; identity: "verified" };
   checks: Array<{ key: string; available: boolean; detail: string }>;
   blockedOperations: string[];
 };
@@ -23,10 +24,14 @@ export function isolatedSalesAcceptancePreflight(projectRef: string): IsolatedSa
   return {
     available: false,
     target,
+    caller: {
+      transport: "authenticated-server-function",
+      identity: "verified",
+    },
     checks: [
       { key: "target", available: isIsolated, detail: isIsolated ? "Isolated acceptance backend allowlisted." : "Runner refuses every backend except the isolated acceptance backend." },
-      { key: "caller", available: false, detail: "No approved scoped external-contact or assigned-reviewer authenticated identity is available to this runner." },
-      { key: "rpc", available: false, detail: "The isolated SQL executor cannot invoke application RPCs as an authenticated caller." },
+      { key: "caller", available: false, detail: "The caller-authenticated server-function transport is verified, but no approved scoped external-contact or assigned-reviewer identity is available on the isolated backend." },
+      { key: "rpc", available: false, detail: "The existing caller-authenticated transport is available to this preflight; the isolated backend is missing the pending application RPCs, so no accepted caller-RPC case can run there." },
       { key: "rollback", available: false, detail: "Audit-failure rollback requires a disposable caller-authenticated fixture boundary." },
       { key: "concurrency", available: false, detail: "Two independent approved caller sessions are required for concurrent replay and expected-version races." },
     ],

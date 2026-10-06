@@ -27,6 +27,13 @@ describe("isolated Sales acceptance runner boundary", () => {
     expect(facade).not.toContain(".rpc(");
     expect(facade).not.toContain(".insert(");
     expect(facade).not.toContain(".update(");
+    expect(facade).toContain("context.userId");
+  });
+
+  it("distinguishes verified caller transport from the unavailable isolated contract", () => {
+    const report = isolatedSalesAcceptancePreflight(ISOLATED_SALES_ACCEPTANCE_PROJECT_REF);
+    expect(report.caller).toEqual({ transport: "authenticated-server-function", identity: "verified" });
+    expect(report.checks.find((check) => check.key === "rpc")?.detail).toContain("pending application RPCs");
   });
 
   it("uses a connection-target allowlist before the shell runner can do any work", () => {
