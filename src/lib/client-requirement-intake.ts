@@ -37,6 +37,12 @@ export const protectedIntakeAvailability = {
   reason: "Client requirement submission and feasibility responses stay unavailable until the protected database contract passes isolated acceptance.",
 } as const;
 
+export const controlledRequirementAvailability = {
+  available: false,
+  reason: "Creating a requirement bound to an immutable Master Specification version stays unavailable until the protected database contract passes isolated acceptance.",
+  dependency: "A protected atomic requirement-creation routine must verify the opportunity/customer pair, pin the selected Master Specification version, create revision 1 and its audit receipt together, and reject replay or mismatched sources.",
+} as const;
+
 export function clientRequirementState(input: { expiresAt: string | null; isActive: boolean; revokedAt: string | null }, now = new Date()): "ACTIVE" | "EXPIRED" | "REVOKED" {
   if (!input.isActive || input.revokedAt) return "REVOKED";
   if (input.expiresAt && new Date(input.expiresAt) <= now) return "EXPIRED";
