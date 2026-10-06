@@ -59,7 +59,7 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("v_actor_id uuid := auth.uid()");
     expect(pendingSql).toContain("public.external_current_contact_id(v_actor_id)");
     expect(pendingSql).toContain("public.external_current_party_id()");
-    expect(pendingSql).toContain("public.external_requirement_scope_allows(v_contact_id, p_opportunity_id, p_customer_id)");
+    expect(pendingSql).toContain("public.external_requirement_scope_allows(p_opportunity_id, p_customer_id)");
     expect(pendingSql).toContain("p_request_key uuid");
     expect(pendingSql).toContain("DROP FUNCTION public.submit_external_customer_requirement(uuid,uuid,text,text,jsonb)");
     expect(pendingSql).toContain("REVOKE ALL ON FUNCTION public.submit_external_customer_requirement(uuid,uuid,text,text,jsonb) FROM PUBLIC, anon, authenticated, service_role");
