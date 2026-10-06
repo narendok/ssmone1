@@ -127,6 +127,13 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain('DROP POLICY IF EXISTS "Sales users manage feasibility reviews"');
     expect(pendingSql).toContain("CREATE OR REPLACE FUNCTION public.assign_requirement_feasibility_review");
     expect(pendingSql).toContain("Terminal feasibility reviews cannot be reassigned");
+    expect(pendingSql).toContain("source_revision_id uuid REFERENCES public.customer_requirement_revisions(id) ON DELETE RESTRICT");
+    expect(pendingSql).toContain("master_specification_version_id uuid REFERENCES public.master_specification_versions(id) ON DELETE RESTRICT");
+    expect(pendingSql).toContain("Current immutable customer requirement revision is unavailable");
+    expect(pendingSql).toContain("Authoritative Master Specification is unavailable for the feasibility source");
+    expect(pendingSql).toContain("Master Specification workstreams are missing, unknown, or incomplete; applicability is TBC");
+    expect(pendingSql).toContain("Feasibility provenance is immutable after assignment");
+    expect(pendingSql).toContain("Feasibility review lacks immutable provenance and cannot receive a protected response");
     expect(pendingSql).toContain("Feasibility source requirement is immutable after assignment");
     expect(pendingSql).toContain("Feasibility responses require the assigned active engineering reviewer");
     expect(pendingSql).not.toContain("PERFORM set_config('app.requirement_feasibility_response_rpc'");
@@ -145,6 +152,18 @@ describe("client requirement intake contract", () => {
     expect(acceptanceSql).toContain("no_direct_review_insert");
     expect(acceptanceSql).toContain("sales_write_policy_removed");
     expect(acceptanceSql).toContain("repeat assignment to the same reviewer");
+  });
+
+  it("keeps feasibility provenance server-pinned and unavailable to direct reassignment", () => {
+    const salesRead = readFileSync("src/lib/sales.ts", "utf8");
+    expect(pendingSql).toContain("v_review.source_revision_id IS DISTINCT FROM v_revision.id");
+    expect(pendingSql).toContain("Open feasibility review is pinned to different immutable provenance");
+    expect(pendingSql).toContain("source_revision_id, source_revision_number,");
+    expect(pendingSql).toContain("source_revision_id IS NULL");
+    expect(salesRead).toContain("source_revision_id,source_revision_number,master_specification_version_id,master_specification_version_number,applicable_workstreams");
+    expect(acceptanceSql).toContain("immutable provenance");
+    expect(acceptanceSql).toContain("reassignment and response must not mutate the pinned provenance");
+    expect(acceptanceSql).toContain("exact retry returns the existing review");
   });
 
   it("keeps the legacy Sales feasibility save path from silently bypassing the pending protected contract", () => {

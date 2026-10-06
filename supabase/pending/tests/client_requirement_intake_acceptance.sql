@@ -20,13 +20,18 @@
 -- 6. same request key with a changed title, reference, description, opportunity, customer, or caller fails without a new row.
 -- 7. two scoped sessions using the same caller, request key, and payload concurrently converge to one receipt and one requirement.
 -- 8. forced audit failure: requirement and revision roll back together (no partial submission).
--- 9. reviewer: record_requirement_feasibility_response succeeds exactly once; retry fails as immutable.
+-- 9. reviewer: protected assignment locks the requirement, pins its exact current immutable
+--    revision plus the current Master Specification version and verified workstreams. A repeated
+--    assignment with the same reviewer/source is an exact retry and returns the existing review;
+--    reassignment and response must not mutate the pinned provenance.
+--    record_requirement_feasibility_response succeeds exactly once; retry fails as immutable.
 -- 10. concurrency: two reviewer sessions race the same review; one commits and the other receives the immutable
 --    conflict, leaving exactly one terminal response and one response audit event.
 -- 11. direct review UPDATE: no authenticated caller has INSERT/UPDATE/DELETE table privilege,
 --    and the former Sales-all policy is absent. A marker-set direct UPDATE attempt (including
 --    set_config('app.requirement_feasibility_response_rpc', '1', true)) fails. Direct terminal
 --    reassignment, source requirement replacement, reviewer replacement, and deletion fail.
+--    Direct source_revision_id, Master-version, or applicability mutation also fails.
 --    assign_requirement_feasibility_review remains the only compatible pending assignment path.
 -- 12. successful protected response writes exactly one activity_log row whose after_data binds the
 --    review's requirement_id, requirement opportunity/customer, department, assigned reviewer, and terminal status.
@@ -101,7 +106,10 @@
 --
 -- Reviewer assignment/terminal invariants: prove assignment routine rejects a non-member reviewer;
 -- prove it creates only pending reviews and may reset/reassign only pending/in_review reviews,
--- including a repeat assignment to the same reviewer. Prove each assignment creates exactly one
+-- including a repeat assignment to the same reviewer. Prove the exact retry returns the existing review;
+-- reassignment and response must not mutate the pinned provenance. A requirement revision or Master
+-- Specification version advance must not alter historic reviews; pinned terminal decisions then read
+-- as stale and cannot satisfy planning. Missing or unknown workstreams fail closed as TBC. Prove each assignment creates exactly one
 -- `assigned` activity entry with its locked requirement/department/reviewer identifiers. After a
 -- terminal response, attempts to change requirement_id, department_id, reviewer_user_id, status,
 -- findings, assumptions, risks, or reviewed_at must all fail, including when a caller manually

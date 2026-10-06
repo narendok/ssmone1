@@ -4,6 +4,7 @@ import { buildFeasibilityPlanningSnapshot, displayPlanningValue } from "./feasib
 const requirement = { id: "requirement-1", opportunity_id: "opportunity-1", current_revision: 2 };
 const revision = { id: "revision-2", requirement_id: "requirement-1", revision_number: 2 };
 const specification = { id: "master-1", opportunity_id: "opportunity-1", current_version: 3 };
+const pinnedReview = { id: "review-1", requirement_id: requirement.id, status: "feasible", source_revision_id: revision.id, source_revision_number: 2, master_specification_version_id: "master-version-3", master_specification_version_number: 3, applicable_workstreams: ["HARDWARE"] };
 
 describe("buildFeasibilityPlanningSnapshot", () => {
   it("does not treat an unpinned terminal verdict as ready", () => {
@@ -12,8 +13,23 @@ describe("buildFeasibilityPlanningSnapshot", () => {
   });
 
   it("does not let a stale terminal verdict satisfy planning", () => {
-    const state = buildFeasibilityPlanningSnapshot({ review: { id: "review-1", requirement_id: requirement.id, status: "feasible", source_revision_id: "revision-1" }, requirements: [requirement], revisions: [revision], masterSpecifications: [specification] });
+    const state = buildFeasibilityPlanningSnapshot({ review: { ...pinnedReview, source_revision_id: "revision-1" }, requirements: [requirement], revisions: [revision], masterSpecifications: [specification] });
     expect(state).toMatchObject({ state: "STALE", canSatisfyPlanningGate: false });
+  });
+
+  it("does not let a terminal verdict survive a Master Specification version advance", () => {
+    const state = buildFeasibilityPlanningSnapshot({ review: pinnedReview, requirements: [requirement], revisions: [revision], masterSpecifications: [{ ...specification, current_version: 4 }] });
+    expect(state).toMatchObject({ state: "STALE", canSatisfyPlanningGate: false });
+  });
+
+  it("blocks readiness when verified workstream applicability is unknown", () => {
+    const state = buildFeasibilityPlanningSnapshot({ review: { ...pinnedReview, applicable_workstreams: ["UNKNOWN"] }, requirements: [requirement], revisions: [revision], masterSpecifications: [specification] });
+    expect(state).toMatchObject({ state: "APPLICABILITY_TBC", canSatisfyPlanningGate: false });
+  });
+
+  it("treats only an exact pinned terminal decision as ready", () => {
+    const state = buildFeasibilityPlanningSnapshot({ review: pinnedReview, requirements: [requirement], revisions: [revision], masterSpecifications: [specification] });
+    expect(state).toMatchObject({ state: "READY", canSatisfyPlanningGate: true, applicableWorkstreams: ["HARDWARE"] });
   });
 
   it("does not turn a failed source query into empty success", () => {
