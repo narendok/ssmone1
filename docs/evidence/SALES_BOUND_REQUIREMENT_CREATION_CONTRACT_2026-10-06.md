@@ -29,9 +29,9 @@ RLS additionally carries an explicit authenticated deny-all policy. This is defe
 
 ## Pending direct-write decision
 
-This proposal does **not** revoke existing direct requirement-table writes yet. The legacy `createCustomerRequirement` path must be removed or redirected in the same accepted migration; revoking first would break existing Sales flows. The new source-bound path itself never falls back to that legacy multi-call function.
+This compatibility group retires the legacy `createCustomerRequirement` facade with an explicit error (no fallback) and prepares a protected `approve_requirement_baseline(...)` routine for the live baseline approval flow. Only the accepted migration revokes direct authenticated requirement/revision mutations and removes their broad Sales write policies.
 
-**Acceptance blocker:** the existing legacy server path still directly inserts requirements and updates the opportunity stage. It must be removed or redirected in the same accepted change that removes direct authenticated writes; until then, this pending contract cannot be accepted as the only source-bound creation channel. No legacy behavior was changed here.
+**Acceptance blocker:** all protected creation, external intake, feasibility, and baseline compatibility routines must pass isolated caller-authenticated acceptance together before any revocation can be applied. Existing manual/approved rows, including the 24v tracker, are retained exactly as-is; no source is inferred or backfilled.
 
 ## Required isolated acceptance
 
@@ -43,6 +43,8 @@ This proposal does **not** revoke existing direct requirement-table writes yet. 
 - A concurrent source-pair/current-version mutation blocks behind the first-create locks and cannot change the verified provenance before that create commits.
 - Forced audit failure rolls back the header, revision, and receipt.
 - Compatibility migration removes or redirects the legacy write path, then proves direct requirement/revision writes fail while all existing manual and approved records remain intact.
+- Protected baseline approval remains supported after revocation: it snapshots the current requirement/commercial state, updates the requirement status, and audits as one transaction.
+- Sales-bound creation uses `next_business_number('customer_requirement', NULL, NULL)`, matching the installed `customer_requirements_assign_business_code` trigger. The supplied nonblank number prevents a second trigger allocation; Sales and client intake share the existing serialized customer-requirement counter.
 
 ## Full pending SQL
 

@@ -17,6 +17,11 @@ SELECT has_table_privilege('anon', 'public.sales_requirement_creation_requests',
 SELECT has_table_privilege('authenticated', 'public.sales_requirement_creation_requests', 'SELECT') AS no_authenticated_receipt_read;
 SELECT has_table_privilege('authenticated', 'public.sales_requirement_creation_requests', 'INSERT') AS no_authenticated_receipt_insert;
 SELECT has_function_privilege('authenticated', 'public.create_sales_bound_customer_requirement(uuid, uuid, uuid, text, text, text, uuid)', 'EXECUTE') AS protected_create_callable;
+SELECT has_function_privilege('authenticated', 'public.approve_requirement_baseline(uuid, text)', 'EXECUTE') AS protected_baseline_callable;
+SELECT has_table_privilege('authenticated', 'public.customer_requirements', 'INSERT') AS no_authenticated_requirement_insert;
+SELECT has_table_privilege('authenticated', 'public.customer_requirements', 'UPDATE') AS no_authenticated_requirement_update;
+SELECT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'INSERT') AS no_authenticated_revision_insert;
+SELECT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'UPDATE') AS no_authenticated_revision_update;
 
 -- 1. Allowed caller: creates exactly one header, revision 1, audit, and receipt bound to
 -- opportunity/customer/current Master Specification version and actor.
@@ -59,3 +64,12 @@ ROLLBACK;
 -- 9. After compatible legacy redirect/removal is accepted, direct authenticated INSERT/UPDATE/DELETE on
 -- customer_requirements and customer_requirement_revisions must fail, and the legacy multi-call facade
 -- must not remain callable. Existing manual/approved rows, including the 24v tracker, remain unchanged.
+-- 10. Baseline compatibility: with a caller-authenticated Sales manager and a separately
+-- authorized commercial record, approve_requirement_baseline locks the requirement, writes one
+-- baseline snapshot, updates the requirement to baselined, updates the linked opportunity, and
+-- audits atomically. Force the audit insert to fail and prove all earlier baseline/header changes roll back.
+-- Direct authenticated UPDATE on customer_requirements must fail outside this routine.
+-- 11. Numbering compatibility: the protected Sales creation and external intake each omit an
+-- externally chosen requirement number. Verify the trigger/function assigns nonblank unique numbers
+-- from the same customer_requirement numbering rule; concurrent different request keys must produce
+-- distinct values without a second allocation per insert.

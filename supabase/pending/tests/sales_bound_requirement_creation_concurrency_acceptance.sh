@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # ISOLATED ACCEPTANCE ONLY. Do not run against production and never use service-role impersonation.
 # Required environment: DATABASE_URL, SALES_MANAGER_ID, OPPORTUNITY_ID, CUSTOMER_ID,
-# MASTER_VERSION_ID, SPECIFICATION_ID, REQUEST_KEY, ADVANCE_EXPECTED_VERSION, ADVANCE_TITLE,
-# ADVANCE_SUMMARY, ADVANCE_SPECIFICATION_DATA. The runner supplies a dedicated isolated tuple.
+# MASTER_VERSION_ID, SPECIFICATION_ID, REQUEST_KEY, REQUEST_KEY_B, ADVANCE_EXPECTED_VERSION,
+# ADVANCE_TITLE, ADVANCE_SUMMARY, ADVANCE_SPECIFICATION_DATA. The runner supplies a dedicated
+# isolated tuple. It must use an authenticated Sales caller and never service-role impersonation.
 set -euo pipefail
 
 : "${DATABASE_URL:?}" "${SALES_MANAGER_ID:?}" "${OPPORTUNITY_ID:?}" "${CUSTOMER_ID:?}"
-: "${MASTER_VERSION_ID:?}" "${SPECIFICATION_ID:?}" "${REQUEST_KEY:?}" "${ADVANCE_EXPECTED_VERSION:?}"
+: "${MASTER_VERSION_ID:?}" "${SPECIFICATION_ID:?}" "${REQUEST_KEY:?}" "${REQUEST_KEY_B:?}" "${ADVANCE_EXPECTED_VERSION:?}"
 : "${ADVANCE_TITLE:?}" "${ADVANCE_SUMMARY:?}" "${ADVANCE_SPECIFICATION_DATA:?}"
 
 tmp_dir="$(mktemp -d)"
@@ -53,4 +54,17 @@ fi
 grep -Eq "canceling statement due to lock timeout|Lock" "$tmp_dir/blocker"
 
 wait "$holder_pid"
-echo "PASS: replay-after-version-advance, changed-payload conflict, and concurrent source update blocking"
+
+# Distinct request keys must allocate distinct nonblank business numbers without relying on a
+# browser-callable numbering function. This also proves the protected insert does not cause a
+# second trigger allocation when it supplies next_business_number itself.
+second_key_call="SELECT public.create_sales_bound_customer_requirement('${OPPORTUNITY_ID}'::uuid, '${CUSTOMER_ID}'::uuid, '${MASTER_VERSION_ID}'::uuid, 'Concurrent number acceptance requirement', 'NUMBER-ACCEPT', 'Second acceptance-only summary.', '${REQUEST_KEY_B}'::uuid);"
+printf "BEGIN; %s %s COMMIT;" "$caller_prelude" "$second_key_call" | psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 >"$tmp_dir/second-id"
+second_id="$(tail -n 3 "$tmp_dir/second-id" | head -n 1 | tr -d '[:space:]')"
+test -n "$second_id" || { echo "Second request did not create a requirement" >&2; exit 1; }
+numbers="$(psql "$DATABASE_URL" -X -Atc "SELECT requirement_number FROM public.customer_requirements WHERE id IN ('${created_id}'::uuid, '${second_id}'::uuid) ORDER BY id;")"
+first_number="$(printf '%s\n' "$numbers" | sed -n '1p')"
+second_number="$(printf '%s\n' "$numbers" | sed -n '2p')"
+test -n "$first_number" && test -n "$second_number" && test "$first_number" != "$second_number" || { echo "Protected calls did not allocate two distinct nonblank requirement numbers" >&2; exit 1; }
+
+echo "PASS: replay-after-version-advance, changed-payload conflict, concurrent source update blocking, and distinct protected business numbers"
