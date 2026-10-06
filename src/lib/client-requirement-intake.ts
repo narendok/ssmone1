@@ -28,6 +28,10 @@ export const feasibilityResponseSchema = z.object({
 export type ClientRequirementIntake = z.infer<typeof clientRequirementIntakeSchema>;
 export type FeasibilityResponse = z.infer<typeof feasibilityResponseSchema>;
 
+export function clientRequirementRequestKey(current: string | null): string {
+  return current ?? crypto.randomUUID();
+}
+
 export const protectedIntakeAvailability = {
   available: false,
   reason: "Client requirement submission and feasibility responses stay unavailable until the protected database contract passes isolated acceptance.",
@@ -39,8 +43,13 @@ export function clientRequirementState(input: { expiresAt: string | null; isActi
   return "ACTIVE";
 }
 
-export function mayRecordFeasibility(input: { assignedTo: string; actorId: string; isEngineeringManager: boolean; status: string }): boolean {
-  return !["feasible", "feasible_with_conditions", "not_feasible"].includes(input.status) && (input.assignedTo === input.actorId || input.isEngineeringManager);
+export function mayRecordFeasibility(input: { assignedTo: string | null; actorId: string; isEngineeringManager: boolean; isActiveDepartmentMember: boolean; status: string | null }): boolean {
+  return input.assignedTo !== null
+    && input.status !== null
+    && ["pending", "in_review"].includes(input.status)
+    && input.assignedTo === input.actorId
+    && input.isEngineeringManager
+    && input.isActiveDepartmentMember;
 }
 
 export function mayExposeClientRequirement(input: { isActive: boolean; revokedAt: string | null; expiresAt: string | null; accessScope: unknown; opportunityId: string; customerId: string }, now = new Date()): boolean {

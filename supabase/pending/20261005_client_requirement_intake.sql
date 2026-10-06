@@ -13,18 +13,45 @@ CREATE TABLE IF NOT EXISTS public.external_requirement_submission_requests (
   customer_id uuid NOT NULL REFERENCES public.customers(id) ON DELETE RESTRICT,
   requested_by uuid NOT NULL,
   payload_hash text NOT NULL,
+  payload_canonical jsonb NOT NULL,
   requirement_id uuid NOT NULL UNIQUE REFERENCES public.customer_requirements(id) ON DELETE RESTRICT,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CHECK (length(btrim(payload_hash)) > 0)
+  CHECK (length(btrim(payload_hash)) > 0),
+  CHECK (jsonb_typeof(payload_canonical) = 'object')
 );
+
+-- Compatible with a previously applied draft receipt table. Existing rows without an exact
+-- canonical payload are deliberately not replayable: submit them under a new request key.
+ALTER TABLE public.external_requirement_submission_requests
+  ADD COLUMN IF NOT EXISTS payload_canonical jsonb;
 
 REVOKE ALL ON TABLE public.external_requirement_submission_requests FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.external_requirement_submission_requests TO service_role;
 ALTER TABLE public.external_requirement_submission_requests ENABLE ROW LEVEL SECURITY;
 
 -- This receipt follows the established `inventory_transaction_requests` shape: a caller-provided
--- UUID, an immutable normalized-payload hash, and the persisted result.  This smaller receipt is
+-- UUID, an immutable normalized payload, a collision-detection hash, and the persisted result. This smaller receipt is
 -- deliberately contact/opportunity/customer-bound so an external retry cannot replay across scope.
+
+CREATE OR REPLACE FUNCTION public.external_requirement_submission_canonical_payload(
+  p_opportunity_id uuid,
+  p_customer_id uuid,
+  p_title text,
+  p_customer_reference text,
+  p_requirement_data jsonb
+) RETURNS jsonb
+LANGUAGE sql
+IMMUTABLE
+SET search_path = public
+AS $$
+  SELECT jsonb_build_object(
+    'opportunity_id', p_opportunity_id,
+    'customer_id', p_customer_id,
+    'title', btrim(p_title),
+    'customer_reference', nullif(btrim(coalesce(p_customer_reference, '')), ''),
+    'requirement_data', p_requirement_data
+  )
+$$;
 
 CREATE OR REPLACE FUNCTION public.external_requirement_submission_payload_hash(
   p_opportunity_id uuid,
@@ -37,19 +64,12 @@ LANGUAGE sql
 IMMUTABLE
 SET search_path = public
 AS $$
-  SELECT md5(
-    jsonb_build_object(
-      'opportunity_id', p_opportunity_id,
-      'customer_id', p_customer_id,
-      'title', btrim(p_title),
-      'customer_reference', nullif(btrim(coalesce(p_customer_reference, '')), ''),
-      'requirement_data', p_requirement_data
-    )::text
-  )
+  SELECT md5(public.external_requirement_submission_canonical_payload(
+    p_opportunity_id, p_customer_id, p_title, p_customer_reference, p_requirement_data
+  )::text)
 $$;
 
 CREATE OR REPLACE FUNCTION public.external_requirement_scope_allows(
-  p_contact_id uuid,
   p_opportunity_id uuid,
   p_customer_id uuid
 ) RETURNS boolean
@@ -61,7 +81,7 @@ AS $$
   SELECT EXISTS (
     SELECT 1
     FROM public.external_portal_access access
-    WHERE access.external_contact_id = p_contact_id
+    WHERE access.external_contact_id = public.external_current_contact_id(auth.uid())
       AND access.is_active
       AND access.deactivated_at IS NULL
       AND access.invitation_revoked_at IS NULL
@@ -71,6 +91,17 @@ AS $$
       AND COALESCE(access.access_scope->'opportunityIds', '[]'::jsonb) @> jsonb_build_array(p_opportunity_id::text)
       AND COALESCE(access.access_scope->'customerIds', '[]'::jsonb) @> jsonb_build_array(p_customer_id::text)
   )
+$$;
+
+-- PostgreSQL overloads are distinct callable functions. Retire the pre-request-key prototype
+-- explicitly rather than relying on CREATE OR REPLACE for the six-argument signature.
+DO $$
+BEGIN
+  IF to_regprocedure('public.submit_external_customer_requirement(uuid,uuid,text,text,jsonb)') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON FUNCTION public.submit_external_customer_requirement(uuid,uuid,text,text,jsonb) FROM PUBLIC, anon, authenticated, service_role';
+    EXECUTE 'DROP FUNCTION public.submit_external_customer_requirement(uuid,uuid,text,text,jsonb)';
+  END IF;
+END;
 $$;
 
 CREATE OR REPLACE FUNCTION public.submit_external_customer_requirement(
@@ -90,6 +121,7 @@ DECLARE
   v_requirement public.customer_requirements%ROWTYPE;
   v_contact_id uuid := public.external_current_contact_id(v_actor_id);
   v_party_id uuid := public.external_current_party_id();
+  v_payload_canonical jsonb;
   v_payload_hash text;
   v_prior public.external_requirement_submission_requests%ROWTYPE;
 BEGIN
@@ -106,7 +138,7 @@ BEGIN
   END IF;
   -- The caller identity comes only from auth.uid(). Contact, party, expiry, revocation,
   -- and explicit opportunity/customer grants are all re-derived under the function owner.
-  IF NOT public.external_requirement_scope_allows(v_contact_id, p_opportunity_id, p_customer_id) THEN
+  IF NOT public.external_requirement_scope_allows(p_opportunity_id, p_customer_id) THEN
     RAISE EXCEPTION 'Client requirement access is inactive, expired, revoked, or outside its granted scope';
   END IF;
   IF NOT EXISTS (
@@ -117,6 +149,9 @@ BEGIN
     SELECT 1 FROM public.sales_opportunities opportunity
     WHERE opportunity.id = p_opportunity_id AND opportunity.customer_id = p_customer_id
   ) THEN RAISE EXCEPTION 'Opportunity/customer source mismatch'; END IF;
+  v_payload_canonical := public.external_requirement_submission_canonical_payload(
+    p_opportunity_id, p_customer_id, p_title, p_customer_reference, p_requirement_data
+  );
   v_payload_hash := public.external_requirement_submission_payload_hash(
     p_opportunity_id, p_customer_id, p_title, p_customer_reference, p_requirement_data
   );
@@ -132,7 +167,9 @@ BEGIN
        AND v_prior.external_contact_id = v_contact_id
        AND v_prior.opportunity_id = p_opportunity_id
        AND v_prior.customer_id = p_customer_id
-       AND v_prior.payload_hash = v_payload_hash THEN
+       AND v_prior.payload_hash = v_payload_hash
+       AND v_prior.payload_canonical IS NOT NULL
+       AND v_prior.payload_canonical = v_payload_canonical THEN
       RETURN v_prior.requirement_id;
     END IF;
     RAISE EXCEPTION 'Request key conflicts with a different caller or payload';
@@ -164,9 +201,9 @@ BEGIN
     )
   );
   INSERT INTO public.external_requirement_submission_requests (
-    request_key, external_contact_id, opportunity_id, customer_id, requested_by, payload_hash, requirement_id
+    request_key, external_contact_id, opportunity_id, customer_id, requested_by, payload_hash, payload_canonical, requirement_id
   ) VALUES (
-    p_request_key, v_contact_id, p_opportunity_id, p_customer_id, v_actor_id, v_payload_hash, v_requirement.id
+    p_request_key, v_contact_id, p_opportunity_id, p_customer_id, v_actor_id, v_payload_hash, v_payload_canonical, v_requirement.id
   );
   RETURN v_requirement.id;
 END;
@@ -174,9 +211,11 @@ $$;
 
 REVOKE ALL ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb, uuid) TO authenticated, service_role;
-REVOKE ALL ON FUNCTION public.external_requirement_scope_allows(uuid, uuid, uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.external_requirement_scope_allows(uuid, uuid, uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.external_requirement_scope_allows(uuid, uuid, uuid) FROM PUBLIC, anon, authenticated, service_role;
+DROP FUNCTION IF EXISTS public.external_requirement_scope_allows(uuid, uuid, uuid);
+REVOKE ALL ON FUNCTION public.external_requirement_scope_allows(uuid, uuid) FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.external_requirement_submission_payload_hash(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.external_requirement_submission_canonical_payload(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon, authenticated, service_role;
 
 CREATE OR REPLACE FUNCTION public.record_requirement_feasibility_response(
   p_review_id uuid,
@@ -186,8 +225,8 @@ CREATE OR REPLACE FUNCTION public.record_requirement_feasibility_response(
   p_risks text
 ) RETURNS uuid
 LANGUAGE plpgsql
-SECURITY INVOKER
-SET search_path = public
+SECURITY DEFINER
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_review public.requirement_feasibility_reviews%ROWTYPE;
@@ -195,7 +234,8 @@ BEGIN
   IF auth.uid() IS NULL OR NOT public.has_permission(auth.uid(), 'engineering.manage') THEN
     RAISE EXCEPTION 'Engineering management permission is required';
   END IF;
-  IF p_status NOT IN ('feasible', 'feasible_with_conditions', 'not_feasible')
+  IF p_status IS NULL
+     OR p_status NOT IN ('feasible', 'feasible_with_conditions', 'not_feasible')
      OR NULLIF(btrim(p_findings), '') IS NULL THEN
     RAISE EXCEPTION 'A terminal feasibility verdict and findings are required';
   END IF;
@@ -204,6 +244,24 @@ BEGIN
   WHERE id = p_review_id
   FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Feasibility review is unavailable'; END IF;
+  IF v_review.reviewer_user_id IS NULL OR v_review.department_id IS NULL THEN
+    RAISE EXCEPTION 'Feasibility review requires an assigned reviewer and department';
+  END IF;
+  IF v_review.reviewer_user_id IS DISTINCT FROM auth.uid() THEN
+    RAISE EXCEPTION 'Only the assigned reviewer may submit this feasibility response';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.employees employee
+    JOIN public.employee_departments membership ON membership.employee_id = employee.id
+    WHERE employee.user_id = auth.uid()
+      AND employee.employment_status = 'ACTIVE'
+      AND membership.department_id = v_review.department_id
+  ) THEN
+    RAISE EXCEPTION 'The assigned reviewer is not an active member of this review department';
+  END IF;
+  IF v_review.status NOT IN ('pending', 'in_review') THEN
+    RAISE EXCEPTION 'Feasibility review is not open for a response';
+  END IF;
   IF v_review.status IN ('feasible', 'feasible_with_conditions', 'not_feasible') THEN
     RAISE EXCEPTION 'Feasibility responses are immutable after submission';
   END IF;
@@ -226,6 +284,7 @@ GRANT EXECUTE ON FUNCTION public.record_requirement_feasibility_response(uuid, t
 CREATE OR REPLACE FUNCTION public.requirement_feasibility_response_guard()
 RETURNS trigger
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
@@ -236,9 +295,20 @@ BEGIN
     OR NEW.reviewer_user_id IS DISTINCT FROM OLD.reviewer_user_id THEN
     RAISE EXCEPTION 'Assignments are immutable after creation; create a new review assignment instead';
   END IF;
-  IF OLD.reviewer_user_id IS DISTINCT FROM auth.uid()
-     AND NOT public.has_permission(auth.uid(), 'engineering.manage') THEN
+  IF OLD.reviewer_user_id IS NULL OR OLD.department_id IS NULL THEN
+    RAISE EXCEPTION 'Feasibility review requires an assigned reviewer and department';
+  END IF;
+  IF OLD.reviewer_user_id IS DISTINCT FROM auth.uid() THEN
     RAISE EXCEPTION 'Only the assigned reviewer may respond';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.employees employee
+    JOIN public.employee_departments membership ON membership.employee_id = employee.id
+    WHERE employee.user_id = auth.uid()
+      AND employee.employment_status = 'ACTIVE'
+      AND membership.department_id = OLD.department_id
+  ) THEN
+    RAISE EXCEPTION 'The assigned reviewer is not an active member of this review department';
   END IF;
   IF NEW.status IN ('feasible', 'feasible_with_conditions', 'not_feasible') THEN
     IF NULLIF(btrim(NEW.findings), '') IS NULL THEN
