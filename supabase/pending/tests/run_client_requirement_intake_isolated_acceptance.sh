@@ -10,23 +10,23 @@ set -euo pipefail
 readonly ISOLATED_PROJECT_REF="egjotuxqguifnvdnflan"
 readonly ORIGINAL_PROJECT_REF="yyrvduosyyaluifqvwkr"
 
-: "${LOVABLE_CLOUD_PROJECT_REF:?Set the inspected backend project reference.}"
+: "${ISOLATED_DATABASE_URL:?Set the isolated acceptance connection target.}"
 
-if [[ "$LOVABLE_CLOUD_PROJECT_REF" == "$ORIGINAL_PROJECT_REF" ]]; then
+if [[ "$ISOLATED_DATABASE_URL" == *"$ORIGINAL_PROJECT_REF"* ]]; then
   printf '%s\n' "REFUSED: original backend is never an acceptance target." >&2
   exit 64
 fi
-if [[ "$LOVABLE_CLOUD_PROJECT_REF" != "$ISOLATED_PROJECT_REF" ]]; then
+if [[ "$ISOLATED_DATABASE_URL" != *"$ISOLATED_PROJECT_REF"* ]]; then
   printf '%s\n' "REFUSED: backend is not the allowlisted isolated acceptance backend." >&2
   exit 64
 fi
 
 cat <<'REPORT'
 READ-ONLY ISOLATED ACCEPTANCE PREFLIGHT
-target: egjotuxqguifnvdnflan
+target: egjotuxqguifnvdnflan (connection target verified without printing it)
 proposal: supabase/pending/20261005_client_requirement_intake.sql
 fixture: supabase/pending/tests/client_requirement_intake_acceptance.sql
-status: BLOCKED — no mutation was attempted
+status: BLOCKED — no mutation or database query was attempted
 
 required before executable caller acceptance:
 - approved scoped external-contact authenticated identity;
