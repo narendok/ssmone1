@@ -37,6 +37,18 @@ describe("buildFeasibilityPlanningSnapshot", () => {
     expect(state).toMatchObject({ state: "SOURCE_ERROR", canSatisfyPlanningGate: false });
   });
 
+  it("keeps a terminal decision stale when its pinned Master version differs from the revision source", () => {
+    const state = buildFeasibilityPlanningSnapshot({ review: { ...pinnedReview, master_specification_version_id: "master-version-2" }, requirements: [requirement], revisions: [revision], masterSpecifications: [specification] });
+    expect(state).toMatchObject({ state: "STALE", canSatisfyPlanningGate: false });
+  });
+
+  it("does not accept missing, null, or non-string workstreams as verified applicability", () => {
+    for (const applicable_workstreams of [null, [null], ["HARDWARE", 1]]) {
+      const state = buildFeasibilityPlanningSnapshot({ review: { ...pinnedReview, applicable_workstreams }, requirements: [requirement], revisions: [revision], masterSpecifications: [specification] });
+      expect(state).toMatchObject({ state: "APPLICABILITY_TBC", canSatisfyPlanningGate: false });
+    }
+  });
+
   it("retains unknown human fields as TBC", () => {
     expect(displayPlanningValue(null)).toBe("TBC");
     expect(displayPlanningValue(" ")).toBe("TBC");
