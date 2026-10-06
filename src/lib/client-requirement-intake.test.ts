@@ -85,6 +85,6 @@ describe("client requirement intake contract", () => {
     expect(acceptanceSql).toContain("concurrency");
     expect(acceptanceSql).toContain("same request key + identical payload replays the original requirement ID");
     expect(acceptanceSql).toContain("Request key conflicts with a different caller or payload");
-    expect(acceptanceSql).toContain("exactly one external_requirement_submission_requests row");
+    expect(acceptanceSql).toContain("external_requirement_submission_requests row, one customer_requirements row");
   });
 });
