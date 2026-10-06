@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { clientRequirementIntakeSchema, clientRequirementState, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability } from "./client-requirement-intake";
+import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability } from "./client-requirement-intake";
 
 const pendingSql = readFileSync("supabase/pending/20261005_client_requirement_intake.sql", "utf8");
 const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_intake_acceptance.sql", "utf8");
@@ -17,11 +17,15 @@ describe("client requirement intake contract", () => {
     expect(clientRequirementState({ isActive: true, revokedAt: null, expiresAt: null })).toBe("ACTIVE");
   });
 
-  it("permits feasibility responses only for the assigned reviewer or engineering manager before response", () => {
-    expect(mayRecordFeasibility({ assignedTo: "reviewer", actorId: "reviewer", isEngineeringManager: false, status: "in_review" })).toBe(true);
-    expect(mayRecordFeasibility({ assignedTo: "reviewer", actorId: "other", isEngineeringManager: false, status: "in_review" })).toBe(false);
-    expect(mayRecordFeasibility({ assignedTo: "reviewer", actorId: "manager", isEngineeringManager: true, status: "in_review" })).toBe(true);
-    expect(mayRecordFeasibility({ assignedTo: "reviewer", actorId: "reviewer", isEngineeringManager: false, status: "feasible" })).toBe(false);
+  it("permits only the active assigned engineering reviewer to submit an open response", () => {
+    const assigned = { assignedTo: "reviewer", actorId: "reviewer", isEngineeringManager: true, isActiveDepartmentMember: true, status: "in_review" } as const;
+    expect(mayRecordFeasibility(assigned)).toBe(true);
+    expect(mayRecordFeasibility({ ...assigned, actorId: "manager" })).toBe(false);
+    expect(mayRecordFeasibility({ ...assigned, isEngineeringManager: false })).toBe(false);
+    expect(mayRecordFeasibility({ ...assigned, isActiveDepartmentMember: false })).toBe(false);
+    expect(mayRecordFeasibility({ ...assigned, assignedTo: null })).toBe(false);
+    expect(mayRecordFeasibility({ ...assigned, status: null })).toBe(false);
+    expect(mayRecordFeasibility({ ...assigned, status: "feasible" })).toBe(false);
   });
 
   it("requires a concrete immutable feasibility response and explicit verdict", () => {
@@ -41,14 +45,24 @@ describe("client requirement intake contract", () => {
     expect(protectedIntakeAvailability.reason).toContain("isolated acceptance");
   });
 
+  it("pins one client request key for a retry and only renews it for a deliberate new draft", () => {
+    const original = "9ce5a383-9ebf-430e-9bba-2e550c20fe3e";
+    expect(clientRequirementRequestKey(original)).toBe(original);
+    const renewed = clientRequirementRequestKey(null);
+    expect(renewed).toMatch(/^[0-9a-f-]{36}$/i);
+    expect(renewed).not.toBe(original);
+  });
+
   it("keeps external intake behind a narrow definer transaction without widening direct table RLS", () => {
     expect(pendingSql).toContain("CREATE OR REPLACE FUNCTION public.submit_external_customer_requirement");
     expect(pendingSql).toMatch(/submit_external_customer_requirement\([\s\S]*?LANGUAGE plpgsql\s+SECURITY DEFINER\s+SET search_path = public, pg_temp/);
     expect(pendingSql).toContain("v_actor_id uuid := auth.uid()");
     expect(pendingSql).toContain("public.external_current_contact_id(v_actor_id)");
     expect(pendingSql).toContain("public.external_current_party_id()");
-    expect(pendingSql).toContain("public.external_requirement_scope_allows(v_contact_id, p_opportunity_id, p_customer_id)");
+    expect(pendingSql).toContain("public.external_requirement_scope_allows(p_opportunity_id, p_customer_id)");
     expect(pendingSql).toContain("p_request_key uuid");
+    expect(pendingSql).toContain("DROP FUNCTION public.submit_external_customer_requirement(uuid,uuid,text,text,jsonb)");
+    expect(pendingSql).toContain("REVOKE ALL ON FUNCTION public.submit_external_customer_requirement(uuid,uuid,text,text,jsonb) FROM PUBLIC, anon, authenticated, service_role");
     expect(pendingSql).toContain("CREATE TABLE IF NOT EXISTS public.external_requirement_submission_requests");
     expect(pendingSql).toContain("PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0))");
     expect(pendingSql).toContain("Request key conflicts with a different caller or payload");
@@ -61,19 +75,24 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).not.toContain("GRANT INSERT ON public.customer_requirements TO authenticated");
   });
 
-  it("binds an exact retry receipt to the caller, scope, and normalized payload", () => {
+  it("binds an exact retry receipt to the caller, scope, and persisted canonical payload", () => {
     expect(pendingSql).toContain("request_key uuid PRIMARY KEY");
     expect(pendingSql).toContain("external_contact_id uuid NOT NULL");
     expect(pendingSql).toContain("opportunity_id uuid NOT NULL");
     expect(pendingSql).toContain("customer_id uuid NOT NULL");
     expect(pendingSql).toContain("requested_by uuid NOT NULL");
     expect(pendingSql).toContain("payload_hash text NOT NULL");
+    expect(pendingSql).toContain("payload_canonical jsonb NOT NULL");
     expect(pendingSql).toContain("requirement_id uuid NOT NULL UNIQUE");
     expect(pendingSql).toContain("v_prior.requested_by = v_actor_id");
     expect(pendingSql).toContain("v_prior.external_contact_id = v_contact_id");
     expect(pendingSql).toContain("v_prior.payload_hash = v_payload_hash");
+    expect(pendingSql).toContain("v_prior.payload_canonical = v_payload_canonical");
     expect(pendingSql).toContain("FROM public.external_requirement_submission_requests");
     expect(pendingSql).toContain("FOR UPDATE;");
+    expect(pendingSql).toContain("external_requirement_submission_canonical_payload");
+    expect(pendingSql).toContain("DROP FUNCTION IF EXISTS public.external_requirement_scope_allows(uuid, uuid, uuid)");
+    expect(pendingSql).not.toContain("GRANT EXECUTE ON FUNCTION public.external_requirement_scope_allows");
   });
 
   it("requires expiration, revocation, direct-table denial, rollback, and caller-RLS acceptance", () => {
@@ -86,5 +105,7 @@ describe("client requirement intake contract", () => {
     expect(acceptanceSql).toContain("same request key + identical payload replays the original requirement ID");
     expect(acceptanceSql).toContain("Request key conflicts with a different caller or payload");
     expect(acceptanceSql).toContain("external_requirement_submission_requests row, one customer_requirements row");
+    expect(acceptanceSql).toContain("No five-argument overload may remain callable");
+    expect(acceptanceSql).toContain("canonical payload");
   });
 });

@@ -23,6 +23,15 @@
 -- SELECT has_table_privilege('authenticated', 'public.activity_log', 'INSERT') AS direct_audit_insert;
 -- SELECT has_function_privilege('authenticated',
 --   'public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb, uuid)', 'EXECUTE') AS scoped_rpc_execute;
+-- No five-argument overload may remain callable after this proposal:
+-- SELECT count(*) = 0 AS no_legacy_five_argument_overload
+-- FROM pg_proc procedure
+-- JOIN pg_namespace namespace ON namespace.oid = procedure.pronamespace
+-- WHERE namespace.nspname = 'public'
+--   AND procedure.proname = 'submit_external_customer_requirement'
+--   AND pg_get_function_identity_arguments(procedure.oid) = 'p_opportunity_id uuid, p_customer_id uuid, p_title text, p_customer_reference text, p_requirement_data jsonb';
+-- SELECT has_function_privilege('authenticated',
+--   'public.external_requirement_scope_allows(uuid, uuid)', 'EXECUTE') = false AS no_external_scope_oracle;
 --
 -- Example caller-authenticated session setup (supply a JWT through a secure runner; never commit a token):
 -- BEGIN;
@@ -54,6 +63,9 @@
 -- request_key, and exact payload. Both must return the same requirement ID; after commit, exactly one
 -- external_requirement_submission_requests row, one customer_requirements row, one revision 1 row,
 -- and one external_submitted audit row may exist for that receipt.
+-- The receipt's persisted canonical payload must exactly equal
+-- public.external_requirement_submission_canonical_payload(opportunity, customer, title, reference, data).
+-- Reuse of the key with a changed canonical payload must fail even if an MD5 collision were supplied.
 --
 -- Forced audit rollback case: run against a disposable acceptance configuration that rejects
 -- only this function's `external_submitted` audit insert, then prove no header or revision
