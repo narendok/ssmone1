@@ -1,3 +1,15 @@
+@@
+   it("does not report empty readiness after a source query error", () => {
+     const state = buildBaselineReadinessSnapshot({ sourceError: new Error("RLS denied"), planning: [], requiredDepartments: [], commercialStatus: "customer_authorized", customerAuthorizedAt: "2026-10-06T14:24:00.000Z", unresolvedConditions: [] });
+     expect(state).toMatchObject({ state: "SOURCE_ERROR", canApprove: false });
+   });
+
+  it("keeps partial business records blocked when provenance is unavailable", () => {
+    const state = buildBaselineReadinessSnapshot({ sourceError: new Error("column source_revision_id does not exist"), planning: [], requiredDepartments: ["HARDWARE"], commercialStatus: "customer_authorized", customerAuthorizedAt: "2026-10-06T14:24:00.000Z", unresolvedConditions: [] });
+    expect(state).toMatchObject({ state: "SOURCE_ERROR", canApprove: false });
+    expect(state.blockers).toEqual(["Read-only source records could not be verified."]);
+  });
+ });
 import { describe, expect, it } from "vitest";
 import { buildBaselineReadinessSnapshot, buildFeasibilityPlanningSnapshot, displayPlanningValue } from "./feasibility-planning";
 
