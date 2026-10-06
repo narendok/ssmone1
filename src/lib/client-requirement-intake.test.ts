@@ -160,6 +160,9 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("WHERE source_revision_id = v_revision.id");
     expect(pendingSql).toContain("Open feasibility review is pinned to different immutable provenance");
     expect(pendingSql).toContain("UNIQUE (source_revision_id, department_id)");
+    expect(pendingSql).toContain("customer_requirement_revisions_requirement_revision_key");
+    expect(pendingSql).toContain("UNIQUE (requirement_id, revision_number)");
+    expect(pendingSql).toContain("applicable_workstreams IS NOT NULL");
     expect(pendingSql).toContain("All protected routines lock source rows in this order: requirement, revision, review, version.");
     expect(pendingSql).toContain("Match assignment's order: requirement, revision, review, version.");
     expect(pendingSql).toContain("source_revision_id, source_revision_number,");

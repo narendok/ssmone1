@@ -293,6 +293,16 @@ BEGIN
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.customer_requirement_revisions'::regclass
+      AND conname = 'customer_requirement_revisions_requirement_revision_key'
+  ) THEN
+    ALTER TABLE public.customer_requirement_revisions
+      ADD CONSTRAINT customer_requirement_revisions_requirement_revision_key
+      UNIQUE (requirement_id, revision_number);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
     WHERE conrelid = 'public.requirement_feasibility_reviews'::regclass
       AND conname = 'requirement_feasibility_reviews_pinned_source_check'
   ) THEN
@@ -304,6 +314,7 @@ BEGIN
         OR
         (source_revision_id IS NOT NULL AND source_revision_number IS NOT NULL
           AND master_specification_version_id IS NOT NULL AND master_specification_version_number IS NOT NULL
+          AND applicable_workstreams IS NOT NULL
           AND jsonb_typeof(applicable_workstreams) = 'array')
       );
   END IF;
@@ -354,7 +365,7 @@ BEGIN
   FOR KEY SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Current immutable customer requirement revision is unavailable'; END IF;
 
-  IF jsonb_typeof(v_revision.requirement_data) <> 'object'
+  IF jsonb_typeof(v_revision.requirement_data) IS DISTINCT FROM 'object'
      OR NULLIF(v_revision.requirement_data #>> '{source,master_specification_version_id}', '') IS NULL THEN
     RAISE EXCEPTION 'Current immutable customer requirement revision lacks a Master Specification version source; legacy provenance is unavailable';
   END IF;
