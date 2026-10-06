@@ -24,9 +24,22 @@ SELECT NOT has_table_privilege('authenticated', 'public.customer_requirements', 
 SELECT NOT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'INSERT') AS no_authenticated_revision_insert;
 SELECT NOT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'UPDATE') AS no_authenticated_revision_update;
 
--- No baseline approval privilege or direct baseline-write assertion appears here:
--- this revision deliberately exports no baseline RPC while revision-bound feasibility
--- and replay requirements remain unsupported/unverified.
+-- Pending baseline-approval structural preflight. This is not database acceptance.
+SELECT NOT has_table_privilege('PUBLIC', 'public.sales_baseline_approval_requests', 'SELECT') AS no_public_baseline_receipt_read;
+SELECT NOT has_table_privilege('anon', 'public.sales_baseline_approval_requests', 'INSERT') AS no_anon_baseline_receipt_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_baseline_approval_requests', 'SELECT') AS no_authenticated_baseline_receipt_read;
+SELECT has_function_privilege('authenticated', 'public.approve_sales_requirement_baseline(uuid, integer, uuid)', 'EXECUTE') AS protected_baseline_callable;
+
+-- Required caller-authenticated isolated assertions, each transactionally isolated:
+-- 1. exact expected current revision and pinned provenance are mandatory; legacy NULL
+--    provenance, stale revisions, mismatched source pairs, or TBC workstreams fail.
+-- 2. every applicable department has one matching terminal feasible verdict; a verdict
+--    pinned to a historic revision never satisfies a newer revision.
+-- 3. unresolved conditions/risks and missing verified customer authorization fail.
+-- 4. the existing trigger assigns the baseline number; callers have no number parameter.
+-- 5. identical actor/key/payload replays after later source changes; changed payload rejects.
+-- 6. concurrent same-key approvals converge to one baseline/receipt/audit; forced audit
+--    failure rolls all three back; direct receipt/baseline writes remain denied.
 
 -- Required executable assertions in the real caller transport runner:
 -- 1. approved isolated target refusal before any request is sent;

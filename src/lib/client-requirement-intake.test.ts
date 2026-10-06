@@ -251,19 +251,30 @@ describe("client requirement intake contract", () => {
     expect(facade).not.toContain("createCustomerRequirement");
   });
 
-  it("retires the legacy multi-call facade and fails baseline approval closed until revision-bound feasibility is available", () => {
+  it("retains a pending atomic baseline contract while its facade remains unavailable", () => {
     const salesFunctions = readFileSync("src/lib/sales.functions.ts", "utf8");
     const lifecycleDialogs = readFileSync("src/components/sales/SalesLifecycleDialogs.tsx", "utf8");
     expect(salesFunctions).toContain("Legacy customer requirement creation is retired");
     expect(salesFunctions).not.toContain('from("customer_requirements").insert');
     expect(salesFunctions).not.toContain('from("customer_requirement_revisions").insert');
-    expect(salesFunctions).not.toContain('sb.rpc("approve_requirement_baseline"');
-    expect(salesFunctions).toContain("Baseline approval is unavailable until revision-bound feasibility");
-    expect(salesBoundSql).not.toContain("CREATE OR REPLACE FUNCTION public.approve_requirement_baseline");
+    expect(salesFunctions).not.toContain('sb.rpc("approve_sales_requirement_baseline"');
+    expect(salesFunctions).toContain("Baseline approval is unavailable until the pending revision-bound");
+    expect(salesBoundSql).toContain("CREATE TABLE public.sales_baseline_approval_requests");
+    expect(salesBoundSql).toContain("REVOKE ALL ON TABLE public.sales_baseline_approval_requests FROM PUBLIC, anon, authenticated;");
+    expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.approve_sales_requirement_baseline");
+    expect(salesBoundSql).toContain("p_expected_revision_number integer");
+    expect(salesBoundSql).toContain("Requirement revision is stale; reload the current immutable revision before approval");
+    expect(salesBoundSql).toContain("Expected immutable requirement revision lacks Master Specification provenance; legacy provenance is unavailable");
+    expect(salesBoundSql).toContain("v_workstreams := v_revision.requirement_data #> '{source,applicable_workstreams}'");
+    expect(salesBoundSql).toContain("Every applicable department requires a pinned terminal feasible review before baseline approval");
+    expect(salesBoundSql).toContain("Pinned feasibility reviews contain unresolved conditions or risks");
+    expect(salesBoundSql).toContain("Verified customer commercial authorization is required before baseline approval");
+    expect(salesBoundSql).toContain("v_requirement.id, NULL, v_revision.revision_number");
+    expect(salesBoundSql).toContain("PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0))");
+    expect(salesBoundSql).toContain("Request key conflicts with a different caller or payload");
+    expect(salesBoundSql).toContain("'Approved immutable requirement baseline.'");
     expect(salesBoundSql).not.toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirements FROM PUBLIC, authenticated;");
     expect(salesBoundSql).toContain("requirement_baselines_assign_business_code");
-    expect(salesBoundSql).toContain("Future protected approval must not accept a caller baseline number");
-    expect(salesBoundSql).toContain("requirement-revision linkage plus applicability");
     expect(lifecycleDialogs).toContain("Read-only readiness");
     expect(lifecycleDialogs).toContain("The deployed read model cannot verify the current immutable requirement revision");
     expect(lifecycleDialogs).toContain("Create approved baseline</Button>");
