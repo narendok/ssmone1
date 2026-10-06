@@ -181,7 +181,6 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("Match assignment's order: requirement, revision, review, version.");
     expect(pendingSql).toContain("source_revision_id, source_revision_number,");
     expect(pendingSql).toContain("source_revision_id IS NULL");
-@@
     expect(salesRead).toContain("withUnavailableFeasibilityProvenance");
     expect(salesRead).toContain("Immutable feasibility provenance is unavailable in the deployed read model");
     expect(salesRead).not.toContain("created_at,source_revision_id,source_revision_number,master_specification_version_id");
