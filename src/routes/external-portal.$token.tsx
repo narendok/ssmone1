@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileCheck2, FileLock2, FileText, Send, ShieldAlert, ShieldCheck, UploadCloud } from "lucide-react";
 import { acceptExternalInvitation, getExternalPortal, respondToExternalReview } from "@/lib/external-portal.functions";
 import { submitClientRequirement } from "@/lib/client-requirement-intake.functions";
-import { clientRequirementRequestKey } from "@/lib/client-requirement-intake";
+import { clientRequirementRequestKey, protectedIntakeAvailability } from "@/lib/client-requirement-intake";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
