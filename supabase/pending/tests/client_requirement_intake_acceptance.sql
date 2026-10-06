@@ -20,10 +20,12 @@
 -- 6. same request key with a changed title, reference, description, opportunity, customer, or caller fails without a new row.
 -- 7. two scoped sessions using the same caller, request key, and payload concurrently converge to one receipt and one requirement.
 -- 8. forced audit failure: requirement and revision roll back together (no partial submission).
--- 9. reviewer: protected assignment locks the requirement, pins its exact current immutable
---    revision plus the current Master Specification version and verified workstreams. A repeated
---    assignment with the same reviewer/source is an exact retry and returns the existing review;
---    reassignment and response must not mutate the pinned provenance.
+-- 9. reviewer: protected assignment locks requirement, source revision, review, then pinned
+--    Master version. It derives that version only from revision.requirement_data.source.
+--    It must reject absent/invalid legacy source IDs plus missing/null/non-string/unknown
+--    workstreams. A repeated assignment for the exact revision/department is an exact retry.
+--    A terminal review remains immutable history; after a new requirement revision, the same
+--    department receives a new revision-scoped review without modifying the historic verdict.
 --    record_requirement_feasibility_response succeeds exactly once; retry fails as immutable.
 -- 10. concurrency: two reviewer sessions race the same review; one commits and the other receives the immutable
 --    conflict, leaving exactly one terminal response and one response audit event.
@@ -105,6 +107,11 @@
 -- caller's existing RLS policy otherwise permits UPDATE.
 --
 -- Reviewer assignment/terminal invariants: prove assignment routine rejects a non-member reviewer;
+-- prove it derives the Master version from source_revision.requirement_data.source rather than
+-- master_specifications.current_version; header advancement must not change a revision-bound
+-- source. Prove absent/invalid legacy source IDs and missing/null/non-string/unknown workstreams
+-- fail closed. Prove revision-scoped uniqueness permits a new department review for a new
+-- requirement revision while preserving the old terminal row unchanged.
 -- prove it creates only pending reviews and may reset/reassign only pending/in_review reviews,
 -- including a repeat assignment to the same reviewer. Prove the exact retry returns the existing review;
 -- reassignment and response must not mutate the pinned provenance. A requirement revision or Master

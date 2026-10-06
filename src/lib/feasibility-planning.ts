@@ -19,6 +19,7 @@ export type FeasibilityPlanningRevision = {
   id: string;
   requirement_id: string;
   revision_number: number;
+  source_master_specification_version_id?: string | null;
 };
 
 export type FeasibilityPlanningSpecification = {
@@ -84,10 +85,14 @@ export function buildFeasibilityPlanningSnapshot(input: {
     return planningSnapshot({ state: "UNSUPPORTED_UNVERIFIED", requirementRevision, masterSpecification, isTerminalVerdict, canSatisfyPlanningGate: false, message: "This feasibility record is not bound to immutable requirement and Master Specification revisions. Its verdict is unverified and cannot satisfy planning." });
   }
 
+  if (!requirementRevision.source_master_specification_version_id) {
+    return planningSnapshot({ state: "UNSUPPORTED_UNVERIFIED", requirementRevision, masterSpecification, isTerminalVerdict, canSatisfyPlanningGate: false, message: "The current requirement revision does not expose immutable Master Specification provenance. Its feasibility verdict is unverified and cannot satisfy planning." });
+  }
+
   if (input.review.source_revision_id !== requirementRevision.id
     || input.review.source_revision_number !== requirementRevision.revision_number
-    || input.review.master_specification_version_number !== masterSpecification.current_version) {
-    return planningSnapshot({ state: "STALE", requirementRevision, masterSpecification, isTerminalVerdict, canSatisfyPlanningGate: false, message: "The requirement or Master Specification changed after this review was sourced. A stale verdict cannot satisfy planning." });
+    || input.review.master_specification_version_id !== requirementRevision.source_master_specification_version_id) {
+    return planningSnapshot({ state: "STALE", requirementRevision, masterSpecification, isTerminalVerdict, canSatisfyPlanningGate: false, message: "The immutable requirement source changed after this review was assigned. A stale verdict cannot satisfy planning." });
   }
 
   const applicableWorkstreams = readWorkstreams(input.review.applicable_workstreams);
