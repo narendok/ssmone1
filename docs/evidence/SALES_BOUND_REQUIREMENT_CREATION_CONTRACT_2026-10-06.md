@@ -284,7 +284,7 @@ REVOKE ALL ON FUNCTION public.sales_requirement_creation_payload_hash(uuid, uuid
 -- only the locked source state; and preserve active-baseline downstream visibility.
 --
 -- Required separate dependency: a reviewed schema/contract that records immutable
--- requirement-revision linkage and applicability on feasibility decisions. Without
+-- requirement-revision linkage plus applicability on feasibility decisions. Without
 -- it, current `requirement_feasibility_reviews` rows are unsupported/unverified and
 -- cannot gate baseline approval. The existing customer requirement status enum is
 -- not treated as proof of that missing linkage.

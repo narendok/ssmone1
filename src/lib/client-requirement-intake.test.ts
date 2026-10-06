@@ -182,25 +182,21 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).not.toContain("createCustomerRequirement(");
   });
 
-  it("documents caller-authenticated retry, conflict, concurrency, source, and rollback acceptance", () => {
-    expect(salesBoundAcceptanceSql).toContain("never service-role impersonation");
-    expect(salesBoundAcceptanceSql).toContain("Identical retry");
-    expect(salesBoundAcceptanceSql).toContain("Changed title, summary, customer, version, or actor");
-    expect(salesBoundAcceptanceSql).toContain("Replay after Master version advance");
-    expect(salesBoundAcceptanceSql).toContain("Concurrent source update");
+  it("documents the boundary between structural checks and required real caller-transport acceptance", () => {
+    const transportHarness = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_caller_transport_acceptance.sh", "utf8");
+    expect(salesBoundAcceptanceSql).toContain("STRUCTURAL-ONLY SOURCE CHECK");
+    expect(salesBoundAcceptanceSql).toContain("not caller-authenticated database acceptance");
+    expect(salesBoundAcceptanceSql).toContain("Exact replay after Master-version advance");
+    expect(salesBoundAcceptanceSql).toContain("Fresh key using the now-stale Master version rejects");
+    expect(salesBoundAcceptanceSql).toContain("protected create holds its source locks");
+    expect(salesBoundAcceptanceSql).toContain("source_bound_created audit");
     expect(salesBoundAcceptanceSql).toContain("no_public_receipt_read");
     expect(salesBoundAcceptanceSql).toContain("no_anon_receipt_read");
-    expect(salesBoundAcceptanceSql).toContain("sales_bound_requirement_creation_concurrency_acceptance.sh");
-    expect(salesBoundConcurrencyHarness).toContain("Replay after Master version advance");
-    expect(salesBoundConcurrencyHarness).toContain("Concurrent source update blocks");
-    expect(salesBoundConcurrencyHarness).toContain("wait_event_type = 'Lock'");
-    expect(salesBoundConcurrencyHarness).toContain("Request key conflicts with a different caller or payload");
-    expect(salesBoundConcurrencyHarness).toContain("REQUEST_KEY_B");
-    expect(salesBoundConcurrencyHarness).toContain("distinct nonblank requirement numbers");
-    expect(salesBoundAcceptanceSql).toContain("stale/nonmatching Master version");
-    expect(salesBoundAcceptanceSql).toContain("Two concurrent authenticated sessions");
-    expect(salesBoundAcceptanceSql).toContain("Force the source_bound_created audit insert to fail");
-    expect(salesBoundAcceptanceSql).toContain("24v tracker");
+    expect(salesBoundAcceptanceSql).toContain("sales_bound_requirement_creation_caller_transport_acceptance.sh");
+    expect(transportHarness).toContain("Refusing unapproved isolated target");
+    expect(transportHarness).toContain("Refusing original target");
+    expect(transportHarness).toContain("Fresh stale-version creation unexpectedly succeeded");
+    expect(transportHarness).toContain("protected create holds its source locks");
   });
 
   it("keeps the pending Sales facade unavailable instead of falling back to legacy writes", () => {
