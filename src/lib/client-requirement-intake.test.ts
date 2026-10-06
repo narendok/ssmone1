@@ -211,20 +211,36 @@ describe("client requirement intake contract", () => {
     expect(facade).not.toContain("createCustomerRequirement");
   });
 
-  it("retires the legacy multi-call facade and preserves baseline approval through a pending protected routine", () => {
+  it("retires the legacy multi-call facade and fails baseline approval closed until revision-bound feasibility is available", () => {
     const salesFunctions = readFileSync("src/lib/sales.functions.ts", "utf8");
+    const lifecycleDialogs = readFileSync("src/components/sales/SalesLifecycleDialogs.tsx", "utf8");
     expect(salesFunctions).toContain("Legacy customer requirement creation is retired");
     expect(salesFunctions).not.toContain('from("customer_requirements").insert');
     expect(salesFunctions).not.toContain('from("customer_requirement_revisions").insert');
-    expect(salesFunctions).toContain('sb.rpc("approve_requirement_baseline"');
-    expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.approve_requirement_baseline");
-    expect(salesBoundSql).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirements FROM PUBLIC, authenticated;");
-    expect(salesBoundSql).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirement_revisions FROM PUBLIC, authenticated;");
-    expect(salesBoundSql).toContain('DROP POLICY IF EXISTS "Sales users manage requirements"');
-    expect(salesBoundSql).toContain('DROP POLICY IF EXISTS "Sales users manage requirement revisions"');
-    expect(salesBoundSql).toContain("Existing manual and");
-    expect(salesBoundAcceptanceSql).toContain("Baseline compatibility");
-    expect(salesBoundAcceptanceSql).toContain("no_authenticated_requirement_insert");
+    expect(salesFunctions).not.toContain('sb.rpc("approve_requirement_baseline"');
+    expect(salesFunctions).toContain("Baseline approval is unavailable until revision-bound feasibility");
+    expect(salesBoundSql).not.toContain("CREATE OR REPLACE FUNCTION public.approve_requirement_baseline");
+    expect(salesBoundSql).not.toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirements FROM PUBLIC, authenticated;");
+    expect(salesBoundSql).toContain("requirement_baselines_assign_business_code");
+    expect(salesBoundSql).toContain("Future protected approval must not accept a caller baseline number");
+    expect(salesBoundSql).toContain("immutable requirement-revision linkage and applicability");
+    expect(lifecycleDialogs).toContain("Baseline approval is unavailable until revision-bound feasibility");
+    expect(lifecycleDialogs).toContain('type="submit" disabled>Create approved baseline');
+  });
+
+  it("labels direct psql simulation structural-only and requires a real caller transport target refusal", () => {
+    const transportHarness = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_caller_transport_acceptance.sh", "utf8");
+    expect(salesBoundAcceptanceSql).toContain("STRUCTURAL-ONLY SOURCE CHECK");
+    expect(salesBoundAcceptanceSql).toContain("not caller-authenticated database acceptance");
+    expect(salesBoundAcceptanceSql).not.toContain("SET LOCAL request.jwt.claim.sub");
+    expect(salesBoundConcurrencyHarness).toContain("RETIRED STRUCTURAL HARNESS");
+    expect(salesBoundConcurrencyHarness).not.toContain("pg_sleep");
+    expect(transportHarness).toContain("Refusing unapproved isolated target");
+    expect(transportHarness).toContain("Refusing original target");
+    expect(transportHarness).not.toContain("request.jwt.claim");
+    expect(transportHarness).not.toContain("service_role");
+    expect(transportHarness).toContain("Fresh stale-version creation unexpectedly succeeded");
+    expect(transportHarness).toContain("protected create holds its source locks");
   });
 
   it("requires expiration, revocation, direct-table denial, rollback, and caller-RLS acceptance", () => {
