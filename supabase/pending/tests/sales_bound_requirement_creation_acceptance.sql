@@ -3,6 +3,9 @@
 -- Required variables: sales_manager_id, sales_manager_jwt, opportunity_id, customer_id,
 -- master_specification_version_id, stale_master_specification_version_id, wrong_customer_id,
 -- request_key. Every mutation case must ROLLBACK.
+-- Execute sales_bound_requirement_creation_concurrency_acceptance.sh for the real
+-- two-session replay-after-advance and source-lock cases; this psql file remains
+-- intentionally single-session and never impersonates service_role.
 \set ON_ERROR_STOP on
 
 -- Preflight: only the protected routine may access receipts. Every direct table

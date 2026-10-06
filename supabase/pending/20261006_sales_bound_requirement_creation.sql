@@ -21,6 +21,11 @@ CREATE TABLE public.sales_requirement_creation_requests (
 GRANT ALL ON TABLE public.sales_requirement_creation_requests TO service_role;
 REVOKE ALL ON TABLE public.sales_requirement_creation_requests FROM PUBLIC, anon, authenticated;
 ALTER TABLE public.sales_requirement_creation_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "No direct receipt access"
+  ON public.sales_requirement_creation_requests
+  FOR ALL TO authenticated
+  USING (false)
+  WITH CHECK (false);
 
 CREATE OR REPLACE FUNCTION public.sales_requirement_creation_canonical_payload(
   p_opportunity_id uuid,
@@ -108,6 +113,9 @@ BEGIN
   );
 
   PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0));
+  -- Global lock order for every future contract touching these resources:
+  -- advisory(request_key) -> receipt row -> sales opportunity -> Master Specification.
+  -- The controlled Master Specification save owns the trailing source order.
   SELECT * INTO v_prior
   FROM public.sales_requirement_creation_requests
   WHERE request_key = p_request_key

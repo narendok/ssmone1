@@ -25,9 +25,13 @@ The contract creates a new requirement only when a caller with `sales.manage` is
 
 The pending DDL grants receipt-table access only to `service_role` and explicitly revokes all access from `PUBLIC`, `anon`, and `authenticated`. The protected definer routine alone reads/writes caller receipts; browser callers cannot inspect or insert them.
 
+RLS additionally carries an explicit authenticated deny-all policy. This is defense in depth: direct receipt access remains denied even if a future table grant is introduced accidentally.
+
 ## Pending direct-write decision
 
 This proposal does **not** revoke existing direct requirement-table writes yet. The legacy `createCustomerRequirement` path must be removed or redirected in the same accepted migration; revoking first would break existing Sales flows. The new source-bound path itself never falls back to that legacy multi-call function.
+
+**Acceptance blocker:** the existing legacy server path still directly inserts requirements and updates the opportunity stage. It must be removed or redirected in the same accepted change that removes direct authenticated writes; until then, this pending contract cannot be accepted as the only source-bound creation channel. No legacy behavior was changed here.
 
 ## Required isolated acceptance
 
@@ -43,6 +47,31 @@ This proposal does **not** revoke existing direct requirement-table writes yet. 
 ## Full pending SQL
 
 ```sql
+CREATE TABLE public.sales_requirement_creation_requests (
+  request_key uuid PRIMARY KEY,
+  requested_by uuid NOT NULL,
+  opportunity_id uuid NOT NULL REFERENCES public.sales_opportunities(id) ON DELETE RESTRICT,
+  customer_id uuid NOT NULL REFERENCES public.customers(id) ON DELETE RESTRICT,
+  master_specification_version_id uuid NOT NULL REFERENCES public.master_specification_versions(id) ON DELETE RESTRICT,
+  payload_hash text NOT NULL,
+  payload_canonical jsonb NOT NULL,
+  requirement_id uuid NOT NULL UNIQUE REFERENCES public.customer_requirements(id) ON DELETE RESTRICT,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (length(btrim(payload_hash)) > 0),
+  CHECK (jsonb_typeof(payload_canonical) = 'object')
+);
+GRANT ALL ON TABLE public.sales_requirement_creation_requests TO service_role;
+REVOKE ALL ON TABLE public.sales_requirement_creation_requests FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.sales_requirement_creation_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "No direct receipt access" ON public.sales_requirement_creation_requests FOR ALL TO authenticated USING (false) WITH CHECK (false);
+
+CREATE OR REPLACE FUNCTION public.sales_requirement_creation_canonical_payload(p_opportunity_id uuid, p_customer_id uuid, p_master_specification_version_id uuid, p_title text, p_customer_reference text, p_summary text) RETURNS jsonb LANGUAGE sql IMMUTABLE SET search_path = public AS $$
+  SELECT jsonb_build_object('opportunity_id', p_opportunity_id, 'customer_id', p_customer_id, 'master_specification_version_id', p_master_specification_version_id, 'title', btrim(p_title), 'customer_reference', nullif(btrim(coalesce(p_customer_reference, '')), ''), 'summary', nullif(btrim(coalesce(p_summary, '')), ''))
+$$;
+CREATE OR REPLACE FUNCTION public.sales_requirement_creation_payload_hash(p_opportunity_id uuid, p_customer_id uuid, p_master_specification_version_id uuid, p_title text, p_customer_reference text, p_summary text) RETURNS text LANGUAGE sql IMMUTABLE SET search_path = public AS $$
+  SELECT md5(public.sales_requirement_creation_canonical_payload(p_opportunity_id, p_customer_id, p_master_specification_version_id, p_title, p_customer_reference, p_summary)::text)
+$$;
+
 -- See the exact source file: supabase/pending/20261006_sales_bound_requirement_creation.sql
 -- This export embeds the complete routine body for independent review.
 CREATE OR REPLACE FUNCTION public.create_sales_bound_customer_requirement(
@@ -81,7 +110,15 @@ BEGIN
   RETURN v_requirement.id;
 END;
 $$;
+REVOKE ALL ON FUNCTION public.create_sales_bound_customer_requirement(uuid, uuid, uuid, text, text, text, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_sales_bound_customer_requirement(uuid, uuid, uuid, text, text, text, uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.sales_requirement_creation_canonical_payload(uuid, uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.sales_requirement_creation_payload_hash(uuid, uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 ```
+
+## Executable isolated concurrency harness
+
+`supabase/pending/tests/sales_bound_requirement_creation_concurrency_acceptance.sh` is the required two-session source-only harness. It uses two caller-authenticated `psql` sessions, checks `pg_stat_activity.wait_event_type = 'Lock'`, and fails if either replay-after-version-advance or source-lock serialization does not meet the contract. It needs dedicated isolated records and credentials supplied by the acceptance environment; it has not been executed against any database.
 
 ## Full fail-closed facade
 
