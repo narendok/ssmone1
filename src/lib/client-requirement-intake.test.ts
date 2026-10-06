@@ -4,6 +4,8 @@ import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequi
 
 const pendingSql = readFileSync("supabase/pending/20261005_client_requirement_intake.sql", "utf8");
 const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_intake_acceptance.sql", "utf8");
+const salesBoundSql = readFileSync("supabase/pending/20261006_sales_bound_requirement_creation.sql", "utf8");
+const salesBoundAcceptanceSql = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_acceptance.sql", "utf8");
 
 describe("client requirement intake contract", () => {
   it("requires bounded immutable submission content", () => {
@@ -152,6 +154,44 @@ describe("client requirement intake contract", () => {
     expect(lifecycleDialogs).toContain("Protected assignment is pending database acceptance");
     expect(lifecycleDialogs).toContain("Assign reviewer</Button>");
     expect(lifecycleDialogs).not.toContain("Save review</Button>");
+  });
+
+  it("keeps Sales-bound requirement creation atomic, current-version-pinned, and replay-safe", () => {
+    expect(salesBoundSql).toContain("CREATE TABLE public.sales_requirement_creation_requests");
+    expect(salesBoundSql).toContain("GRANT ALL ON TABLE public.sales_requirement_creation_requests TO service_role;");
+    expect(salesBoundSql).toContain("ALTER TABLE public.sales_requirement_creation_requests ENABLE ROW LEVEL SECURITY;");
+    expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.create_sales_bound_customer_requirement");
+    expect(salesBoundSql).toMatch(/create_sales_bound_customer_requirement\([\s\S]*?LANGUAGE plpgsql\s+SECURITY DEFINER\s+SET search_path = public, pg_temp/);
+    expect(salesBoundSql).toContain("public.has_permission(v_actor_id, 'sales.manage')");
+    expect(salesBoundSql).toContain("WHERE id = p_opportunity_id AND customer_id = p_customer_id");
+    expect(salesBoundSql).toContain("version.version_number = specification.current_version");
+    expect(salesBoundSql).toContain("Master Specification version is unavailable for this opportunity and customer");
+    expect(salesBoundSql).toContain("PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0))");
+    expect(salesBoundSql).toContain("v_prior.payload_canonical = v_payload_canonical");
+    expect(salesBoundSql).toContain("Request key conflicts with a different caller or payload");
+    expect(salesBoundSql).toContain("public.next_business_number('customer_requirement', 'CR', NULL)");
+    expect(salesBoundSql).toContain("'master_specification_version_id', p_master_specification_version_id");
+    expect(salesBoundSql).toContain("'source_bound_created'");
+    expect(salesBoundSql).toContain("REVOKE ALL ON FUNCTION public.create_sales_bound_customer_requirement");
+    expect(salesBoundSql).not.toContain("createCustomerRequirement(");
+  });
+
+  it("documents caller-authenticated retry, conflict, concurrency, source, and rollback acceptance", () => {
+    expect(salesBoundAcceptanceSql).toContain("never service-role impersonation");
+    expect(salesBoundAcceptanceSql).toContain("Identical retry");
+    expect(salesBoundAcceptanceSql).toContain("Changed title, summary, customer, version, or actor");
+    expect(salesBoundAcceptanceSql).toContain("stale/nonmatching Master version");
+    expect(salesBoundAcceptanceSql).toContain("Two concurrent authenticated sessions");
+    expect(salesBoundAcceptanceSql).toContain("Force the source_bound_created audit insert to fail");
+    expect(salesBoundAcceptanceSql).toContain("24v tracker");
+  });
+
+  it("keeps the pending Sales facade unavailable instead of falling back to legacy writes", () => {
+    const facade = readFileSync("src/lib/sales-bound-requirement.functions.ts", "utf8");
+    expect(facade).toContain("requireSupabaseAuth");
+    expect(facade).toContain("Source-bound requirement creation is unavailable");
+    expect(facade).not.toContain('from("customer_requirements").insert');
+    expect(facade).not.toContain("createCustomerRequirement");
   });
 
   it("requires expiration, revocation, direct-table denial, rollback, and caller-RLS acceptance", () => {
