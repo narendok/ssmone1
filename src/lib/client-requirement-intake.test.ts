@@ -262,8 +262,10 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("requirement_baselines_assign_business_code");
     expect(salesBoundSql).toContain("Future protected approval must not accept a caller baseline number");
     expect(salesBoundSql).toContain("requirement-revision linkage plus applicability");
-    expect(lifecycleDialogs).toContain("Baseline approval is unavailable until revision-bound feasibility");
-    expect(lifecycleDialogs).toContain('type="submit" disabled>Create approved baseline');
+    expect(lifecycleDialogs).toContain("Read-only readiness");
+    expect(lifecycleDialogs).toContain("The deployed read model cannot verify the current immutable requirement revision");
+    expect(lifecycleDialogs).toContain("Create approved baseline</Button>");
+    expect(lifecycleDialogs).toContain("disabled>Create approved baseline");
   });
 
   it("labels direct psql simulation structural-only and requires a real caller transport target refusal", () => {
