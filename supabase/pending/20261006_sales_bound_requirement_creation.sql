@@ -1,6 +1,6 @@
 -- SOURCE-ONLY PROPOSAL. Do not apply until isolated caller-authenticated acceptance
 -- demonstrates Sales authorization, source binding, exact replay, concurrency, audit
--- rollback, direct-write denial, and non-admin RLS. This introduces no automatic
+-- rollback, direct-write denial, compatibility preservation, and non-admin RLS. This introduces no automatic
 -- feasibility, approval, conversion, publication, or mutation of existing requirements.
 --
 -- New pending DDL: an internal Sales-only receipt table is necessary because no existing
@@ -163,7 +163,10 @@ BEGIN
     requirement_number, opportunity_id, customer_id, title, status, current_revision,
     customer_reference, requirement_data, submitted_at, created_by
   ) VALUES (
-    public.next_business_number('customer_requirement', 'CR', NULL),
+    -- The established BEFORE INSERT trigger uses this exact entity and NULL scopes.
+    -- Calling it here preserves one serialized counter for Sales and client intake,
+    -- while the nonblank result prevents the trigger from allocating a second number.
+    public.next_business_number('customer_requirement', NULL, NULL),
     p_opportunity_id, p_customer_id, btrim(p_title), 'submitted', 1,
     nullif(btrim(coalesce(p_customer_reference, '')), ''),
     jsonb_build_object(
@@ -218,6 +221,83 @@ GRANT EXECUTE ON FUNCTION public.create_sales_bound_customer_requirement(uuid, u
 REVOKE ALL ON FUNCTION public.sales_requirement_creation_canonical_payload(uuid, uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sales_requirement_creation_payload_hash(uuid, uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 
--- Direct table-write revocation is intentionally deferred until the legacy Sales
--- functions have been removed or redirected in the same accepted migration. This proposal
--- itself provides no legacy multi-call fallback and never calls createCustomerRequirement.
+-- COMPATIBILITY GROUP — apply only with 20261005_client_requirement_intake.sql and only
+-- after isolated caller-authenticated acceptance. The controlled routines above and the
+-- external intake routine remain SECURITY DEFINER entry points after authenticated table
+-- writes are removed. The baseline workflow below preserves the one live Sales approval
+-- operation that otherwise updates a requirement header.
+
+CREATE OR REPLACE FUNCTION public.approve_requirement_baseline(
+  p_requirement_id uuid,
+  p_baseline_number text DEFAULT NULL
+) RETURNS TABLE(baseline_id uuid, baseline_number text)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_actor_id uuid := auth.uid();
+  v_requirement public.customer_requirements%ROWTYPE;
+  v_commercial public.sales_commercial_records%ROWTYPE;
+  v_baseline public.requirement_baselines%ROWTYPE;
+BEGIN
+  IF v_actor_id IS NULL OR NOT public.has_permission(v_actor_id, 'sales.manage') THEN
+    RAISE EXCEPTION 'Sales management permission is required';
+  END IF;
+  IF p_requirement_id IS NULL OR (p_baseline_number IS NOT NULL AND char_length(btrim(p_baseline_number)) > 64) THEN
+    RAISE EXCEPTION 'A requirement and valid optional baseline number are required';
+  END IF;
+
+  SELECT * INTO v_requirement
+  FROM public.customer_requirements
+  WHERE id = p_requirement_id
+  FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Requirement not found'; END IF;
+  IF v_requirement.status IN ('baselined', 'archived') THEN
+    RAISE EXCEPTION 'Requirement is already baselined or archived';
+  END IF;
+
+  SELECT * INTO v_commercial
+  FROM public.sales_commercial_records
+  WHERE requirement_id = v_requirement.id AND status = 'customer_authorized'
+  FOR KEY SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Customer commercial authorization is required before creating a baseline';
+  END IF;
+
+  INSERT INTO public.requirement_baselines (
+    requirement_id, baseline_number, revision_number, requirement_snapshot,
+    commercial_snapshot, approved_by
+  ) VALUES (
+    v_requirement.id, nullif(btrim(coalesce(p_baseline_number, '')), ''),
+    v_requirement.current_revision, v_requirement.requirement_data,
+    to_jsonb(v_commercial), v_actor_id
+  ) RETURNING * INTO v_baseline;
+
+  UPDATE public.customer_requirements
+  SET status = 'baselined', approved_at = now()
+  WHERE id = v_requirement.id;
+  UPDATE public.sales_opportunities
+  SET stage = 'approved', status = 'won'
+  WHERE id = v_requirement.opportunity_id;
+  INSERT INTO public.activity_log (
+    actor_user_id, module_key, entity_type, entity_id, action, summary, after_data
+  ) VALUES (
+    v_actor_id, 'sales', 'requirement_baseline', v_baseline.id, 'created',
+    'Created approved requirement baseline.',
+    jsonb_build_object('requirement_id', v_requirement.id, 'revision_number', v_requirement.current_revision)
+  );
+  RETURN QUERY SELECT v_baseline.id, v_baseline.baseline_number;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.approve_requirement_baseline(uuid, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.approve_requirement_baseline(uuid, text) TO authenticated, service_role;
+
+-- No direct authenticated header or revision mutations remain after the three protected
+-- creation paths and baseline approval routine above are accepted. Existing manual and
+-- approved rows are retained unchanged; this adds no source backfill for the 24v tracker.
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirements FROM PUBLIC, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirement_revisions FROM PUBLIC, authenticated;
+DROP POLICY IF EXISTS "Sales users manage requirements" ON public.customer_requirements;
+DROP POLICY IF EXISTS "Sales users manage requirement revisions" ON public.customer_requirement_revisions;

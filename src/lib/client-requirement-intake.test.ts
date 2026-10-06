@@ -157,7 +157,7 @@ describe("client requirement intake contract", () => {
     expect(lifecycleDialogs).not.toContain("Save review</Button>");
   });
 
-  it("keeps Sales-bound requirement creation atomic, current-version-pinned, and replay-safe", () => {
+  it("keeps Sales-bound requirement creation atomic, current-version-pinned, replay-safe, and compatible with controlled numbering", () => {
     expect(salesBoundSql).toContain("CREATE TABLE public.sales_requirement_creation_requests");
     expect(salesBoundSql).toContain("GRANT ALL ON TABLE public.sales_requirement_creation_requests TO service_role;");
     expect(salesBoundSql).toContain("REVOKE ALL ON TABLE public.sales_requirement_creation_requests FROM PUBLIC, anon, authenticated;");
@@ -175,7 +175,7 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("FOR UPDATE OF specification;");
     expect(salesBoundSql).toContain("v_prior.payload_canonical = v_payload_canonical");
     expect(salesBoundSql).toContain("Request key conflicts with a different caller or payload");
-    expect(salesBoundSql).toContain("public.next_business_number('customer_requirement', 'CR', NULL)");
+    expect(salesBoundSql).toContain("public.next_business_number('customer_requirement', NULL, NULL)");
     expect(salesBoundSql).toContain("'master_specification_version_id', p_master_specification_version_id");
     expect(salesBoundSql).toContain("'source_bound_created'");
     expect(salesBoundSql).toContain("REVOKE ALL ON FUNCTION public.create_sales_bound_customer_requirement");
@@ -195,6 +195,8 @@ describe("client requirement intake contract", () => {
     expect(salesBoundConcurrencyHarness).toContain("Concurrent source update blocks");
     expect(salesBoundConcurrencyHarness).toContain("wait_event_type = 'Lock'");
     expect(salesBoundConcurrencyHarness).toContain("Request key conflicts with a different caller or payload");
+    expect(salesBoundConcurrencyHarness).toContain("REQUEST_KEY_B");
+    expect(salesBoundConcurrencyHarness).toContain("distinct nonblank requirement numbers");
     expect(salesBoundAcceptanceSql).toContain("stale/nonmatching Master version");
     expect(salesBoundAcceptanceSql).toContain("Two concurrent authenticated sessions");
     expect(salesBoundAcceptanceSql).toContain("Force the source_bound_created audit insert to fail");
@@ -207,6 +209,22 @@ describe("client requirement intake contract", () => {
     expect(facade).toContain("Source-bound requirement creation is unavailable");
     expect(facade).not.toContain('from("customer_requirements").insert');
     expect(facade).not.toContain("createCustomerRequirement");
+  });
+
+  it("retires the legacy multi-call facade and preserves baseline approval through a pending protected routine", () => {
+    const salesFunctions = readFileSync("src/lib/sales.functions.ts", "utf8");
+    expect(salesFunctions).toContain("Legacy customer requirement creation is retired");
+    expect(salesFunctions).not.toContain('from("customer_requirements").insert');
+    expect(salesFunctions).not.toContain('from("customer_requirement_revisions").insert');
+    expect(salesFunctions).toContain('sb.rpc("approve_requirement_baseline"');
+    expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.approve_requirement_baseline");
+    expect(salesBoundSql).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirements FROM PUBLIC, authenticated;");
+    expect(salesBoundSql).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirement_revisions FROM PUBLIC, authenticated;");
+    expect(salesBoundSql).toContain('DROP POLICY IF EXISTS "Sales users manage requirements"');
+    expect(salesBoundSql).toContain('DROP POLICY IF EXISTS "Sales users manage requirement revisions"');
+    expect(salesBoundSql).toContain("Existing manual and");
+    expect(salesBoundAcceptanceSql).toContain("Baseline compatibility");
+    expect(salesBoundAcceptanceSql).toContain("no_authenticated_requirement_insert");
   });
 
   it("requires expiration, revocation, direct-table denial, rollback, and caller-RLS acceptance", () => {
