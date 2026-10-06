@@ -68,5 +68,8 @@ describe("client requirement intake contract", () => {
     expect(acceptanceSql).toContain("Forced audit rollback case");
     expect(acceptanceSql).toContain("cannot SELECT the new header/revision/audit directly through RLS");
     expect(acceptanceSql).toContain("concurrency");
+    expect(acceptanceSql).toContain("same request key + identical payload replays the original requirement ID");
+    expect(acceptanceSql).toContain("Request key conflicts with a different caller or payload");
+    expect(acceptanceSql).toContain("exactly one external_requirement_submission_requests row");
   });
 });

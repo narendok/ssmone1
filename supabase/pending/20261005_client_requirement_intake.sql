@@ -22,6 +22,10 @@ REVOKE ALL ON TABLE public.external_requirement_submission_requests FROM PUBLIC,
 GRANT ALL ON TABLE public.external_requirement_submission_requests TO service_role;
 ALTER TABLE public.external_requirement_submission_requests ENABLE ROW LEVEL SECURITY;
 
+-- This receipt follows the established `inventory_transaction_requests` shape: a caller-provided
+-- UUID, an immutable normalized-payload hash, and the persisted result.  This smaller receipt is
+-- deliberately contact/opportunity/customer-bound so an external retry cannot replay across scope.
+
 CREATE OR REPLACE FUNCTION public.external_requirement_submission_payload_hash(
   p_opportunity_id uuid,
   p_customer_id uuid,

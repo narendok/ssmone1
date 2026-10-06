@@ -22,7 +22,7 @@
 -- SELECT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'INSERT') AS direct_revision_insert;
 -- SELECT has_table_privilege('authenticated', 'public.activity_log', 'INSERT') AS direct_audit_insert;
 -- SELECT has_function_privilege('authenticated',
---   'public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb)', 'EXECUTE') AS scoped_rpc_execute;
+--   'public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb, uuid)', 'EXECUTE') AS scoped_rpc_execute;
 --
 -- Example caller-authenticated session setup (supply a JWT through a secure runner; never commit a token):
 -- BEGIN;
