@@ -196,7 +196,7 @@ describe("client requirement intake contract", () => {
     expect(transportHarness).toContain("Refusing unapproved isolated target");
     expect(transportHarness).toContain("Refusing original target");
     expect(transportHarness).toContain("Fresh stale-version creation unexpectedly succeeded");
-    expect(transportHarness).toContain("protected create holds its source locks");
+    expect(transportHarness).toContain("protected-create/source-update overlap");
   });
 
   it("keeps the pending Sales facade unavailable instead of falling back to legacy writes", () => {
@@ -233,10 +233,10 @@ describe("client requirement intake contract", () => {
     expect(salesBoundConcurrencyHarness).not.toContain("pg_sleep");
     expect(transportHarness).toContain("Refusing unapproved isolated target");
     expect(transportHarness).toContain("Refusing original target");
-    expect(transportHarness).toContain("never sets request.jwt.claim");
+    expect(transportHarness).toContain("request.jwt.claim.* and never connects");
     expect(transportHarness).toContain("never connects with a service-role credential");
     expect(transportHarness).toContain("Fresh stale-version creation unexpectedly succeeded");
-    expect(transportHarness).toContain("protected create holds its source locks");
+    expect(transportHarness).toContain("protected-create/source-update overlap");
   });
 
   it("requires expiration, revocation, direct-table denial, rollback, and caller-RLS acceptance", () => {
