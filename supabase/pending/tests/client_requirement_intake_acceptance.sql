@@ -23,9 +23,11 @@
 -- 9. reviewer: record_requirement_feasibility_response succeeds exactly once; retry fails as immutable.
 -- 10. concurrency: two reviewer sessions race the same review; one commits and the other receives the immutable
 --    conflict, leaving exactly one terminal response and one response audit event.
--- 11. direct review UPDATE: a Sales manager with the existing table UPDATE policy cannot alter
---    status/findings/assumptions/risks/reviewed_at outside record_requirement_feasibility_response.
---    A pending-assignment-only update remains possible through its separately authorized flow.
+-- 11. direct review UPDATE: no authenticated caller has INSERT/UPDATE/DELETE table privilege,
+--    and the former Sales-all policy is absent. A marker-set direct UPDATE attempt (including
+--    set_config('app.requirement_feasibility_response_rpc', '1', true)) fails. Direct terminal
+--    reassignment, source requirement replacement, reviewer replacement, and deletion fail.
+--    assign_requirement_feasibility_review remains the only compatible pending assignment path.
 -- 12. successful protected response writes exactly one activity_log row whose after_data binds the
 --    review's requirement_id, requirement opportunity/customer, department, assigned reviewer, and terminal status.
 --    Force that audit insert to fail in the isolated backend and prove the response update rolls back.
@@ -90,3 +92,10 @@
 -- pending/in_review with its original fields. On a successful call, compare activity_log.after_data
 -- to the locked review and source requirement; direct terminal field UPDATE must fail even when the
 -- caller's existing RLS policy otherwise permits UPDATE.
+--
+-- Reviewer assignment/terminal invariants: prove assignment routine rejects a non-member reviewer;
+-- prove it creates only pending reviews and may reassign only pending/in_review reviews. After a
+-- terminal response, attempts to change requirement_id, department_id, reviewer_user_id, status,
+-- findings, assumptions, risks, or reviewed_at must all fail, including when a caller manually
+-- sets the former app.requirement_feasibility_response_rpc GUC. Audit failure must roll back the
+-- terminal update and preserve the original requirement_id and department/reviewer assignment.

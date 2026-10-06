@@ -98,17 +98,24 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).not.toContain("GRANT EXECUTE ON FUNCTION public.external_requirement_scope_allows");
   });
 
-  it("uses a clean-install-safe legacy scope retirement guard and an audit-bearing exclusive reviewer response", () => {
+  it("uses protected assignment and response routines instead of a caller-settable reviewer marker", () => {
     expect(pendingSql).toContain("A clean installation has no former three-argument scope helper");
     expect(pendingSql).toContain("never use CASCADE here");
-    expect(pendingSql).toContain("app.requirement_feasibility_response_rpc");
-    expect(pendingSql).toContain("Feasibility responses must be recorded through the protected response routine");
+    expect(pendingSql).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.requirement_feasibility_reviews FROM authenticated");
+    expect(pendingSql).toContain('DROP POLICY IF EXISTS "Sales users manage feasibility reviews"');
+    expect(pendingSql).toContain("CREATE OR REPLACE FUNCTION public.assign_requirement_feasibility_review");
+    expect(pendingSql).toContain("Terminal feasibility reviews cannot be reassigned");
+    expect(pendingSql).toContain("Feasibility source requirement is immutable after assignment");
+    expect(pendingSql).toContain("Feasibility responses require the assigned active engineering reviewer");
+    expect(pendingSql).not.toContain("PERFORM set_config('app.requirement_feasibility_response_rpc'");
     expect(pendingSql).toContain("'requirement_id', v_review.requirement_id");
     expect(pendingSql).toContain("'opportunity_id', v_requirement.opportunity_id");
     expect(pendingSql).toContain("'customer_id', v_requirement.customer_id");
     expect(acceptanceSql).toContain("clean install");
     expect(acceptanceSql).toContain("Receipt upgrade");
     expect(acceptanceSql).toContain("direct review UPDATE");
+    expect(acceptanceSql).toContain("marker-set direct UPDATE attempt");
+    expect(acceptanceSql).toContain("source requirement replacement");
     expect(acceptanceSql).toContain("Reviewer rollback and provenance case");
   });
 
