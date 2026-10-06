@@ -242,6 +242,81 @@ REVOKE ALL ON FUNCTION public.external_requirement_scope_allows(uuid, uuid) FROM
 REVOKE ALL ON FUNCTION public.external_requirement_submission_payload_hash(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.external_requirement_submission_canonical_payload(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon, authenticated, service_role;
 
+-- The applied Sales-all policy and table UPDATE grant permit direct feasibility writes. Replace
+-- that one broad write path with two narrowly scoped protected routines: assignment can only
+-- create/reassign an open review; a terminal response can only be appended by its assigned,
+-- active engineering reviewer. Source requirement linkage is never mutable after creation.
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.requirement_feasibility_reviews FROM authenticated;
+DROP POLICY IF EXISTS "Sales users manage feasibility reviews" ON public.requirement_feasibility_reviews;
+CREATE POLICY "Sales users manage open feasibility assignments"
+ON public.requirement_feasibility_reviews
+FOR SELECT TO authenticated
+USING (
+  public.has_permission(auth.uid(), 'sales.view')
+  OR public.has_permission(auth.uid(), 'engineering.view')
+  OR public.has_role(auth.uid(), 'admin')
+);
+
+CREATE OR REPLACE FUNCTION public.assign_requirement_feasibility_review(
+  p_requirement_id uuid,
+  p_department_id uuid,
+  p_reviewer_user_id uuid
+) RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_review public.requirement_feasibility_reviews%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.has_permission(auth.uid(), 'sales.manage') THEN
+    RAISE EXCEPTION 'Sales management permission is required';
+  END IF;
+  IF p_requirement_id IS NULL OR p_department_id IS NULL OR p_reviewer_user_id IS NULL THEN
+    RAISE EXCEPTION 'Requirement, department, and reviewer are required';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.customer_requirements WHERE id = p_requirement_id) THEN
+    RAISE EXCEPTION 'Feasibility source requirement is unavailable';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.employees employee
+    JOIN public.employee_departments membership ON membership.employee_id = employee.id
+    WHERE employee.user_id = p_reviewer_user_id
+      AND employee.employment_status = 'ACTIVE'
+      AND membership.department_id = p_department_id
+  ) THEN
+    RAISE EXCEPTION 'Assigned reviewer is not an active member of the selected department';
+  END IF;
+  SELECT * INTO v_review
+  FROM public.requirement_feasibility_reviews
+  WHERE requirement_id = p_requirement_id AND department_id = p_department_id
+  FOR UPDATE;
+  IF FOUND THEN
+    IF v_review.status NOT IN ('pending', 'in_review') THEN
+      RAISE EXCEPTION 'Terminal feasibility reviews cannot be reassigned';
+    END IF;
+    UPDATE public.requirement_feasibility_reviews
+    SET reviewer_user_id = p_reviewer_user_id,
+        status = 'pending',
+        findings = NULL,
+        assumptions = NULL,
+        risks = NULL,
+        reviewed_at = NULL
+    WHERE id = v_review.id;
+    RETURN v_review.id;
+  END IF;
+  INSERT INTO public.requirement_feasibility_reviews (
+    requirement_id, department_id, reviewer_user_id, status, created_by
+  ) VALUES (p_requirement_id, p_department_id, p_reviewer_user_id, 'pending', auth.uid())
+  RETURNING id INTO v_review.id;
+  RETURN v_review.id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.assign_requirement_feasibility_review(uuid, uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.assign_requirement_feasibility_review(uuid, uuid, uuid) TO authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION public.record_requirement_feasibility_response(
   p_review_id uuid,
   p_status text,
@@ -296,9 +371,6 @@ BEGIN
   IF v_review.status IN ('feasible', 'feasible_with_conditions', 'not_feasible') THEN
     RAISE EXCEPTION 'Feasibility responses are immutable after submission';
   END IF;
-  -- This is the exclusive terminal-response path. The response trigger below accepts only
-  -- this local transaction marker, so direct updates cannot bypass this audit-bearing write.
-  PERFORM set_config('app.requirement_feasibility_response_rpc', '1', true);
   UPDATE public.requirement_feasibility_reviews
   SET status = p_status,
       findings = p_findings,
@@ -333,46 +405,24 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  IF current_setting('app.requirement_feasibility_response_rpc', true) IS DISTINCT FROM '1' THEN
-    -- Assignment fields remain untouched by this response guard. A separately reviewed
-    -- assignment workflow may still create or change pending/in-review assignments.
-    IF NEW.status IS NOT DISTINCT FROM OLD.status
-       AND NEW.findings IS NOT DISTINCT FROM OLD.findings
-       AND NEW.assumptions IS NOT DISTINCT FROM OLD.assumptions
-       AND NEW.risks IS NOT DISTINCT FROM OLD.risks
-       AND NEW.reviewed_at IS NOT DISTINCT FROM OLD.reviewed_at THEN
-      RETURN NEW;
-    END IF;
-    RAISE EXCEPTION 'Feasibility responses must be recorded through the protected response routine';
-  END IF;
+  -- This guard is defense in depth only. The table grants and Sales-all write policy are
+  -- removed above, so a caller cannot authorize a response by setting a session variable.
+  -- Check terminal immutability before every other path: no reassignment or source replacement.
   IF OLD.status IN ('feasible', 'feasible_with_conditions', 'not_feasible') THEN
     RAISE EXCEPTION 'Feasibility responses are immutable after submission';
   END IF;
-  IF NEW.department_id IS DISTINCT FROM OLD.department_id
-    OR NEW.reviewer_user_id IS DISTINCT FROM OLD.reviewer_user_id THEN
-    RAISE EXCEPTION 'Assignments are immutable after creation; create a new review assignment instead';
+  IF NEW.requirement_id IS DISTINCT FROM OLD.requirement_id THEN
+    RAISE EXCEPTION 'Feasibility source requirement is immutable after assignment';
   END IF;
-  IF OLD.reviewer_user_id IS NULL OR OLD.department_id IS NULL THEN
-    RAISE EXCEPTION 'Feasibility review requires an assigned reviewer and department';
+  IF NEW.department_id IS DISTINCT FROM OLD.department_id THEN
+    RAISE EXCEPTION 'Feasibility department is immutable after assignment';
   END IF;
-  IF OLD.reviewer_user_id IS DISTINCT FROM auth.uid() THEN
-    RAISE EXCEPTION 'Only the assigned reviewer may respond';
+  IF NEW.reviewer_user_id IS DISTINCT FROM OLD.reviewer_user_id THEN
+    RAISE EXCEPTION 'Feasibility reviewer changes require the protected assignment routine';
   END IF;
-  IF NOT EXISTS (
-    SELECT 1 FROM public.employees employee
-    JOIN public.employee_departments membership ON membership.employee_id = employee.id
-    WHERE employee.user_id = auth.uid()
-      AND employee.employment_status = 'ACTIVE'
-      AND membership.department_id = OLD.department_id
-  ) THEN
-    RAISE EXCEPTION 'The assigned reviewer is not an active member of this review department';
-  END IF;
-  IF NEW.status IN ('feasible', 'feasible_with_conditions', 'not_feasible') THEN
-    IF NULLIF(btrim(NEW.findings), '') IS NULL THEN
-      RAISE EXCEPTION 'Findings are required when responding to a feasibility review';
-    END IF;
-    NEW.reviewed_at := now();
-  END IF;
+  -- The protected routines own all valid update paths. If a future grant/policy reopens table
+  -- updates, fail closed rather than treating any session marker as proof of authorization.
+  RAISE EXCEPTION 'Feasibility reviews must be changed through protected routines';
   RETURN NEW;
 END;
 $$;
@@ -381,6 +431,48 @@ DROP TRIGGER IF EXISTS requirement_feasibility_response_guard_trigger ON public.
 CREATE TRIGGER requirement_feasibility_response_guard_trigger
 BEFORE UPDATE ON public.requirement_feasibility_reviews
 FOR EACH ROW EXECUTE FUNCTION public.requirement_feasibility_response_guard();
+
+CREATE OR REPLACE FUNCTION public.requirement_feasibility_response_insert_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.status <> 'pending'
+     OR NEW.findings IS NOT NULL
+     OR NEW.assumptions IS NOT NULL
+     OR NEW.risks IS NOT NULL
+     OR NEW.reviewed_at IS NOT NULL THEN
+    RAISE EXCEPTION 'Feasibility reviews must be created as unresponded assignments';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS requirement_feasibility_response_insert_guard_trigger ON public.requirement_feasibility_reviews;
+CREATE TRIGGER requirement_feasibility_response_insert_guard_trigger
+BEFORE INSERT ON public.requirement_feasibility_reviews
+FOR EACH ROW EXECUTE FUNCTION public.requirement_feasibility_response_insert_guard();
+
+CREATE OR REPLACE FUNCTION public.requirement_feasibility_response_delete_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF OLD.status NOT IN ('pending', 'in_review') THEN
+    RAISE EXCEPTION 'Terminal feasibility reviews cannot be deleted';
+  END IF;
+  RAISE EXCEPTION 'Feasibility review deletion is not a supported workflow';
+END;
+$$;
+
+DROP TRIGGER IF EXISTS requirement_feasibility_response_delete_guard_trigger ON public.requirement_feasibility_reviews;
+CREATE TRIGGER requirement_feasibility_response_delete_guard_trigger
+BEFORE DELETE ON public.requirement_feasibility_reviews
+FOR EACH ROW EXECUTE FUNCTION public.requirement_feasibility_response_delete_guard();
 
 -- Direct external table RLS is deliberately unchanged: this routine is the only proposed
 -- external write path. It derives the authenticated actor, contact, party, active/revoked/
