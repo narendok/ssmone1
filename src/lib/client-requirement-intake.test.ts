@@ -108,6 +108,9 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("Feasibility source requirement is immutable after assignment");
     expect(pendingSql).toContain("Feasibility responses require the assigned active engineering reviewer");
     expect(pendingSql).not.toContain("PERFORM set_config('app.requirement_feasibility_response_rpc'");
+    expect(pendingSql).not.toContain("current_setting('app.requirement_feasibility_response_rpc'");
+    expect(pendingSql).toContain("'Engineering feasibility review assigned.'");
+    expect(pendingSql).toContain("AND OLD.status IN ('pending', 'in_review') THEN");
     expect(pendingSql).toContain("'requirement_id', v_review.requirement_id");
     expect(pendingSql).toContain("'opportunity_id', v_requirement.opportunity_id");
     expect(pendingSql).toContain("'customer_id', v_requirement.customer_id");
@@ -117,6 +120,9 @@ describe("client requirement intake contract", () => {
     expect(acceptanceSql).toContain("marker-set direct UPDATE attempt");
     expect(acceptanceSql).toContain("source requirement replacement");
     expect(acceptanceSql).toContain("Reviewer rollback and provenance case");
+    expect(acceptanceSql).toContain("no_direct_review_insert");
+    expect(acceptanceSql).toContain("sales_write_policy_removed");
+    expect(acceptanceSql).toContain("repeat assignment to the same reviewer");
   });
 
   it("requires expiration, revocation, direct-table denial, rollback, and caller-RLS acceptance", () => {

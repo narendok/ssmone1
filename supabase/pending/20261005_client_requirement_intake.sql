@@ -296,12 +296,34 @@ BEGIN
         risks = NULL,
         reviewed_at = NULL
     WHERE id = v_review.id;
+    INSERT INTO public.activity_log(actor_user_id, module_key, entity_type, entity_id, action, summary, after_data)
+    VALUES (
+      auth.uid(), 'sales', 'requirement_feasibility', v_review.id, 'assigned',
+      'Engineering feasibility review assigned.',
+      jsonb_build_object(
+        'requirement_id', p_requirement_id,
+        'department_id', p_department_id,
+        'reviewer_user_id', p_reviewer_user_id,
+        'status', 'pending'
+      )
+    );
     RETURN v_review.id;
   END IF;
   INSERT INTO public.requirement_feasibility_reviews (
     requirement_id, department_id, reviewer_user_id, status, created_by
   ) VALUES (p_requirement_id, p_department_id, p_reviewer_user_id, 'pending', auth.uid())
   RETURNING id INTO v_review.id;
+  INSERT INTO public.activity_log(actor_user_id, module_key, entity_type, entity_id, action, summary, after_data)
+  VALUES (
+    auth.uid(), 'sales', 'requirement_feasibility', v_review.id, 'assigned',
+    'Engineering feasibility review assigned.',
+    jsonb_build_object(
+      'requirement_id', p_requirement_id,
+      'department_id', p_department_id,
+      'reviewer_user_id', p_reviewer_user_id,
+      'status', 'pending'
+    )
+  );
   RETURN v_review.id;
 END;
 $$;
@@ -417,6 +439,14 @@ BEGIN
        OR NEW.reviewed_at IS NOT NULL THEN
       RAISE EXCEPTION 'Feasibility reviewer changes require an unresponded assignment';
     END IF;
+    RETURN NEW;
+  END IF;
+  IF NEW.status = 'pending'
+     AND NEW.findings IS NULL
+     AND NEW.assumptions IS NULL
+     AND NEW.risks IS NULL
+     AND NEW.reviewed_at IS NULL
+     AND OLD.status IN ('pending', 'in_review') THEN
     RETURN NEW;
   END IF;
   IF NEW.status NOT IN ('feasible', 'feasible_with_conditions', 'not_feasible')
