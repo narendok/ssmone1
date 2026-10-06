@@ -136,7 +136,7 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("Open feasibility review is pinned to different immutable provenance");
     expect(pendingSql).toContain("Feasibility review lacks immutable provenance and cannot receive a protected response");
     expect(pendingSql).toContain("source_revision_id IS NOT NULL");
-    expect(pendingSql).toContain("Feasibility responses require the assigned active engineering reviewer");
+    expect(pendingSql).toContain("Only the assigned reviewer may submit this feasibility response");
     expect(pendingSql).not.toContain("PERFORM set_config('app.requirement_feasibility_response_rpc'");
     expect(pendingSql).not.toContain("current_setting('app.requirement_feasibility_response_rpc'");
     expect(pendingSql).toContain("'Engineering feasibility review assigned.'");
@@ -169,7 +169,7 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("source_revision_id IS NULL");
     expect(salesRead).toContain("source_revision_id,source_revision_number,master_specification_version_id,master_specification_version_number,applicable_workstreams");
     expect(acceptanceSql).toContain("pinned provenance");
-    expect(acceptanceSql).toContain("reassignment and response must not mutate the pinned provenance");
+    expect(acceptanceSql).toContain("terminal review remains immutable history");
     expect(acceptanceSql).toContain("exact retry returns the existing review");
     expect(acceptanceSql).toContain("revision-scoped uniqueness");
     expect(acceptanceSql).toContain("missing/null/non-string workstreams");
