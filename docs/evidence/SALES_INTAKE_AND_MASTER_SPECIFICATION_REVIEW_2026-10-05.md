@@ -43,7 +43,7 @@ The present deployed Sales access model is **global permission scoped**, not rec
 
 The previous `submit_external_customer_requirement(...)` draft was `SECURITY INVOKER`, while the existing `customer_requirements` and `customer_requirement_revisions` write policies are staff-only (`sales.manage`/administrator). It could never complete an otherwise valid external submission.
 
-The pending replacement at `supabase/pending/20261005_client_requirement_intake.sql` is now a narrow `SECURITY DEFINER` transaction with `SET search_path = public, pg_temp`. It derives the actor only from `auth.uid()`, resolves the active external contact and party via the established helpers, verifies active/non-revoked/non-expired `CLIENT_REQUIREMENTS` access with explicit opportunity and customer scope, verifies the party/customer and authoritative opportunity/customer pairing, then atomically inserts the requirement, immutable revision 1, and provenance-rich audit. The caller supplies no contact, party, actor, role, or privilege parameter.
+The pending replacement at `supabase/pending/20261005_client_requirement_intake.sql` is now a narrow `SECURITY DEFINER` transaction with `SET search_path = public, pg_temp`. It derives the actor only from `auth.uid()`, resolves the active external contact and party via the established helpers, verifies active/non-revoked/non-expired `CLIENT_REQUIREMENTS` access with explicit opportunity and customer scope, verifies the party/customer and authoritative opportunity/customer pairing, then atomically inserts the requirement, immutable revision 1, and provenance-rich audit. The caller supplies no contact, party, actor, role, or privilege parameter. Each request receipt stores both an MD5 collision-detection value and the exact canonical JSONB payload; replay requires equality of both.
 
 No direct external table policy or grant is widened: the pending routine is the sole proposed external write path, and the acceptance runner explicitly requires direct requirement/revision/audit reads and writes to remain denied. The existing feasibility-review policy mismatch remains a separate, pending reviewer-contract gap; it is not loosened or enabled by this correction.
 
@@ -70,8 +70,8 @@ The migration creates:
 
 The pending proposal defines:
 
-- `public.external_requirement_scope_allows(p_contact_id uuid, p_opportunity_id uuid, p_customer_id uuid) returns boolean`
-- `public.submit_external_customer_requirement(p_opportunity_id uuid, p_customer_id uuid, p_title text, p_customer_reference text, p_requirement_data jsonb) returns uuid`
+- `public.external_requirement_scope_allows(p_opportunity_id uuid, p_customer_id uuid) returns boolean` (internal only; derives the current caller contact)
+- `public.submit_external_customer_requirement(p_opportunity_id uuid, p_customer_id uuid, p_title text, p_customer_reference text, p_requirement_data jsonb, p_request_key uuid) returns uuid`
 - `public.record_requirement_feasibility_response(p_review_id uuid, p_status text, p_findings text, p_assumptions text, p_risks text) returns uuid`
 - `public.requirement_feasibility_response_guard()` and its update trigger
 
@@ -93,7 +93,7 @@ The façade retrieves the authoritative opportunity/customer pair through the ca
 - `src/lib/client-requirement-intake.functions.ts`
 - `submitClientRequirement = createServerFn({ method: "POST" })`
   - middleware: `requireSupabaseAuth`
-  - input: `{ opportunityId, customerId, title, description, customerReference }`
+  - input: `{ opportunityId, customerId, requestKey, title, description, customerReference }`
   - calls `submit_external_customer_requirement(...)`
 - `recordAssignedFeasibility = createServerFn({ method: "POST" })`
   - middleware: `requireSupabaseAuth`
@@ -135,13 +135,15 @@ GRANT EXECUTE ON FUNCTION public.save_master_specification_version(uuid, uuid, u
 The pending external submission routine is `SECURITY DEFINER`, not `SECURITY INVOKER`; no external-table policy widening is proposed. It derives caller/contact/party identity from authenticated session helpers and restricts the scoped write by active/revoked/expiry checks plus explicit `access_scope` membership for both opportunity and customer.
 
 ```sql
-REVOKE ALL ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon, authenticated, service_role;
+DROP FUNCTION IF EXISTS public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb);
+REVOKE ALL ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb, uuid) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.record_requirement_feasibility_response(uuid, text, text, text, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.record_requirement_feasibility_response(uuid, text, text, text, text) TO authenticated, service_role;
 ```
 
-The feasibility response routine locks the assigned review, requires a terminal verdict and findings, rejects a second terminal response, and records an audit event. The trigger prevents reassignment and post-terminal edits.
+The feasibility response routine locks the assigned review, requires a non-null terminal verdict and findings, requires the exact assigned reviewer to be an active employee of that review's department, rejects a second terminal response, and records an audit event. An engineering manager cannot silently submit another assigned reviewer's verdict. The trigger enforces the same assignment and department boundary on direct updates, then prevents reassignment and post-terminal edits.
 
 ## Acceptance SQL and test runners
 
