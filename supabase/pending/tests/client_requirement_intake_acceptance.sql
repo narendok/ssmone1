@@ -38,6 +38,12 @@
 -- SELECT has_table_privilege('authenticated', 'public.activity_log', 'INSERT') AS direct_audit_insert;
 -- SELECT has_function_privilege('authenticated',
 --   'public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb, uuid)', 'EXECUTE') AS scoped_rpc_execute;
+-- Feasibility privilege/policy preflight after the proposal:
+-- SELECT NOT has_table_privilege('authenticated', 'public.requirement_feasibility_reviews', 'INSERT') AS no_direct_review_insert;
+-- SELECT NOT has_table_privilege('authenticated', 'public.requirement_feasibility_reviews', 'UPDATE') AS no_direct_review_update;
+-- SELECT NOT has_table_privilege('authenticated', 'public.requirement_feasibility_reviews', 'DELETE') AS no_direct_review_delete;
+-- SELECT NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public'
+--   AND tablename = 'requirement_feasibility_reviews' AND policyname = 'Sales users manage feasibility reviews') AS sales_write_policy_removed;
 -- No five-argument overload may remain callable after this proposal:
 -- SELECT count(*) = 0 AS no_legacy_five_argument_overload
 -- FROM pg_proc procedure
@@ -94,7 +100,9 @@
 -- caller's existing RLS policy otherwise permits UPDATE.
 --
 -- Reviewer assignment/terminal invariants: prove assignment routine rejects a non-member reviewer;
--- prove it creates only pending reviews and may reassign only pending/in_review reviews. After a
+-- prove it creates only pending reviews and may reset/reassign only pending/in_review reviews,
+-- including a repeat assignment to the same reviewer. Prove each assignment creates exactly one
+-- `assigned` activity entry with its locked requirement/department/reviewer identifiers. After a
 -- terminal response, attempts to change requirement_id, department_id, reviewer_user_id, status,
 -- findings, assumptions, risks, or reviewed_at must all fail, including when a caller manually
 -- sets the former app.requirement_feasibility_response_rpc GUC. Audit failure must roll back the
