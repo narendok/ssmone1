@@ -172,7 +172,7 @@ describe("client requirement intake contract", () => {
     expect(acceptanceSql).toContain("terminal review remains immutable history");
     expect(acceptanceSql).toContain("exact retry returns the existing review");
     expect(acceptanceSql).toContain("revision-scoped uniqueness");
-    expect(acceptanceSql).toContain("missing/null/non-string workstreams");
+    expect(acceptanceSql).toContain("missing/null/non-string/unknown");
   });
 
   it("keeps the legacy Sales feasibility save path from silently bypassing the pending protected contract", () => {
