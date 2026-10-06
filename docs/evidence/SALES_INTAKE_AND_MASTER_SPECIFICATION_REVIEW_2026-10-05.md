@@ -145,6 +145,80 @@ GRANT EXECUTE ON FUNCTION public.record_requirement_feasibility_response(uuid, t
 
 The feasibility response routine locks the assigned review, requires a non-null terminal verdict and findings, requires the exact assigned reviewer to be an active employee of that review's department, rejects a second terminal response, and records an audit event. An engineering manager cannot silently submit another assigned reviewer's verdict. The trigger enforces the same assignment and department boundary on direct updates, then prevents reassignment and post-terminal edits.
 
+## 2026-10-06 reviewer hardening — exact pending contract
+
+This section exports the full reviewer-facing pending SQL contract for independent review. It is **unapplied** and the normal Sales UI keeps the actions disabled until caller-authenticated isolated acceptance exists.
+
+### Assignment routine
+
+```sql
+public.assign_requirement_feasibility_review(
+  p_requirement_id uuid,
+  p_department_id uuid,
+  p_reviewer_user_id uuid
+) returns uuid
+```
+
+- `SECURITY DEFINER SET search_path = public, pg_temp`.
+- Derives the actor solely from `auth.uid()` and requires `has_permission(auth.uid(), 'sales.manage')`.
+- Requires all three IDs, an existing requirement, and an `ACTIVE` employee membership in the selected department for the requested reviewer.
+- Locks the existing `(requirement_id, department_id)` row with `FOR UPDATE`.
+- Creates a pending unresponded assignment, or resets only a `pending`/`in_review` assignment to pending when reassigned. Terminal review reassignment is rejected.
+- Writes an `activity_log` `assigned` event in the same transaction with requirement, department, reviewer, and `pending` status. Audit failure rolls back the assignment.
+
+### Response routine
+
+```sql
+public.record_requirement_feasibility_response(
+  p_review_id uuid,
+  p_status text,
+  p_findings text,
+  p_assumptions text,
+  p_risks text
+) returns uuid
+```
+
+- `SECURITY DEFINER SET search_path = public, pg_temp`.
+- Derives the actor only through `auth.uid()` and requires `engineering.manage`.
+- Rejects null/non-terminal verdicts and blank findings before changing state.
+- Locks the review (`FOR UPDATE`) and linked `customer_requirements` source (`FOR KEY SHARE`).
+- Requires that the caller is exactly the assigned reviewer and remains an active employee in the assigned department.
+- Allows only `pending`/`in_review` to one terminal verdict; writes one `responded` audit event whose `after_data` binds `requirement_id`, source opportunity/customer, department, reviewer, and verdict.
+- There is no custom-GUC authorization marker in this routine or its guard.
+
+### Direct-write boundary and trigger invariants
+
+```sql
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.requirement_feasibility_reviews FROM authenticated;
+DROP POLICY IF EXISTS "Sales users manage feasibility reviews" ON public.requirement_feasibility_reviews;
+REVOKE ALL ON FUNCTION public.assign_requirement_feasibility_review(uuid, uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.assign_requirement_feasibility_review(uuid, uuid, uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.record_requirement_feasibility_response(uuid, text, text, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.record_requirement_feasibility_response(uuid, text, text, text, text) TO authenticated, service_role;
+```
+
+`requirement_feasibility_response_guard()` rejects terminal records before every other branch, then rejects all `requirement_id` and `department_id` mutation. Reviewer changes are permitted only as a fresh unresponded pending assignment; pending resets are permitted only from `pending`/`in_review`. Any terminal response otherwise requires the assigned active reviewer. The pending INSERT guard permits only unresponded `pending` rows and the DELETE guard rejects every delete; direct authenticated DML is unavailable in addition to these defense-in-depth triggers.
+
+### Current Sales façade compatibility
+
+- `src/lib/sales.functions.ts` now exports `assignFeasibilityReview`, validates `{ requirementId, departmentId, reviewerUserId }`, re-checks `sales.manage` as the caller, and calls only `assign_requirement_feasibility_review`.
+- The legacy `saveFeasibilityReview` direct table upsert has been removed from source; it cannot silently bypass the pending transaction after revocation.
+- `src/lib/client-requirement-intake.functions.ts` exports `recordAssignedFeasibility`, validates the terminal response shape, re-checks `engineering.manage`, then calls `record_requirement_feasibility_response`.
+- `src/components/sales/SalesLifecycleDialogs.tsx` shows both assignment and response controls as acceptance-pending and disabled. It does not label either as an active workflow.
+
+## Executable isolated acceptance harness
+
+The runner is source-only and intentionally has no mutation mode until approved scoped identities and a caller-authenticated RPC transport are available.
+
+- Read-only server façade: `src/lib/isolated-sales-acceptance.functions.ts`, export `getIsolatedSalesAcceptancePreflight`.
+- Pure allowlist/preflight contract: `src/lib/isolated-sales-acceptance.ts`.
+- Shell preflight: `supabase/pending/tests/run_client_requirement_intake_isolated_acceptance.sh`.
+- SQL case contract: `supabase/pending/tests/client_requirement_intake_acceptance.sql`.
+
+The runner accepts only isolated backend `egjotuxqguifnvdnflan` and refuses original backend `yyrvduosyyaluifqvwkr`. It neither reads nor accepts tokens, does not set JWT/custom-GUC identity, does not invoke an RPC, does not use service-role access, and does not apply SQL. Its read-only report names exact unavailable prerequisites: an approved scoped external-contact caller, an approved assigned-reviewer caller, caller-authenticated application-RPC execution, an audit-failure fixture boundary, and two independent approved sessions.
+
+Once those prerequisites are supplied, the fixture is ready to execute exact retry/replay, canonical-payload collision/key conflict, legacy overload absence, terminal source/department/reviewer reassignment denial, audit-failure rollback, same-key concurrency, and concurrent expected-version tests. Until then, these are static/source coverage only, not executed database evidence.
+
 ## Acceptance SQL and test runners
 
 - Master Specification source tests: `src/lib/master-specification.test.ts`
