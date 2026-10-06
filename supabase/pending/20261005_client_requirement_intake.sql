@@ -25,6 +25,23 @@ CREATE TABLE IF NOT EXISTS public.external_requirement_submission_requests (
 ALTER TABLE public.external_requirement_submission_requests
   ADD COLUMN IF NOT EXISTS payload_canonical jsonb;
 
+-- Match the clean-install receipt invariant on upgrades without invalidating legacy rows.
+-- Existing NULL payloads remain deliberately non-replayable; new receipts are object-shaped.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint constraint
+    WHERE constraint.conrelid = 'public.external_requirement_submission_requests'::regclass
+      AND constraint.conname = 'external_requirement_submission_requests_payload_canonical_check'
+  ) THEN
+    ALTER TABLE public.external_requirement_submission_requests
+      ADD CONSTRAINT external_requirement_submission_requests_payload_canonical_check
+      CHECK (payload_canonical IS NULL OR jsonb_typeof(payload_canonical) = 'object');
+  END IF;
+END;
+$$;
+
 REVOKE ALL ON TABLE public.external_requirement_submission_requests FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.external_requirement_submission_requests TO service_role;
 ALTER TABLE public.external_requirement_submission_requests ENABLE ROW LEVEL SECURITY;

@@ -83,6 +83,8 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("requested_by uuid NOT NULL");
     expect(pendingSql).toContain("payload_hash text NOT NULL");
     expect(pendingSql).toContain("payload_canonical jsonb NOT NULL");
+    expect(pendingSql).toContain("external_requirement_submission_requests_payload_canonical_check");
+    expect(pendingSql).toContain("payload_canonical IS NULL OR jsonb_typeof(payload_canonical) = 'object'");
     expect(pendingSql).toContain("requirement_id uuid NOT NULL UNIQUE");
     expect(pendingSql).toContain("v_prior.requested_by = v_actor_id");
     expect(pendingSql).toContain("v_prior.external_contact_id = v_contact_id");
@@ -105,6 +107,7 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("'opportunity_id', v_requirement.opportunity_id");
     expect(pendingSql).toContain("'customer_id', v_requirement.customer_id");
     expect(acceptanceSql).toContain("clean install");
+    expect(acceptanceSql).toContain("Receipt upgrade");
     expect(acceptanceSql).toContain("direct review UPDATE");
     expect(acceptanceSql).toContain("Reviewer rollback and provenance case");
   });

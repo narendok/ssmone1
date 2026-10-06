@@ -9,6 +9,9 @@
 --    attempting REVOKE on either absent signature. Upgrade: install the former 3-argument scope
 --    helper and former 5-argument submit helper with no dependents, then run the proposal and
 --    prove both exact signatures no longer exist or have EXECUTE for any role.
+--    Receipt upgrade: start with a former receipt table lacking payload_canonical and one legacy
+--    receipt. The proposal adds the nullable object-shape constraint; legacy replay fails closed,
+--    while a fresh request key persists a non-null object-shaped canonical payload.
 -- 1. outsider: RPC fails before a row/audit record is visible; direct requirement/revision/audit reads and writes fail.
 -- 2. expired, revoked, and unscoped contact: each RPC call fails and creates no requirement/revision/audit.
 -- 3. wrong opportunity/customer pairing: fails before a row/audit record is visible.
