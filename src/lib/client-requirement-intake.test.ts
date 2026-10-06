@@ -131,6 +131,14 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("master_specification_version_id uuid REFERENCES public.master_specification_versions(id) ON DELETE RESTRICT");
     expect(pendingSql).toContain("Current immutable customer requirement revision is unavailable");
     expect(pendingSql).toContain("v_revision.requirement_data #>> '{source,master_specification_version_id}'");
+    expect(pendingSql).toContain("v_revision.requirement_data #>> '{source,opportunity_id}'");
+    expect(pendingSql).toContain("v_revision.requirement_data #>> '{source,customer_id}'");
+    expect(pendingSql).toContain("v_revision.requirement_data #>> '{source,master_specification_version_number}'");
+    expect(pendingSql).toContain("v_review_found := FOUND");
+    expect(pendingSql).toContain("IF v_review_found THEN");
+    expect(pendingSql).toContain("specification.opportunity_id = v_requirement.opportunity_id");
+    expect(pendingSql).toContain("specification.customer_id = v_requirement.customer_id");
+    expect(pendingSql).toContain("version.version_number = v_source_version_number");
     expect(pendingSql).toContain("legacy provenance is unavailable");
     expect(pendingSql).toContain("Master Specification workstreams are missing, null, non-string, unknown, or incomplete; applicability is TBC");
     expect(pendingSql).toContain("Open feasibility review is pinned to different immutable provenance");
@@ -153,6 +161,10 @@ describe("client requirement intake contract", () => {
     expect(acceptanceSql).toContain("no_direct_review_insert");
     expect(acceptanceSql).toContain("sales_write_policy_removed");
     expect(acceptanceSql).toContain("repeat assignment to the same reviewer");
+    expect(acceptanceSql).toContain("first assignment creates one pending review");
+    expect(acceptanceSql).toContain("same-revision reassignment returns that same review ID");
+    expect(acceptanceSql).toContain("creates a distinct review while retaining the historical");
+    expect(acceptanceSql).toContain("UUID from another opportunity/customer");
   });
 
   it("keeps feasibility provenance server-pinned and unavailable to direct reassignment", () => {

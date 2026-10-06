@@ -23,7 +23,11 @@
 -- 9. reviewer: protected assignment locks requirement, source revision, review, then pinned
 --    Master version. It derives that version only from revision.requirement_data.source.
 --    It must reject absent/invalid legacy source IDs plus missing/null/non-string/unknown
---    workstreams. A repeated assignment for the exact revision/department is an exact retry.
+--    workstreams. Execute and assert: (a) first assignment creates one pending review, (b) a
+--    same-revision reassignment returns that same review ID and updates only its open reviewer
+--    state, and (c) after a terminal response plus a new immutable requirement revision, an
+--    assignment for that new revision creates a distinct review while retaining the historical
+--    terminal row unchanged. These are database assertions, not SQL-text checks.
 --    A terminal review remains immutable history; after a new requirement revision, the same
 --    department receives a new revision-scoped review without modifying the historic verdict.
 --    record_requirement_feasibility_response succeeds exactly once; retry fails as immutable.
@@ -109,7 +113,9 @@
 -- Reviewer assignment/terminal invariants: prove assignment routine rejects a non-member reviewer;
 -- prove it derives the Master version from source_revision.requirement_data.source rather than
 -- master_specifications.current_version; header advancement must not change a revision-bound
--- source. Prove absent/invalid legacy source IDs and missing/null/non-string/unknown workstreams
+-- source. Prove the immutable source tuple includes exact opportunity_id, customer_id, Master
+-- version UUID, and version number, and rejects a UUID from another opportunity/customer even
+-- when it exists. Prove absent/invalid legacy source IDs and missing/null/non-string/unknown workstreams
 -- fail closed. Prove revision-scoped uniqueness permits a new department review for a new
 -- requirement revision while preserving the old terminal row unchanged.
 -- prove it creates only pending reviews and may reset/reassign only pending/in_review reviews,
