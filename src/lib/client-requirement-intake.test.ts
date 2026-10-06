@@ -181,7 +181,9 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("Match assignment's order: requirement, revision, review, version.");
     expect(pendingSql).toContain("source_revision_id, source_revision_number,");
     expect(pendingSql).toContain("source_revision_id IS NULL");
-    expect(salesRead).toContain("source_revision_id,source_revision_number,master_specification_version_id,master_specification_version_number,applicable_workstreams");
+    expect(salesRead).toContain("withUnavailableFeasibilityProvenance");
+    expect(salesRead).toContain("Immutable feasibility provenance is unavailable in the deployed read model");
+    expect(salesRead).not.toContain("created_at,source_revision_id,source_revision_number,master_specification_version_id");
     expect(acceptanceSql).toContain("pinned provenance");
     expect(acceptanceSql).toContain("terminal review remains immutable history");
     expect(acceptanceSql).toContain("exact retry returns the existing review");
