@@ -140,7 +140,7 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).not.toContain("PERFORM set_config('app.requirement_feasibility_response_rpc'");
     expect(pendingSql).not.toContain("current_setting('app.requirement_feasibility_response_rpc'");
     expect(pendingSql).toContain("'Engineering feasibility review assigned.'");
-    expect(pendingSql).toContain("AND OLD.status IN ('pending', 'in_review') THEN");
+    expect(pendingSql).toContain("IF v_review.status NOT IN ('pending', 'in_review') THEN");
     expect(pendingSql).toContain("'requirement_id', v_review.requirement_id");
     expect(pendingSql).toContain("'opportunity_id', v_requirement.opportunity_id");
     expect(pendingSql).toContain("'customer_id', v_requirement.customer_id");
