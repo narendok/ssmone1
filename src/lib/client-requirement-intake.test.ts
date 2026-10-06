@@ -61,6 +61,21 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).not.toContain("GRANT INSERT ON public.customer_requirements TO authenticated");
   });
 
+  it("binds an exact retry receipt to the caller, scope, and normalized payload", () => {
+    expect(pendingSql).toContain("request_key uuid PRIMARY KEY");
+    expect(pendingSql).toContain("external_contact_id uuid NOT NULL");
+    expect(pendingSql).toContain("opportunity_id uuid NOT NULL");
+    expect(pendingSql).toContain("customer_id uuid NOT NULL");
+    expect(pendingSql).toContain("requested_by uuid NOT NULL");
+    expect(pendingSql).toContain("payload_hash text NOT NULL");
+    expect(pendingSql).toContain("requirement_id uuid NOT NULL UNIQUE");
+    expect(pendingSql).toContain("v_prior.requested_by = v_actor_id");
+    expect(pendingSql).toContain("v_prior.external_contact_id = v_contact_id");
+    expect(pendingSql).toContain("v_prior.payload_hash = v_payload_hash");
+    expect(pendingSql).toContain("FROM public.external_requirement_submission_requests");
+    expect(pendingSql).toContain("FOR UPDATE;");
+  });
+
   it("requires expiration, revocation, direct-table denial, rollback, and caller-RLS acceptance", () => {
     expect(acceptanceSql).toContain("expired, revoked, and unscoped");
     expect(acceptanceSql).toContain("wrong opportunity/customer pairing");

@@ -120,6 +120,8 @@ BEGIN
   v_payload_hash := public.external_requirement_submission_payload_hash(
     p_opportunity_id, p_customer_id, p_title, p_customer_reference, p_requirement_data
   );
+  -- Mirror the established request-key receipt convention. The advisory lock covers the
+  -- absent-receipt race; the locked receipt row handles every later replay.
   PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0));
   SELECT * INTO v_prior
   FROM public.external_requirement_submission_requests
