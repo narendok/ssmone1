@@ -17,17 +17,9 @@ export const createSalesBoundCustomerRequirement = createServerFn({ method: "POS
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => salesBoundRequirementSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { data: requirementId, error } = await context.supabase.rpc("create_sales_bound_customer_requirement", {
-      p_opportunity_id: data.opportunityId,
-      p_customer_id: data.customerId,
-      p_master_specification_version_id: data.masterSpecificationVersionId,
-      p_title: data.title,
-      p_customer_reference: data.customerReference,
-      p_summary: data.summary,
-      p_request_key: data.requestKey,
-    });
-    if (error || typeof requirementId !== "string") {
-      throw new Error(error?.message ?? "Could not create the source-bound requirement.");
-    }
-    return { id: requirementId };
+    // The RPC is deliberately absent from generated database types until its pending SQL is accepted.
+    // Keeping the facade fail-closed prevents a source-only contract from becoming callable early.
+    void data;
+    void context;
+    throw new Error("Source-bound requirement creation is unavailable until the protected database contract passes isolated acceptance.");
   });
