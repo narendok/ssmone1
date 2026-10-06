@@ -248,14 +248,6 @@ REVOKE ALL ON FUNCTION public.external_requirement_submission_canonical_payload(
 -- active engineering reviewer. Source requirement linkage is never mutable after creation.
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.requirement_feasibility_reviews FROM authenticated;
 DROP POLICY IF EXISTS "Sales users manage feasibility reviews" ON public.requirement_feasibility_reviews;
-CREATE POLICY "Sales users manage open feasibility assignments"
-ON public.requirement_feasibility_reviews
-FOR SELECT TO authenticated
-USING (
-  public.has_permission(auth.uid(), 'sales.view')
-  OR public.has_permission(auth.uid(), 'engineering.view')
-  OR public.has_role(auth.uid(), 'admin')
-);
 
 CREATE OR REPLACE FUNCTION public.assign_requirement_feasibility_review(
   p_requirement_id uuid,
@@ -405,9 +397,9 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- This guard is defense in depth only. The table grants and Sales-all write policy are
-  -- removed above, so a caller cannot authorize a response by setting a session variable.
-  -- Check terminal immutability before every other path: no reassignment or source replacement.
+  -- Table grants and the former Sales-all write policy are removed above, so a caller cannot
+  -- authorize a response by setting a session variable. This guard validates allowed protected
+  -- transitions as defense in depth and rejects terminal/provenance mutations before any return.
   IF OLD.status IN ('feasible', 'feasible_with_conditions', 'not_feasible') THEN
     RAISE EXCEPTION 'Feasibility responses are immutable after submission';
   END IF;
@@ -418,11 +410,31 @@ BEGIN
     RAISE EXCEPTION 'Feasibility department is immutable after assignment';
   END IF;
   IF NEW.reviewer_user_id IS DISTINCT FROM OLD.reviewer_user_id THEN
-    RAISE EXCEPTION 'Feasibility reviewer changes require the protected assignment routine';
+    IF NEW.status <> 'pending'
+       OR NEW.findings IS NOT NULL
+       OR NEW.assumptions IS NOT NULL
+       OR NEW.risks IS NOT NULL
+       OR NEW.reviewed_at IS NOT NULL THEN
+      RAISE EXCEPTION 'Feasibility reviewer changes require an unresponded assignment';
+    END IF;
+    RETURN NEW;
   END IF;
-  -- The protected routines own all valid update paths. If a future grant/policy reopens table
-  -- updates, fail closed rather than treating any session marker as proof of authorization.
-  RAISE EXCEPTION 'Feasibility reviews must be changed through protected routines';
+  IF NEW.status NOT IN ('feasible', 'feasible_with_conditions', 'not_feasible')
+     OR NULLIF(btrim(NEW.findings), '') IS NULL
+     OR OLD.reviewer_user_id IS NULL
+     OR OLD.department_id IS NULL
+     OR OLD.reviewer_user_id IS DISTINCT FROM auth.uid()
+     OR NOT EXISTS (
+       SELECT 1
+       FROM public.employees employee
+       JOIN public.employee_departments membership ON membership.employee_id = employee.id
+       WHERE employee.user_id = auth.uid()
+         AND employee.employment_status = 'ACTIVE'
+         AND membership.department_id = OLD.department_id
+     ) THEN
+    RAISE EXCEPTION 'Feasibility responses require the assigned active engineering reviewer';
+  END IF;
+  NEW.reviewed_at := now();
   RETURN NEW;
 END;
 $$;

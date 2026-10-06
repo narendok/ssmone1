@@ -106,7 +106,7 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("CREATE OR REPLACE FUNCTION public.assign_requirement_feasibility_review");
     expect(pendingSql).toContain("Terminal feasibility reviews cannot be reassigned");
     expect(pendingSql).toContain("Feasibility source requirement is immutable after assignment");
-    expect(pendingSql).toContain("Feasibility reviews must be changed through protected routines");
+    expect(pendingSql).toContain("Feasibility responses require the assigned active engineering reviewer");
     expect(pendingSql).not.toContain("PERFORM set_config('app.requirement_feasibility_response_rpc'");
     expect(pendingSql).toContain("'requirement_id', v_review.requirement_id");
     expect(pendingSql).toContain("'opportunity_id', v_requirement.opportunity_id");
