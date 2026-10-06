@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { clientRequirementIntakeSchema, clientRequirementState, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability } from "./client-requirement-intake";
+
+const pendingSql = readFileSync("supabase/pending/20261005_client_requirement_intake.sql", "utf8");
+const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_intake_acceptance.sql", "utf8");
 
 describe("client requirement intake contract", () => {
   it("requires bounded immutable submission content", () => {
@@ -35,5 +39,29 @@ describe("client requirement intake contract", () => {
   it("keeps protected mutations unavailable before database acceptance", () => {
     expect(protectedIntakeAvailability.available).toBe(false);
     expect(protectedIntakeAvailability.reason).toContain("isolated acceptance");
+  });
+
+  it("keeps external intake behind a narrow definer transaction without widening direct table RLS", () => {
+    expect(pendingSql).toContain("CREATE OR REPLACE FUNCTION public.submit_external_customer_requirement");
+    expect(pendingSql).toMatch(/submit_external_customer_requirement\([\s\S]*?LANGUAGE plpgsql\s+SECURITY DEFINER\s+SET search_path = public, pg_temp/);
+    expect(pendingSql).toContain("v_actor_id uuid := auth.uid()");
+    expect(pendingSql).toContain("public.external_current_contact_id(v_actor_id)");
+    expect(pendingSql).toContain("public.external_current_party_id()");
+    expect(pendingSql).toContain("public.external_requirement_scope_allows(v_contact_id, p_opportunity_id, p_customer_id)");
+    expect(pendingSql).toContain("party.id = v_party_id AND party.customer_id = p_customer_id");
+    expect(pendingSql).toContain("opportunity.id = p_opportunity_id AND opportunity.customer_id = p_customer_id");
+    expect(pendingSql).toContain("external_contact_id");
+    expect(pendingSql).toContain("external_party_id");
+    expect(pendingSql).not.toContain("CREATE POLICY external_customer_requirements");
+    expect(pendingSql).not.toContain("GRANT INSERT ON public.customer_requirements TO authenticated");
+  });
+
+  it("requires expiration, revocation, direct-table denial, rollback, and caller-RLS acceptance", () => {
+    expect(acceptanceSql).toContain("expired, revoked, and unscoped");
+    expect(acceptanceSql).toContain("wrong opportunity/customer pairing");
+    expect(acceptanceSql).toContain("direct requirement/revision/audit reads and writes fail");
+    expect(acceptanceSql).toContain("Forced audit rollback case");
+    expect(acceptanceSql).toContain("cannot SELECT the new header/revision/audit directly through RLS");
+    expect(acceptanceSql).toContain("concurrency");
   });
 });
