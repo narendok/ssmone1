@@ -125,6 +125,16 @@ describe("client requirement intake contract", () => {
     expect(acceptanceSql).toContain("repeat assignment to the same reviewer");
   });
 
+  it("keeps the legacy Sales feasibility save path from silently bypassing the pending protected contract", () => {
+    const salesFunctions = readFileSync("src/lib/sales.functions.ts", "utf8");
+    const lifecycleDialogs = readFileSync("src/components/sales/SalesLifecycleDialogs.tsx", "utf8");
+    expect(salesFunctions).toContain('sb.rpc("assign_requirement_feasibility_review"');
+    expect(salesFunctions).not.toContain('from("requirement_feasibility_reviews").upsert');
+    expect(lifecycleDialogs).toContain("Protected assignment is pending database acceptance");
+    expect(lifecycleDialogs).toContain("Assign reviewer</Button>");
+    expect(lifecycleDialogs).not.toContain("Save review</Button>");
+  });
+
   it("requires expiration, revocation, direct-table denial, rollback, and caller-RLS acceptance", () => {
     expect(acceptanceSql).toContain("expired, revoked, and unscoped");
     expect(acceptanceSql).toContain("wrong opportunity/customer pairing");
