@@ -396,7 +396,7 @@ BEGIN
   FOR UPDATE;
   v_review_found := FOUND;
 
-  SELECT * INTO v_master_version
+  SELECT version.* INTO v_master_version
   FROM public.master_specification_versions version
   JOIN public.master_specifications specification ON specification.id = version.master_specification_id
   WHERE version.id = v_master_version_id
@@ -407,8 +407,10 @@ BEGIN
   IF NOT FOUND THEN RAISE EXCEPTION 'Pinned Master Specification version is unavailable for the immutable requirement revision'; END IF;
 
   v_workstreams := v_master_version.specification_data->'workstreams';
-  IF jsonb_typeof(v_workstreams) IS DISTINCT FROM 'array'
-     OR jsonb_array_length(v_workstreams) = 0
+  IF jsonb_typeof(v_workstreams) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION 'Master Specification workstreams are missing, null, non-string, unknown, or incomplete; applicability is TBC';
+  END IF;
+  IF jsonb_array_length(v_workstreams) = 0
      OR EXISTS (
        SELECT 1
        FROM jsonb_array_elements(v_workstreams) AS workstream(value)
@@ -516,10 +518,10 @@ BEGIN
      OR jsonb_typeof(v_review.applicable_workstreams) IS DISTINCT FROM 'array' THEN
     RAISE EXCEPTION 'Feasibility review lacks immutable provenance and cannot receive a protected response';
   END IF;
-  SELECT * INTO v_master_version FROM public.master_specification_versions
-  JOIN public.master_specifications specification ON specification.id = master_specification_versions.master_specification_id
-  WHERE master_specification_versions.id = v_review.master_specification_version_id
-    AND master_specification_versions.version_number = v_review.master_specification_version_number
+  SELECT version.* INTO v_master_version FROM public.master_specification_versions version
+  JOIN public.master_specifications specification ON specification.id = version.master_specification_id
+  WHERE version.id = v_review.master_specification_version_id
+    AND version.version_number = v_review.master_specification_version_number
     AND specification.opportunity_id = v_requirement.opportunity_id
     AND specification.customer_id = v_requirement.customer_id FOR KEY SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Pinned Master Specification version is unavailable'; END IF;
