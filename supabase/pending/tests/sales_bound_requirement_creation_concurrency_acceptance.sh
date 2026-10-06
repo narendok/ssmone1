@@ -42,7 +42,8 @@ sleep 1
 printf "BEGIN; %s SET LOCAL lock_timeout = '5000ms'; SELECT pg_backend_pid(); UPDATE public.master_specifications SET current_version = current_version WHERE opportunity_id = '${OPPORTUNITY_ID}'::uuid; ROLLBACK;" "$caller_prelude" | psql "$DATABASE_URL" -X -v ON_ERROR_STOP=1 >"$tmp_dir/blocker" 2>&1 &
 blocker_pid=$!
 sleep 1
-blocker_backend_pid="$(head -n 3 "$tmp_dir/blocker" | tail -n 1 | tr -d '[:space:]')"
+blocker_backend_pid="$(awk '/^[[:space:]]*[0-9]+[[:space:]]*$/ { gsub(/[[:space:]]/, ""); print; exit }' "$tmp_dir/blocker")"
+test -n "$blocker_backend_pid" || { echo "Could not read the blocker backend PID" >&2; exit 1; }
 if ! psql "$DATABASE_URL" -X -tAc "SELECT wait_event_type = 'Lock' FROM pg_stat_activity WHERE pid = ${blocker_backend_pid};" | grep -qx "t"; then
   echo "Concurrent source update did not expose the expected lock wait" >&2; exit 1
 fi
