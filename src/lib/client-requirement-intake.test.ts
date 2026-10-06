@@ -7,8 +7,8 @@ const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_in
 
 describe("client requirement intake contract", () => {
   it("requires bounded immutable submission content", () => {
-    expect(clientRequirementIntakeSchema.safeParse({ opportunityId: "bad", customerId: "bad", title: "", description: "short", customerReference: null }).success).toBe(false);
-    expect(clientRequirementIntakeSchema.parse({ opportunityId: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8", customerId: "dfd5f3f8-0caf-46cb-bf16-436a1c063650", title: "Interface requirement", description: "The submitted requirement remains immutable after receipt.", customerReference: "OEM-REQ-7" })).toMatchObject({ title: "Interface requirement" });
+    expect(clientRequirementIntakeSchema.safeParse({ opportunityId: "bad", customerId: "bad", requestKey: "bad", title: "", description: "short", customerReference: null }).success).toBe(false);
+    expect(clientRequirementIntakeSchema.parse({ opportunityId: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8", customerId: "dfd5f3f8-0caf-46cb-bf16-436a1c063650", requestKey: "9ce5a383-9ebf-430e-9bba-2e550c20fe3e", title: "Interface requirement", description: "The submitted requirement remains immutable after receipt.", customerReference: "OEM-REQ-7" })).toMatchObject({ title: "Interface requirement" });
   });
 
   it("treats expired and revoked portal access as unavailable", () => {
@@ -48,12 +48,32 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("public.external_current_contact_id(v_actor_id)");
     expect(pendingSql).toContain("public.external_current_party_id()");
     expect(pendingSql).toContain("public.external_requirement_scope_allows(v_contact_id, p_opportunity_id, p_customer_id)");
+    expect(pendingSql).toContain("p_request_key uuid");
+    expect(pendingSql).toContain("CREATE TABLE IF NOT EXISTS public.external_requirement_submission_requests");
+    expect(pendingSql).toContain("PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0))");
+    expect(pendingSql).toContain("Request key conflicts with a different caller or payload");
+    expect(pendingSql).toContain("RETURN v_prior.requirement_id");
     expect(pendingSql).toContain("party.id = v_party_id AND party.customer_id = p_customer_id");
     expect(pendingSql).toContain("opportunity.id = p_opportunity_id AND opportunity.customer_id = p_customer_id");
     expect(pendingSql).toContain("external_contact_id");
     expect(pendingSql).toContain("external_party_id");
     expect(pendingSql).not.toContain("CREATE POLICY external_customer_requirements");
     expect(pendingSql).not.toContain("GRANT INSERT ON public.customer_requirements TO authenticated");
+  });
+
+  it("binds an exact retry receipt to the caller, scope, and normalized payload", () => {
+    expect(pendingSql).toContain("request_key uuid PRIMARY KEY");
+    expect(pendingSql).toContain("external_contact_id uuid NOT NULL");
+    expect(pendingSql).toContain("opportunity_id uuid NOT NULL");
+    expect(pendingSql).toContain("customer_id uuid NOT NULL");
+    expect(pendingSql).toContain("requested_by uuid NOT NULL");
+    expect(pendingSql).toContain("payload_hash text NOT NULL");
+    expect(pendingSql).toContain("requirement_id uuid NOT NULL UNIQUE");
+    expect(pendingSql).toContain("v_prior.requested_by = v_actor_id");
+    expect(pendingSql).toContain("v_prior.external_contact_id = v_contact_id");
+    expect(pendingSql).toContain("v_prior.payload_hash = v_payload_hash");
+    expect(pendingSql).toContain("FROM public.external_requirement_submission_requests");
+    expect(pendingSql).toContain("FOR UPDATE;");
   });
 
   it("requires expiration, revocation, direct-table denial, rollback, and caller-RLS acceptance", () => {
@@ -63,5 +83,8 @@ describe("client requirement intake contract", () => {
     expect(acceptanceSql).toContain("Forced audit rollback case");
     expect(acceptanceSql).toContain("cannot SELECT the new header/revision/audit directly through RLS");
     expect(acceptanceSql).toContain("concurrency");
+    expect(acceptanceSql).toContain("same request key + identical payload replays the original requirement ID");
+    expect(acceptanceSql).toContain("Request key conflicts with a different caller or payload");
+    expect(acceptanceSql).toContain("external_requirement_submission_requests row, one customer_requirements row");
   });
 });
