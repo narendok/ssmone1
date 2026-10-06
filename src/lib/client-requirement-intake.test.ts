@@ -161,7 +161,7 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("source_revision_id, source_revision_number,");
     expect(pendingSql).toContain("source_revision_id IS NULL");
     expect(salesRead).toContain("source_revision_id,source_revision_number,master_specification_version_id,master_specification_version_number,applicable_workstreams");
-    expect(acceptanceSql).toContain("immutable provenance");
+    expect(acceptanceSql).toContain("pinned provenance");
     expect(acceptanceSql).toContain("reassignment and response must not mutate the pinned provenance");
     expect(acceptanceSql).toContain("exact retry returns the existing review");
   });
