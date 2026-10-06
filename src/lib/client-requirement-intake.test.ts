@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability } from "./client-requirement-intake";
+import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability } from "./client-requirement-intake";
 
 const pendingSql = readFileSync("supabase/pending/20261005_client_requirement_intake.sql", "utf8");
 const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_intake_acceptance.sql", "utf8");
@@ -43,6 +43,18 @@ describe("client requirement intake contract", () => {
   it("keeps protected mutations unavailable before database acceptance", () => {
     expect(protectedIntakeAvailability.available).toBe(false);
     expect(protectedIntakeAvailability.reason).toContain("isolated acceptance");
+    expect(controlledRequirementAvailability.available).toBe(false);
+    expect(controlledRequirementAvailability.dependency).toContain("Master Specification version");
+  });
+
+  it("keeps the Sales requirement action source-bound and prevents the legacy direct save", () => {
+    const lifecycleDialogs = readFileSync("src/components/sales/SalesLifecycleDialogs.tsx", "utf8");
+    expect(lifecycleDialogs).toContain("Authoritative source");
+    expect(lifecycleDialogs).toContain("Master Specification:");
+    expect(lifecycleDialogs).toContain("Retry source load");
+    expect(lifecycleDialogs).toContain("Create source-bound requirement");
+    expect(lifecycleDialogs).toContain("controlledRequirementAvailability.reason");
+    expect(lifecycleDialogs).not.toContain("useServerFn(createCustomerRequirement)");
   });
 
   it("pins one client request key for a retry and only renews it for a deliberate new draft", () => {
