@@ -6,4 +6,7 @@ import { isolatedSalesAcceptancePreflight, isolatedSalesAcceptancePreflightSchem
 export const getIsolatedSalesAcceptancePreflight = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => isolatedSalesAcceptancePreflightSchema.parse(data))
-  .handler(({ data }) => isolatedSalesAcceptancePreflight(data.projectRef));
+  .handler(({ data, context }) => {
+    if (!context.userId) throw new Error("Unauthorized");
+    return isolatedSalesAcceptancePreflight(data.projectRef);
+  });
