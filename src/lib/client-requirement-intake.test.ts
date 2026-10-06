@@ -265,6 +265,7 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("p_expected_revision_number integer");
     expect(salesBoundSql).toContain("Requirement revision is stale; reload the current immutable revision before approval");
     expect(salesBoundSql).toContain("Expected immutable requirement revision lacks Master Specification provenance; legacy provenance is unavailable");
+    expect(salesBoundSql).toContain("v_workstreams := v_revision.requirement_data #> '{source,applicable_workstreams}'");
     expect(salesBoundSql).toContain("Every applicable department requires a pinned terminal feasible review before baseline approval");
     expect(salesBoundSql).toContain("Pinned feasibility reviews contain unresolved conditions or risks");
     expect(salesBoundSql).toContain("Verified customer commercial authorization is required before baseline approval");
