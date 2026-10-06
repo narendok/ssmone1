@@ -133,7 +133,7 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("v_revision.requirement_data #>> '{source,master_specification_version_id}'");
     expect(pendingSql).toContain("legacy provenance is unavailable");
     expect(pendingSql).toContain("Master Specification workstreams are missing, null, non-string, unknown, or incomplete; applicability is TBC");
-    expect(pendingSql).toContain("Feasibility provenance is immutable after assignment");
+    expect(pendingSql).toContain("Open feasibility review is pinned to different immutable provenance");
     expect(pendingSql).toContain("Feasibility review lacks immutable provenance and cannot receive a protected response");
     expect(pendingSql).toContain("Feasibility source requirement is immutable after assignment");
     expect(pendingSql).toContain("Feasibility responses require the assigned active engineering reviewer");
