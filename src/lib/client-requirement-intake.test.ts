@@ -159,6 +159,7 @@ describe("client requirement intake contract", () => {
   it("keeps Sales-bound requirement creation atomic, current-version-pinned, and replay-safe", () => {
     expect(salesBoundSql).toContain("CREATE TABLE public.sales_requirement_creation_requests");
     expect(salesBoundSql).toContain("GRANT ALL ON TABLE public.sales_requirement_creation_requests TO service_role;");
+    expect(salesBoundSql).toContain("REVOKE ALL ON TABLE public.sales_requirement_creation_requests FROM PUBLIC, anon, authenticated;");
     expect(salesBoundSql).toContain("ALTER TABLE public.sales_requirement_creation_requests ENABLE ROW LEVEL SECURITY;");
     expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.create_sales_bound_customer_requirement");
     expect(salesBoundSql).toMatch(/create_sales_bound_customer_requirement\([\s\S]*?LANGUAGE plpgsql\s+SECURITY DEFINER\s+SET search_path = public, pg_temp/);
@@ -167,6 +168,9 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("version.version_number = specification.current_version");
     expect(salesBoundSql).toContain("Master Specification version is unavailable for this opportunity and customer");
     expect(salesBoundSql).toContain("PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0))");
+    expect(salesBoundSql.indexOf("SELECT * INTO v_prior")).toBeLessThan(salesBoundSql.indexOf("FOR UPDATE OF specification"));
+    expect(salesBoundSql).toContain("FOR UPDATE;");
+    expect(salesBoundSql).toContain("FOR UPDATE OF specification;");
     expect(salesBoundSql).toContain("v_prior.payload_canonical = v_payload_canonical");
     expect(salesBoundSql).toContain("Request key conflicts with a different caller or payload");
     expect(salesBoundSql).toContain("public.next_business_number('customer_requirement', 'CR', NULL)");
@@ -180,6 +184,10 @@ describe("client requirement intake contract", () => {
     expect(salesBoundAcceptanceSql).toContain("never service-role impersonation");
     expect(salesBoundAcceptanceSql).toContain("Identical retry");
     expect(salesBoundAcceptanceSql).toContain("Changed title, summary, customer, version, or actor");
+    expect(salesBoundAcceptanceSql).toContain("Replay after Master version advance");
+    expect(salesBoundAcceptanceSql).toContain("Concurrent source update");
+    expect(salesBoundAcceptanceSql).toContain("no_public_receipt_read");
+    expect(salesBoundAcceptanceSql).toContain("no_anon_receipt_read");
     expect(salesBoundAcceptanceSql).toContain("stale/nonmatching Master version");
     expect(salesBoundAcceptanceSql).toContain("Two concurrent authenticated sessions");
     expect(salesBoundAcceptanceSql).toContain("Force the source_bound_created audit insert to fail");
