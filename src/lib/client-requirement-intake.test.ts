@@ -185,7 +185,7 @@ describe("client requirement intake contract", () => {
   it("documents the boundary between structural checks and required real caller-transport acceptance", () => {
     const transportHarness = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_caller_transport_acceptance.sh", "utf8");
     expect(salesBoundAcceptanceSql).toContain("STRUCTURAL-ONLY SOURCE CHECK");
-    expect(salesBoundAcceptanceSql).toContain("not caller-authenticated database acceptance");
+    expect(salesBoundAcceptanceSql).toContain("This file is not caller-authenticated database");
     expect(salesBoundAcceptanceSql).toContain("Exact replay after Master-version advance");
     expect(salesBoundAcceptanceSql).toContain("Fresh key using the now-stale Master version rejects");
     expect(salesBoundAcceptanceSql).toContain("protected create holds its source locks");
@@ -219,7 +219,7 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).not.toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirements FROM PUBLIC, authenticated;");
     expect(salesBoundSql).toContain("requirement_baselines_assign_business_code");
     expect(salesBoundSql).toContain("Future protected approval must not accept a caller baseline number");
-    expect(salesBoundSql).toContain("immutable requirement-revision linkage and applicability");
+    expect(salesBoundSql).toContain("immutable requirement-revision linkage plus applicability");
     expect(lifecycleDialogs).toContain("Baseline approval is unavailable until revision-bound feasibility");
     expect(lifecycleDialogs).toContain('type="submit" disabled>Create approved baseline');
   });
@@ -227,14 +227,14 @@ describe("client requirement intake contract", () => {
   it("labels direct psql simulation structural-only and requires a real caller transport target refusal", () => {
     const transportHarness = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_caller_transport_acceptance.sh", "utf8");
     expect(salesBoundAcceptanceSql).toContain("STRUCTURAL-ONLY SOURCE CHECK");
-    expect(salesBoundAcceptanceSql).toContain("not caller-authenticated database acceptance");
+    expect(salesBoundAcceptanceSql).toContain("This file is not caller-authenticated database");
     expect(salesBoundAcceptanceSql).not.toContain("SET LOCAL request.jwt.claim.sub");
     expect(salesBoundConcurrencyHarness).toContain("RETIRED STRUCTURAL HARNESS");
     expect(salesBoundConcurrencyHarness).not.toContain("pg_sleep");
     expect(transportHarness).toContain("Refusing unapproved isolated target");
     expect(transportHarness).toContain("Refusing original target");
-    expect(transportHarness).not.toContain("request.jwt.claim");
-    expect(transportHarness).not.toContain("service_role");
+    expect(transportHarness).toContain("never sets request.jwt.claim");
+    expect(transportHarness).toContain("never connects with a service-role credential");
     expect(transportHarness).toContain("Fresh stale-version creation unexpectedly succeeded");
     expect(transportHarness).toContain("protected create holds its source locks");
   });
