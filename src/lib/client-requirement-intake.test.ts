@@ -91,8 +91,22 @@ describe("client requirement intake contract", () => {
     expect(pendingSql).toContain("FROM public.external_requirement_submission_requests");
     expect(pendingSql).toContain("FOR UPDATE;");
     expect(pendingSql).toContain("external_requirement_submission_canonical_payload");
-    expect(pendingSql).toContain("DROP FUNCTION IF EXISTS public.external_requirement_scope_allows(uuid, uuid, uuid)");
+    expect(pendingSql).toContain("to_regprocedure('public.external_requirement_scope_allows(uuid,uuid,uuid)') IS NOT NULL");
+    expect(pendingSql).toContain("DROP FUNCTION public.external_requirement_scope_allows(uuid,uuid,uuid)");
     expect(pendingSql).not.toContain("GRANT EXECUTE ON FUNCTION public.external_requirement_scope_allows");
+  });
+
+  it("uses a clean-install-safe legacy scope retirement guard and an audit-bearing exclusive reviewer response", () => {
+    expect(pendingSql).toContain("A clean installation has no former three-argument scope helper");
+    expect(pendingSql).toContain("never use CASCADE here");
+    expect(pendingSql).toContain("app.requirement_feasibility_response_rpc");
+    expect(pendingSql).toContain("Feasibility responses must be recorded through the protected response routine");
+    expect(pendingSql).toContain("'requirement_id', v_review.requirement_id");
+    expect(pendingSql).toContain("'opportunity_id', v_requirement.opportunity_id");
+    expect(pendingSql).toContain("'customer_id', v_requirement.customer_id");
+    expect(acceptanceSql).toContain("clean install");
+    expect(acceptanceSql).toContain("direct review UPDATE");
+    expect(acceptanceSql).toContain("Reviewer rollback and provenance case");
   });
 
   it("requires expiration, revocation, direct-table denial, rollback, and caller-RLS acceptance", () => {

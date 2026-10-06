@@ -5,6 +5,10 @@
 -- requirement_review_id. Run every mutation case in a separate transaction and ROLLBACK.
 --
 -- Cases to execute with separate authenticated sessions:
+-- 0. clean install: run the proposal where neither legacy overload exists; it completes without
+--    attempting REVOKE on either absent signature. Upgrade: install the former 3-argument scope
+--    helper and former 5-argument submit helper with no dependents, then run the proposal and
+--    prove both exact signatures no longer exist or have EXECUTE for any role.
 -- 1. outsider: RPC fails before a row/audit record is visible; direct requirement/revision/audit reads and writes fail.
 -- 2. expired, revoked, and unscoped contact: each RPC call fails and creates no requirement/revision/audit.
 -- 3. wrong opportunity/customer pairing: fails before a row/audit record is visible.
@@ -16,6 +20,12 @@
 -- 9. reviewer: record_requirement_feasibility_response succeeds exactly once; retry fails as immutable.
 -- 10. concurrency: two reviewer sessions race the same review; one commits and the other receives the immutable
 --    conflict, leaving exactly one terminal response and one response audit event.
+-- 11. direct review UPDATE: a Sales manager with the existing table UPDATE policy cannot alter
+--    status/findings/assumptions/risks/reviewed_at outside record_requirement_feasibility_response.
+--    A pending-assignment-only update remains possible through its separately authorized flow.
+-- 12. successful protected response writes exactly one activity_log row whose after_data binds the
+--    review's requirement_id, requirement opportunity/customer, department, assigned reviewer, and terminal status.
+--    Force that audit insert to fail in the isolated backend and prove the response update rolls back.
 --
 -- Preflight in the scoped external session (must be false; no direct table access is introduced):
 -- SELECT has_table_privilege('authenticated', 'public.customer_requirements', 'INSERT') AS direct_requirement_insert;
@@ -32,6 +42,7 @@
 --   AND pg_get_function_identity_arguments(procedure.oid) = 'p_opportunity_id uuid, p_customer_id uuid, p_title text, p_customer_reference text, p_requirement_data jsonb';
 -- SELECT has_function_privilege('authenticated',
 --   'public.external_requirement_scope_allows(uuid, uuid)', 'EXECUTE') = false AS no_external_scope_oracle;
+-- SELECT to_regprocedure('public.external_requirement_scope_allows(uuid,uuid,uuid)') IS NULL AS no_legacy_scope_helper;
 --
 -- Example caller-authenticated session setup (supply a JWT through a secure runner; never commit a token):
 -- BEGIN;
@@ -70,3 +81,9 @@
 -- Forced audit rollback case: run against a disposable acceptance configuration that rejects
 -- only this function's `external_submitted` audit insert, then prove no header or revision
 -- persists. Do not simulate this with a service-role or bypass-RLS executor.
+--
+-- Reviewer rollback and provenance case: run record_requirement_feasibility_response in a
+-- disposable configuration that rejects its `responded` audit insert. The review must remain
+-- pending/in_review with its original fields. On a successful call, compare activity_log.after_data
+-- to the locked review and source requirement; direct terminal field UPDATE must fail even when the
+-- caller's existing RLS policy otherwise permits UPDATE.

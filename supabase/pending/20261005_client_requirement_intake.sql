@@ -211,8 +211,16 @@ $$;
 
 REVOKE ALL ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb, uuid) TO authenticated, service_role;
-REVOKE ALL ON FUNCTION public.external_requirement_scope_allows(uuid, uuid, uuid) FROM PUBLIC, anon, authenticated, service_role;
-DROP FUNCTION IF EXISTS public.external_requirement_scope_allows(uuid, uuid, uuid);
+-- A clean installation has no former three-argument scope helper. Check the exact overload
+-- before either privilege change or dependency-safe removal; never use CASCADE here.
+DO $$
+BEGIN
+  IF to_regprocedure('public.external_requirement_scope_allows(uuid,uuid,uuid)') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON FUNCTION public.external_requirement_scope_allows(uuid,uuid,uuid) FROM PUBLIC, anon, authenticated, service_role';
+    EXECUTE 'DROP FUNCTION public.external_requirement_scope_allows(uuid,uuid,uuid)';
+  END IF;
+END;
+$$;
 REVOKE ALL ON FUNCTION public.external_requirement_scope_allows(uuid, uuid) FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.external_requirement_submission_payload_hash(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.external_requirement_submission_canonical_payload(uuid, uuid, text, text, jsonb) FROM PUBLIC, anon, authenticated, service_role;
@@ -230,6 +238,7 @@ SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_review public.requirement_feasibility_reviews%ROWTYPE;
+  v_requirement public.customer_requirements%ROWTYPE;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.has_permission(auth.uid(), 'engineering.manage') THEN
     RAISE EXCEPTION 'Engineering management permission is required';
@@ -244,6 +253,11 @@ BEGIN
   WHERE id = p_review_id
   FOR UPDATE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Feasibility review is unavailable'; END IF;
+  SELECT * INTO v_requirement
+  FROM public.customer_requirements
+  WHERE id = v_review.requirement_id
+  FOR KEY SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Feasibility review source requirement is unavailable'; END IF;
   IF v_review.reviewer_user_id IS NULL OR v_review.department_id IS NULL THEN
     RAISE EXCEPTION 'Feasibility review requires an assigned reviewer and department';
   END IF;
@@ -265,6 +279,9 @@ BEGIN
   IF v_review.status IN ('feasible', 'feasible_with_conditions', 'not_feasible') THEN
     RAISE EXCEPTION 'Feasibility responses are immutable after submission';
   END IF;
+  -- This is the exclusive terminal-response path. The response trigger below accepts only
+  -- this local transaction marker, so direct updates cannot bypass this audit-bearing write.
+  PERFORM set_config('app.requirement_feasibility_response_rpc', '1', true);
   UPDATE public.requirement_feasibility_reviews
   SET status = p_status,
       findings = p_findings,
@@ -272,8 +289,19 @@ BEGIN
       risks = p_risks,
       reviewed_at = now()
   WHERE id = v_review.id;
-  INSERT INTO public.activity_log(actor_user_id, module_key, entity_type, entity_id, action, summary)
-  VALUES (auth.uid(), 'engineering', 'requirement_feasibility', v_review.id, 'responded', 'Engineering feasibility response recorded.');
+  INSERT INTO public.activity_log(actor_user_id, module_key, entity_type, entity_id, action, summary, after_data)
+  VALUES (
+    auth.uid(), 'engineering', 'requirement_feasibility', v_review.id, 'responded',
+    'Engineering feasibility response recorded.',
+    jsonb_build_object(
+      'requirement_id', v_review.requirement_id,
+      'opportunity_id', v_requirement.opportunity_id,
+      'customer_id', v_requirement.customer_id,
+      'department_id', v_review.department_id,
+      'reviewer_user_id', v_review.reviewer_user_id,
+      'status', p_status
+    )
+  );
   RETURN v_review.id;
 END;
 $$;
@@ -288,6 +316,18 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  IF current_setting('app.requirement_feasibility_response_rpc', true) IS DISTINCT FROM '1' THEN
+    -- Assignment fields remain untouched by this response guard. A separately reviewed
+    -- assignment workflow may still create or change pending/in-review assignments.
+    IF NEW.status IS NOT DISTINCT FROM OLD.status
+       AND NEW.findings IS NOT DISTINCT FROM OLD.findings
+       AND NEW.assumptions IS NOT DISTINCT FROM OLD.assumptions
+       AND NEW.risks IS NOT DISTINCT FROM OLD.risks
+       AND NEW.reviewed_at IS NOT DISTINCT FROM OLD.reviewed_at THEN
+      RETURN NEW;
+    END IF;
+    RAISE EXCEPTION 'Feasibility responses must be recorded through the protected response routine';
+  END IF;
   IF OLD.status IN ('feasible', 'feasible_with_conditions', 'not_feasible') THEN
     RAISE EXCEPTION 'Feasibility responses are immutable after submission';
   END IF;
