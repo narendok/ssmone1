@@ -32,13 +32,25 @@ export function createLocalTableRow(key: LocalTableKey, id: string): LocalTableR
 export function parseLocalTableRows(key: LocalTableKey, value: string | null | undefined): LocalTableRow[] { if (!value || value === tbc) return []; try { const parsed: unknown = JSON.parse(value); if (!Array.isArray(parsed)) return []; return parsed.filter((row): row is LocalTableRow => Boolean(row && typeof row === "object" && typeof (row as { id?: unknown }).id === "string")); } catch { return []; } }
 export function serializeLocalTableRows(rows: LocalTableRow[]) { return JSON.stringify(rows); }
 function rowDisplay(value: string) { return unknown(value) ? tbc : value.trim(); }
+export type TableValidationIssue = { rowId: string; field: string; message: string };
+const numericIssue = (rowId: string, field: string, value: string, label: string): TableValidationIssue | null => unknown(value) || (/^\d+(?:\.\d{1,2})?$/.test(value.trim()) && Number.isFinite(Number(value)) && Number(value) >= 0) ? null : { rowId, field, message: `${label} must be a non-negative finite number or TBC.` };
+export function validateLocalTableRows(key: LocalTableKey, value: string | null | undefined): TableValidationIssue[] {
+  const rows = parseLocalTableRows(key, value); const issues: TableValidationIssue[] = [];
+  if (key === "QUOTE_LINE_ROWS") for (const row of rows as QuoteLineRow[]) { const quantity = numericIssue(row.id, "quantity", row.quantity, "Quantity"); const price = numericIssue(row.id, "unitPrice", row.unitPrice, "Unit price"); if (quantity) issues.push(quantity); if (price) issues.push(price); }
+  if (key === "BOM_COST_ROWS") for (const row of rows as BomCostRow[]) { const quantity = numericIssue(row.id, "quantity", row.quantity, "Quantity"); const cost = numericIssue(row.id, "unitCost", row.unitCost, "Unit cost"); if (quantity) issues.push(quantity); if (cost) issues.push(cost); }
+  if (key === "VOLUME_TIER_ROWS") { const tiers = rows as VolumeTierRow[]; for (const tier of tiers) { for (const [field, label] of [["minQuantity", "Minimum quantity"], ["maxQuantity", "Maximum quantity"], ["unitPrice", "Unit price"]] as const) { const issue = numericIssue(tier.id, field, tier[field], label); if (issue) issues.push(issue); } if (!unknown(tier.minQuantity) && !unknown(tier.maxQuantity) && Number(tier.minQuantity) > Number(tier.maxQuantity)) issues.push({ rowId: tier.id, field: "maxQuantity", message: "Maximum quantity cannot be below minimum quantity." }); }
+    const complete = tiers.filter((tier) => !unknown(tier.minQuantity) && !unknown(tier.maxQuantity)).sort((a, b) => Number(a.minQuantity) - Number(b.minQuantity));
+    for (let index = 1; index < complete.length; index += 1) if (Number(complete[index - 1].maxQuantity) >= Number(complete[index].minQuantity)) { issues.push({ rowId: complete[index - 1].id, field: "maxQuantity", message: "This tier overlaps another tier." }); issues.push({ rowId: complete[index].id, field: "minQuantity", message: "This tier overlaps another tier." }); }
+  }
+  return issues;
+}
 export function tableRowsForOutput(key: LocalTableKey, value: string | null | undefined): string[][] {
   if (key === "QUOTE_LINE_ROWS") return (parseLocalTableRows(key, value) as QuoteLineRow[]).map((row) => [rowDisplay(row.line), rowDisplay(row.description), rowDisplay(row.quantity), rowDisplay(row.unitPrice), rowDisplay(row.currency), rowDisplay(row.leadTime)]);
   if (key === "VOLUME_TIER_ROWS") return (parseLocalTableRows(key, value) as VolumeTierRow[]).map((row) => [rowDisplay(row.minQuantity), rowDisplay(row.maxQuantity), rowDisplay(row.unitPrice)]);
   return (parseLocalTableRows(key, value) as BomCostRow[]).map((row) => [rowDisplay(row.itemNumber), rowDisplay(row.mpn), rowDisplay(row.manufacturer), rowDisplay(row.description), rowDisplay(row.package), rowDisplay(row.quantity), rowDisplay(row.leadTime), rowDisplay(row.unitCost), rowDisplay(row.currency), rowDisplay(row.aecqEvidence)]);
 }
 function tableText(key: LocalTableKey, value: string | null | undefined) { const rows = tableRowsForOutput(key, value); return rows.length ? rows.map((row) => `| ${row.join(" | ")} |`).join("\n") : tbc; }
-export function quoteLineEstimate(row: QuoteLineRow) { if (unknown(row.quantity) || unknown(row.unitPrice)) return tbc; const quantity = Number(row.quantity); const unitPrice = Number(row.unitPrice); return Number.isFinite(quantity) && Number.isFinite(unitPrice) && quantity >= 0 && unitPrice >= 0 ? String(quantity * unitPrice) : tbc; }
+export function quoteLineEstimate(row: QuoteLineRow) { if (validateLocalTableRows("QUOTE_LINE_ROWS", serializeLocalTableRows([row])).length || unknown(row.quantity) || unknown(row.unitPrice)) return tbc; return String(Number(row.quantity) * Number(row.unitPrice)); }
 export function validateStructuredLocalEdits(kind: StructuredLifecycleTemplateKind, edits: Record<string, string | null>) {
   const preview = structuredLifecycleTemplatePreviews.find((item) => item.kind === kind);
   if (!preview) throw new Error("Unsupported structured lifecycle template.");
