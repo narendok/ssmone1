@@ -137,14 +137,14 @@ function BomPage() {
         setMatches(null);
         setOverrides({});
         setProjectId(res.header.project_id);
-        toast.info(`Loaded ${res.header.bom_number}. Click “Match against stock” to refresh against current inventory.`);
+        toast.info(readOnlyLoadedBom ? `Loaded ${res.header.bom_number} as a read-only saved revision.` : `Loaded ${res.header.bom_number}. Click “Match against stock” to refresh against current inventory.`);
       } catch (e: any) {
         toast.error(e?.message ?? "Could not load that BOM");
       }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadBomId]);
+  }, [loadBomId, readOnlyLoadedBom]);
 
   useEffect(() => {
     if (projectFromSearch && !loadBomId) setProjectId(projectFromSearch);

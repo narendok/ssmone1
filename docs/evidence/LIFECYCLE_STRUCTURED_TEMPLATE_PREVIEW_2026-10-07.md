@@ -1,5 +1,31 @@
 # Structured lifecycle template preview — authorized-source review
 
+## DFMEA, Manufacturing Control Plan, and DVP&R local review update — 2026-10-08
+
+Three additional tabs now use the same caller-authorized opportunity and immutable Master Specification revision pin as the existing preview set:
+
+- **DFMEA:** typed local rows for function, failure mode, effects, causes, prevention/detection controls, Severity/Occurrence/Detection, owner, and action. Each rating accepts an integer from 1 to 10 or `TBC`; RPN appears only when all three ratings are known.
+- **Manufacturing Control Plan:** typed local rows for process step, characteristic, specification/parameter, control method, equipment, sampling, reaction plan, and owner. No process parameter, equipment qualification, SMT profile, sampling plan, or production release is invented.
+- **DVP&R:** typed local rows for test, applicability, sample count, criteria, result, evidence, and standards reference. A requested standard is never treated as compliance, approval, completed testing, a pass result, or sign-off.
+
+All rows have stable local IDs; edits remain in memory per tab, survive tab changes, block refresh, and surface the same source-change warning. React renders the actual typed rows as escaped tables; blank values show `TBC`, explicit zero remains zero, non-finite or negative sample counts fail validation, and injected text remains literal. No save, export, generation, Drive write, stock operation, database change, source association, or approval is enabled.
+
+The saved BOM detail notice now says it loaded a **read-only saved revision**. It no longer suggests the unavailable stock-matching action.
+
+### Exact files changed
+
+- `src/lib/lifecycle-structured-template-previews.ts`
+- `src/lib/lifecycle-structured-template-previews.test.ts`
+- `src/components/lifecycle/StructuredTemplatePreview.tsx`
+- `src/components/lifecycle/StructuredTemplatePreview.test.tsx`
+- `src/routes/_authenticated/bom.tsx`
+- `roadmap.md`
+- `docs/evidence/LIFECYCLE_STRUCTURED_TEMPLATE_PREVIEW_2026-10-07.md`
+
+### Remaining save and Drive blockers
+
+Persistence remains disabled until the accepted protected lifecycle contract can pin an immutable template revision and source tuple, authorise the caller, safely store a server-rendered draft, atomically record Drive/register/audit/receipt data, handle replay/conflict/rollback, compensate failed storage attempts, and pass isolated caller-authenticated acceptance. These new local review rows do not create a controlled document or Drive revision.
+
 ## Existing BOM authority integration — 2026-10-07
 
 The lifecycle **BOM review** tab now composes records from the existing project BOM authority; it does not create a lifecycle worksheet authority.

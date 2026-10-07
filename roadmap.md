@@ -3,6 +3,7 @@
 ## Current request
 
 - [x] Restore a reachable, authorised read-only review entry for saved BOM `BOM-2026-0002` on committed project `EMULATOR-V20` without inferring ownership. The existing `/bom` page now lists saved BOM metadata immediately after selecting the verified project and opens its exact detail route through a relative authenticated router link, preserving the active session rather than forcing a document navigation. **Department workspace listing remains blocked:** the project has a null `department_id`; the strict department tracker correctly excludes it. No department backfill, ownership inference, RLS change, or broad unassigned-project visibility was added.
+- [x] Add source-pinned, local-only DFMEA, Manufacturing Control Plan, and DVP&R previews with typed safe tables, validation, source-change protection, and disabled persistence. The read-only saved-BOM notice now avoids suggesting stock matching where no such action exists.
 - [ ] Harden the Master Specification controlled-write contract before any further deployment: the deployed `sales.manage` direct table grants/policies currently bypass source pairing, optimistic version locking, revision progression, actor provenance, and audit. **Source-only proposal and denial acceptance are required before any revocation; no production migration, permission widening, fixtures, identities, or publication.** Client requirement intake and assigned engineering feasibility remain source-only until scoped external RLS compatibility is accepted.
 
 ## Current compatibility hardening

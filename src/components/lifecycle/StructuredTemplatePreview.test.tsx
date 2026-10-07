@@ -48,4 +48,17 @@ describe("formatted structured template preview", () => {
     const recoveredPreview = renderToStaticMarkup(<FormattedPreview item={bomItem} source={source} userEdits={{ "BOM_COST_TRACKER:BOM_COST_ROWS": bomRows, "BOM_COST_TRACKER:LOCAL_COST_TOTAL": "TBC", "BOM_COST_TRACKER:COST_RISK_NOTES": "TBC" }} error={null} controlledText="TBC" />);
     expect(recoveredPreview).not.toContain("Quantity must be a non-negative finite number or TBC.");
   });
+
+  it("renders DFMEA, control-plan, and DVP&R typed local tables with TBC and safe literal output", () => {
+    const dfmeaItem = structuredLifecycleTemplatePreviews.find((item) => item.kind === "DFMEA");
+    const controlItem = structuredLifecycleTemplatePreviews.find((item) => item.kind === "MANUFACTURING_CONTROL_PLAN");
+    const dvprItem = structuredLifecycleTemplatePreviews.find((item) => item.kind === "DVPR");
+    if (!dfmeaItem || !controlItem || !dvprItem) throw new Error("Expected new preview definitions.");
+    const dfmea = serializeLocalTableRows([{ id: "risk", function: "Power <img src=x>", failureMode: "TBC", effect: "TBC", cause: "TBC", preventionControl: "TBC", detectionControl: "TBC", severity: "10", occurrence: "2", detection: "3", owner: "TBC", action: "TBC" }]);
+    const control = serializeLocalTableRows([{ id: "control", processStep: "Assembly", characteristic: "TBC", specification: "TBC", method: "TBC", equipment: "TBC", sampleFrequency: "TBC", reactionPlan: "TBC", owner: "TBC" }]);
+    const dvpr = serializeLocalTableRows([{ id: "dvpr", test: "CAN verification", applicability: "TBC", sampleCount: "TBC", acceptanceCriteria: "TBC", result: "TBC", evidence: "TBC", standardsReference: "Customer-requested reference only" }]);
+    expect(renderToStaticMarkup(<FormattedPreview item={dfmeaItem} source={source} userEdits={{ "DFMEA:DFMEA_ROWS": dfmea, "DFMEA:DFMEA_REVIEW_NOTE": "TBC" }} error={null} controlledText="TBC" />)).toContain("Power &lt;img src=x&gt;");
+    expect(renderToStaticMarkup(<FormattedPreview item={controlItem} source={source} userEdits={{ "MANUFACTURING_CONTROL_PLAN:CONTROL_PLAN_ROWS": control, "MANUFACTURING_CONTROL_PLAN:CONTROL_PLAN_NOTE": "TBC" }} error={null} controlledText="TBC" />)).toContain("Control-plan rows");
+    expect(renderToStaticMarkup(<FormattedPreview item={dvprItem} source={source} userEdits={{ "DVPR:DVPR_ROWS": dvpr, "DVPR:DVPR_REVIEW_NOTE": "TBC" }} error={null} controlledText="TBC" />)).toContain("Customer-requested reference only");
+  });
 });
