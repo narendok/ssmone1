@@ -33,7 +33,7 @@ describe("isolated Sales acceptance runner boundary", () => {
   it("distinguishes verified caller transport from the unavailable isolated contract", () => {
     const report = isolatedSalesAcceptancePreflight(ISOLATED_SALES_ACCEPTANCE_PROJECT_REF);
     expect(report.caller).toEqual({ transport: "authenticated-server-function", identity: "verified" });
-    expect(report.checks.find((check) => check.key === "rpc")?.detail).toContain("pending application RPCs");
+    expect(report.checks.find((check) => check.key === "rpc")?.detail).toContain("pending protected Master save");
   });
 
   it("lists every missing caller-transport prerequisite without offering a mutation path", () => {

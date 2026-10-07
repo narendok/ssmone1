@@ -85,6 +85,7 @@ if create_payload "$REQUEST_KEY" "$MASTER_VERSION_ID" "Wrong customer" | call_sa
   echo "Wrong actor/customer replay unexpectedly succeeded" >&2; exit 1
 fi
 
+# The protected-create/source-update overlap is exercised through the real caller wrappers.
 # The controlled editor advances the source with the current expected version.
 # A fresh key intentionally reuses the historical MASTER_VERSION_ID and must fail.
 jq -cn --arg specificationId "$SPECIFICATION_ID" --arg opportunityId "$OPPORTUNITY_ID" \
