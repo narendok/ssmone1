@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { FormattedPreview } from "./StructuredTemplatePreview";
 import { mapMasterSpecificationSource, serializeLocalTableRows, structuredLifecycleTemplatePreviews } from "@/lib/lifecycle-structured-template-previews";
 
-const source = mapMasterSpecificationSource({ opportunityId: "opportunity-id", opportunityNumber: "OPPORTUNITY-2026-0013", opportunityName: "Tracker", customerId: "customer-id", customerName: "SAMPLE ONLY", specificationId: "specification-id", specificationNumber: "MASTER-2026-0001", versionId: "version-id", versionNumber: 1, changeSummary: "Initial intake", savedAt: "2026-10-05T18:37:27.589Z", specificationData: {} });
+const source = mapMasterSpecificationSource({ opportunityId: "opportunity-id", opportunityNumber: "OPPORTUNITY-2026-0013", opportunityName: "Tracker", customerId: "customer-id", customerName: "SAMPLE ONLY", specificationId: "specification-id", specificationNumber: "MASTER-2026-0001", versionId: "version-id", versionNumber: 1, changeSummary: "Initial intake", savedAt: "2026-10-05T18:37:27.589Z", project: null, specificationData: {} });
 const bomRows = serializeLocalTableRows([{ id: "bom-1", itemNumber: "1", mpn: "TBC", manufacturer: "TBC", description: "Local board", package: "TBC", quantity: "0", leadTime: "TBC", unitCost: "0", currency: "SEK", aecqEvidence: "TBC" }]);
 const quoteRows = serializeLocalTableRows([{ id: "quote-1", line: "1", description: "Prototype <img src=x onerror=alert(1)>", quantity: "20", unitPrice: "0", currency: "SEK", leadTime: "TBC" }]);
 const tierRows = serializeLocalTableRows([{ id: "tier-1", minQuantity: "1", maxQuantity: "20", unitPrice: "0" }]);
