@@ -328,8 +328,8 @@ GRANT EXECUTE ON FUNCTION public.approve_sales_requirement_baseline(uuid, intege
 REVOKE ALL ON FUNCTION public.sales_baseline_approval_canonical_payload(uuid, integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sales_baseline_approval_payload_hash(uuid, integer) FROM PUBLIC, anon, authenticated;
 
--- Required companion compatibility group, intentionally not implemented here: replace
--- the direct sales_commercial_records upsert with a protected commercial-save routine
+-- Required companion compatibility group, intentionally not implemented here: replace the
+-- direct sales_commercial_records upsert with a protected commercial-save routine
 -- that locks requirement -> commercial record and remove authenticated UPDATE/INSERT
 -- access. That routine must preserve manual history and coordinate with this baseline
 -- contract before either source proposal is eligible for caller-transport acceptance.

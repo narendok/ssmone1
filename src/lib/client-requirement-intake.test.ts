@@ -277,7 +277,7 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("concurrent reassignment or response either completes before this snapshot or waits");
     expect(salesBoundSql).toContain("does not");
     expect(salesBoundSql).toContain("claim a shared order with the pending Master-save or commercial-save paths");
-    expect(salesBoundSql).toContain("replace the direct sales_commercial_records upsert with a protected commercial-save routine");
+    expect(salesBoundSql).toContain("direct sales_commercial_records upsert with a protected commercial-save routine");
     expect(salesBoundSql).not.toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirements FROM PUBLIC, authenticated;");
     expect(salesBoundSql).toContain("requirement_baselines_assign_business_code");
     expect(lifecycleDialogs).toContain("Read-only readiness");
