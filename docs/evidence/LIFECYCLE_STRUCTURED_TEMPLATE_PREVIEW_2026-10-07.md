@@ -58,7 +58,8 @@ Verified read-only records:
   → StructuredTemplatePreview(projectId)
   → fetchProjectBoms(projectId)                     caller-RLS list
   → fetchProjectBomItems(bomId, projectId)          caller-RLS lines + exact project check
-  → /bom?loadBom=<the exact saved BOM id>            existing BOM workspace
+   → /bom?loadBom=<the exact saved BOM id>&readOnly=true
+                                                     saved-BOM detail only
 ```
 
 `fetchProjectBomItems` now accepts the verified project ID and rejects a selected BOM whose persisted `project_id` differs. The project review selector is therefore restricted to the exact verified project, and a foreign identifier fails explicitly rather than displaying another project's detail.
@@ -66,7 +67,7 @@ Verified read-only records:
 - The project workspace has a reachable **BOM review** tab beside its existing **BOM** tab.
 - The committed review shows saved line references, MPNs, descriptions, quantities, costs, matched component references, and match state from the existing saved BOM contract.
 - Null unit costs remain `TBC`; persisted zero totals render `0.00`. The lifecycle view does not fetch inventory or turn unavailable stock into zero.
-- **Open in existing BOM tool** retains the selected saved BOM through its `loadBom` query value; it does not send users to a blank tool.
+- **Open read-only BOM detail** retains the selected saved BOM through its exact `loadBom` query value and opens a saved-detail-only screen, not a blank or editable import workspace. It includes no save, import, CSV review, or inventory action.
 - The catalogue / existing **Add component** workflow remains in the inventory workspace with its existing visible gates (`inventory.manage` or `engineering.edit`) and protected save flow. The lifecycle panel neither searches inventory nor creates a component.
 - `OPPORTUNITY-2026-0013` remains an unprojected proposal and continues to show **No project-linked BOM yet**.
 
@@ -80,6 +81,23 @@ Exact source:
 - `src/routes/_authenticated/projects.$projectId.tsx`
 
 No SQL, migration, data, backfill, role, grant, user, fixture, inventory, BOM, Drive, persistence, generation, export, or publishing change is included.
+
+## Department workspace navigation limitation — 2026-10-07
+
+`/workspace/projects` is intentionally a strict department tracker:
+
+```text
+workspace.projects route
+  → DepartmentProjectTracker(departmentId)
+  → fetchDepartmentProjects(departmentId)
+  → projects.department_id = active department ID
+```
+
+Read-only source inspection confirms `EMULATOR-V20` has a null `department_id`, while the Hardware & R&D tracker lists only projects explicitly assigned to its canonical department ID. The missing value cannot establish Hardware & R&D ownership; it is not safe to infer one from a BOM, product name, legacy label, folder, or engineering-like data.
+
+- The exact authorised review path remains `/projects/31f21b91-46c4-4853-a7890e41b605` → **BOM review** → `BOM-2026-0002` → **Open read-only BOM detail**.
+- The project tracker remains department-scoped. It does not add all eight null-department legacy projects to Hardware & R&D or every workspace.
+- A precise historical department correction would require separately verified data stewardship; it is not part of this UI-only read-only work.
 
 ## Formatted typed-table repair — 2026-10-07
 
