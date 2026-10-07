@@ -7,6 +7,7 @@ const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_in
 const salesBoundSql = readFileSync("supabase/pending/20261006_sales_bound_requirement_creation.sql", "utf8");
 const salesBoundAcceptanceSql = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_acceptance.sql", "utf8");
 const salesBoundConcurrencyHarness = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_concurrency_acceptance.sh", "utf8");
+const salesBoundTransportHarness = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_caller_transport_acceptance.sh", "utf8");
 
 describe("client requirement intake contract", () => {
   it("requires bounded immutable submission content", () => {
@@ -300,8 +301,8 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("Commercial revision history is immutable");
     expect(salesBoundAcceptanceSql).toContain("no_authenticated_commercial_insert");
     expect(salesBoundAcceptanceSql).toContain("protected_commercial_callable");
-    expect(transportHarness).toContain("Changed commercial replay unexpectedly succeeded");
-    expect(transportHarness).toContain("Stale commercial revision unexpectedly succeeded");
+    expect(salesBoundTransportHarness).toContain("Changed commercial replay unexpectedly succeeded");
+    expect(salesBoundTransportHarness).toContain("Stale commercial revision unexpectedly succeeded");
     expect(lifecycleDialogs).toContain("Commercial save is unavailable until the protected, replay-safe");
     expect(lifecycleDialogs).toContain("disabled>Save commercial record");
   });
