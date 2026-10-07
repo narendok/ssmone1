@@ -352,3 +352,28 @@ Blank numeric values remain `TBC`; explicit `0` is retained. The local quote est
 - `src/lib/lifecycle-structured-template-previews.test.ts`
 
 Persistence remains blocked by the existing immutable protected draft-save, audit/receipt, storage compensation, and isolated caller-authenticated acceptance contracts.
+
+## Live typed-table validation correction — 2026-10-07
+
+Changed source files:
+
+- `src/lib/lifecycle-structured-template-previews.ts`
+- `src/components/lifecycle/StructuredTemplatePreview.tsx`
+- `src/lib/lifecycle-structured-template-previews.test.ts`
+
+The table validator is now invoked by every typed table editor and its formatted output. Invalid numeric cells have `aria-invalid="true"`, an associated alert message, and an editor-level alert. Quote-line estimates show `Invalid input`; BOM and tier output carries an explicit invalid-input warning. Empty numeric cells remain `TBC`, and explicit `0` remains valid. Tier maximum/minimum and overlap failures are marked against the affected cells. All edits remain local-only and unsaved.
+
+Browser evidence: signed-in `/sales` → `View proposal` → `Preview documents`; tested BOM negative quantity then recovery to `0`, quote negative unit price, overlapping volume tiers then recovery, and tab round-trip preservation. The UI stayed pinned to `OPPORTUNITY-2026-0013` / `MASTER-2026-0001` rev 1. No save or backend mutation occurred.
+
+Verification executed:
+
+```text
+bunx vitest run src/lib/lifecycle-structured-template-previews.test.ts
+8 passed
+bunx tsgo --noEmit
+passed
+bun run build
+passed
+```
+
+Persisted automatic drafts remain blocked pending an accepted immutable protected draft-save contract, audit/receipt, storage compensation, and isolated caller-authenticated acceptance.
