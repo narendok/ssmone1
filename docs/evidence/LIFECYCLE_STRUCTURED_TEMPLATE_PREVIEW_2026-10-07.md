@@ -1,5 +1,50 @@
 # Structured lifecycle template preview — authorized-source review
 
+## Existing BOM authority integration — 2026-10-07
+
+The lifecycle **BOM review** tab now composes records from the existing project BOM authority; it does not create a lifecycle worksheet authority.
+
+- The authorised read begins with the pinned opportunity and Master Specification revision, then reads its verified `projects` association only when one exists. It does not infer a project from a proposal name, customer, folder, or BOM.
+- For a committed project, the panel uses the existing caller-RLS protected reads `fetchProjectBoms(projectId)` and `fetchProjectBomItems(bomId)`. It shows exact saved BOM number, the existing free-text BOM revision, source Drive-revision-link state, and saved line values read-only.
+- **Open in existing BOM tool** uses the supported `/bom?loadBom=<id>` path. There is no lifecycle save, line mutation, stock action, or alternate BOM creation path.
+- The sample `OPPORTUNITY-2026-0013` is intentionally unprojected. It visibly states **No project-linked BOM yet** and offers only the existing BOM tool plus the authorised component catalogue. No project ID or BOM is attached or invented.
+- The existing component catalogue link is read-only navigation. Stock availability is intentionally absent from lifecycle BOM display; the existing tool continues to apply its own access checks and stock contracts.
+- Optional local scratch rows remain in-memory only, labelled as non-authoritative review material. They do not populate, replace, or validate against saved BOM lines; they cannot be saved, matched, used for inventory, or copied into a controlled document.
+- Any future generated controlled document must reference the same saved BOM and its linked Drive revision, rather than copy BOM rows as a second authority. If no Drive revision link exists, that state remains explicit.
+
+### Existing contracts inspected
+
+```text
+Sales proposal (caller-RLS, exact opportunity/customer/specification/version pin)
+  └─ verified projects(opportunity_id) association, if present
+       └─ fetchProjectBoms(projectId)                 read-only, caller RLS
+            └─ fetchProjectBomItems(bomId)            read-only, caller RLS
+                 ├─ project_boms: bom_number, revision, source_drive_node_id, source_drive_revision_id
+                 └─ project_bom_items: persisted lines, cost, matched component ID/status, shortage
+```
+
+The existing supported mutation contract remains `saveProjectBom`: authenticated caller, project-scoped source Drive validation, protected server-generated BOM number, persisted header and line replacement. It is not invoked by the lifecycle preview. Mutation/save remains unavailable until a separately accepted lifecycle contract exists.
+
+### Prior formatted-table repair verification
+
+The earlier repair is independently represented by executable unit/component checks:
+
+- `src/lib/lifecycle-structured-template-previews.test.ts`: pure typed-row validation, TBC versus explicit zero, negative/non-finite/reversed/overlapping tier handling, source literal mapping, and unprojected source pin.
+- `src/components/lifecycle/StructuredTemplatePreview.test.tsx`: React-rendered BOM/quote/tier headers and cells, explicit zero, escaped markup, invalid row feedback, and recovery.
+
+The React rendering checks belong to `src/components/lifecycle/StructuredTemplatePreview.test.tsx`; they are not attributed to the pure-lib test. Interactive browser validation is reported separately only when run; no claim here substitutes it with a helper-only test.
+
+### Exact files for this integration group
+
+- `src/lib/lifecycle-structured-template-previews.ts`
+- `src/lib/lifecycle-structured-template-previews.functions.ts`
+- `src/components/lifecycle/StructuredTemplatePreview.tsx`
+- `src/lib/lifecycle-structured-template-previews.test.ts`
+- `src/components/lifecycle/StructuredTemplatePreview.test.tsx`
+- `docs/evidence/LIFECYCLE_STRUCTURED_TEMPLATE_PREVIEW_2026-10-07.md`
+
+No SQL, migrations, data, backfill, grants, RLS changes, users, fixtures, storage, Save, generation, export/release, or publishing change is part of this integration.
+
 ## Formatted typed-table repair — 2026-10-07
 
 The formatted local preview now invokes the typed row-output path for all three local tables:
