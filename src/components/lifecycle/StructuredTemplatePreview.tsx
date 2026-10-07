@@ -35,7 +35,6 @@ function FormattedPreview({ item, source, userEdits, error, controlledText }: { 
           <OutputTable title="Volume tiers · provisional" headers={["Min qty", "Max qty", "Unit price"]} rows={tableRowsForOutput("VOLUME_TIER_ROWS", value("VOLUME_TIER_ROWS"))} invalid={validateLocalTableRows("VOLUME_TIER_ROWS", value("VOLUME_TIER_ROWS")).length > 0} />
         </>
       ) : null}
-      {item.kind === "BOM_COST_TRACKER" ? <OutputTable title="BOM cost rows · local only" headers={["Item #", "MPN", "Manufacturer", "Description", "Package", "Qty", "Lead time", "Unit cost", "Currency", "AEC-Q evidence"]} rows={tableRowsForOutput("BOM_COST_ROWS", value("BOM_COST_ROWS"))} invalid={validateLocalTableRows("BOM_COST_ROWS", value("BOM_COST_ROWS")).length > 0} /> : null}
       {contextRows.length > 0 ? <PreviewTable title="Document structure" rows={contextRows} state={item.kind === "CONTRACT_REVIEW" ? "NOT APPROVED / TBC" : item.kind === "NDA" ? "UNCONFIRMED / TBC" : "Local draft / TBC"} /> : null}
       {localRows.length > 0 ? <PreviewTable title="Every local editable field" rows={localRows} state="Unsaved local edit" /> : null}
       <details className="border p-3"><summary className="cursor-pointer text-sm font-medium">Controlled text rendering</summary>{error ? <p role="alert" className="mt-3 text-sm text-destructive">{error}</p> : <pre className="mt-3 whitespace-pre-wrap break-words text-xs text-muted-foreground">{controlledText}</pre>}</details>
