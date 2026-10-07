@@ -43,6 +43,21 @@ isolated callers and the existing authenticated application transport. It
 separates physical upload/download, server-side actor propagation, transaction
 rollback, exact replay/conflict, cleanup, and two-session concurrency.
 
+Before any authenticated case, run the read-only, fail-closed prerequisite
+checker with an operator-supplied local manifest:
+
+```sh
+ACCEPTANCE_MANIFEST=/secure/path/lifecycle-save-draft-isolated.env \
+  bash lifecycle_document_draft_real_caller_preflight.sh
+```
+
+It accepts only the isolated remix ref and requires explicit `yes` values for
+already-approved login-capable manager/outsider callers, normal authenticated
+application transport, storage policy/object verification, source pins and
+readback observability. It never reads credentials, calls a database, uploads
+an object, invokes SaveDraft, or changes any backend state. A pass confirms
+only that an operator declared prerequisites; it is not caller acceptance.
+
 The unapplied transport proposal is applied after the document proposal in an
 isolated environment. Extend HTTP acceptance to call the real web handlers as
 both manager and out-of-scope users; neither a successful service-role request

@@ -38,6 +38,32 @@ isolated remix backend. The repository contains only structural SQL actors and
 no caller session or physical storage runner for that backend. This is why
 SaveDraft remains disabled.
 
+### Read-only operator preflight
+
+Before the first authenticated call, run:
+
+```sh
+ACCEPTANCE_MANIFEST=/secure/path/lifecycle-save-draft-isolated.env \
+  bash supabase/pending/tests/lifecycle_document_draft_real_caller_preflight.sh
+```
+
+The local manifest must contain only the isolated backend reference and `yes`
+attestations for the fourteen prerequisites checked by the script. It must not
+contain credentials, tokens, connection URLs, service keys, or email addresses.
+The script accepts `ACCEPTANCE_BACKEND_REF=egjotuxqguifnvdnflan` only and exits
+before any execution on a missing/false prerequisite or original-backend name.
+Its pass result is declaration validation, not acceptance evidence.
+
+## Exact application transport
+
+Use the normal signed-in application call to
+`generateLifecycleDocumentDraft` through TanStack `useServerFn`; the existing
+client function middleware attaches the caller bearer and
+`requireSupabaseAuth` establishes the verified actor. The server then invokes
+only the service-only `execute_lifecycle_document_action` gateway with that
+verified actor. Do not call an underlying lifecycle RPC from the browser, use
+raw HTTP/SQL, set JWT GUCs, or substitute a service-role request.
+
 ## Exact real-caller cases
 
 Run each case through the authenticated application action, not raw SQL, direct
