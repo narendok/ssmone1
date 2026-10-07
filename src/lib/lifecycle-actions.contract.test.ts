@@ -8,6 +8,12 @@ describe("lifecycle protected-action contract", () => {
     expect(Object.values(lifecycleActionContracts).filter((item) => item.idempotent)).toHaveLength(2);
   });
 
+  it("names the actual protected document-save bridge rather than a nonexistent single RPC", () => {
+    expect(lifecycleActionContracts.documentDraft.rpc).toContain("authorize_lifecycle_document_draft");
+    expect(lifecycleActionContracts.documentDraft.rpc).toContain("commit_lifecycle_document_draft");
+    expect(lifecycleActionContracts.documentDraft.rpc).not.toContain("generate_lifecycle_document_draft");
+  });
+
   it("requires deployment review and isolated database acceptance before mutation can be enabled", () => {
     const completeEvidence = {
       authorization: true,

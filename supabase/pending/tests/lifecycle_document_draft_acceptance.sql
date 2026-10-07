@@ -1,4 +1,7 @@
--- ISOLATED-ENVIRONMENT ONLY — executable psql acceptance fixture.
+-- ISOLATED-ENVIRONMENT ONLY — structural psql acceptance fixture.
+-- This script sets request.jwt.claim.* directly and therefore proves SQL
+-- behavior only. It is not evidence of authenticated application transport;
+-- run the separate real-caller acceptance procedure before enabling SaveDraft.
 -- Required variables: manager_user_id, outsider_user_id, project_id,
 -- target_folder_id, template_key, template_version, template_revision_id,
 -- request_key, conflict_target_folder_id, file_name, mime_type, storage_path,
