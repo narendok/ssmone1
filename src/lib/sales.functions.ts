@@ -33,7 +33,20 @@ export const createCustomerRequirement = createServerFn({ method: "POST" })
     throw new Error("Legacy customer requirement creation is retired. Use the protected source-bound requirement flow after database acceptance.");
   });
 export const assignFeasibilityReview = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => feasibilityAssignmentSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: reviewId, error } = await sb.rpc("assign_requirement_feasibility_review", { p_requirement_id: data.requirementId, p_department_id: data.departmentId, p_reviewer_user_id: data.reviewerUserId }); if (error || typeof reviewId !== "string") throw new Error(error?.message ?? "Could not assign feasibility review."); return { id: reviewId }; });
-export const saveCommercialRecord = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => commercialSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: record, error } = await sb.from("sales_commercial_records").upsert({ requirement_id: data.requirementId, quotation_reference: data.quotationReference, currency: data.currency, quoted_amount: data.quotedAmount, status: data.status, authorization_reference: data.authorizationReference, customer_authorized_at: data.status === "customer_authorized" ? new Date().toISOString() : null, notes: data.notes, created_by: context.userId }, { onConflict: "requirement_id" }).select("id").single(); if (error || !record) throw new Error(error?.message ?? "Could not save commercial record."); await logSalesActivity(sb, context.userId, "sales_commercial_record", record.id, "saved", `Commercial status: ${data.status}`); return { id: record.id }; });
+/**
+ * Intentionally unavailable: the deployed commercial writer is a non-atomic upsert
+ * without source locks, expected-version checks, immutable audit, or replay receipts.
+ * The pending protected contract replaces it after isolated caller-authenticated
+ * acceptance; this facade must never silently fall back to direct table writes.
+ */
+export const saveCommercialRecord = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => commercialSchema.parse(data))
+  .handler(({ data, context }) => {
+    void data;
+    void context;
+    throw new Error("Commercial authorization save is unavailable until the pending protected, replay-safe commercial contract passes real isolated caller-authenticated acceptance.");
+  });
 /**
  * Deliberately fail-closed: the applied feasibility table cannot bind a terminal
  * verdict to an immutable requirement revision, and no replay-safe baseline
