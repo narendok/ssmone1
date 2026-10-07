@@ -4,7 +4,7 @@
 
 ## Observed schema evidence
 
-- `drizzle/migrations/0009_complete_phase4_customer_lifecycle.sql` defines `customer_requirements`, append-only-intended `customer_requirement_revisions`, `requirement_feasibility_reviews`, `sales_commercial_records`, and `requirement_baselines`.
+- `drizzle/migrations/0009_complete_phase4_customer_lifecycle.sql` defines `customer_requirements`, `customer_requirement_revisions`, `requirement_feasibility_reviews`, `sales_commercial_records`, and `requirement_baselines`.
 - `requirement_baselines` has `UNIQUE(requirement_id, revision_number)` and a nullable-at-insert business number after `drizzle/migrations/0014_stabilization_sales_project_numbers.sql`.
 - The deployed `requirement_baselines_assign_business_code` trigger calls `assign_stabilization_codes`, which assigns `next_business_number('baseline', NULL, NULL)` when `baseline_number` is NULL or blank. The pending approval routine supplies NULL and never accepts a caller number.
 - The deployed feasibility table lacks the pinned provenance columns. `supabase/pending/20261005_client_requirement_intake.sql` supplies them and revision-scoped uniqueness; baseline approval requires that pending prerequisite.
@@ -253,8 +253,8 @@ REVOKE ALL ON FUNCTION public.sales_requirement_creation_payload_hash(uuid, uuid
 -- revision-bound feasibility proposal in 20261005_client_requirement_intake.sql.
 -- No legacy row is backfilled: a review with NULL provenance remains unavailable.
 -- Baseline lock order: advisory(request_key) -> receipt -> requirement -> current revision
--- -> feasibility reviews -> Master version -> commercial record. It deliberately does
--- not claim a shared order with the pending Master-save or commercial-save paths: those
+-- -> feasibility reviews -> Master version -> commercial record. It deliberately does not
+-- claim a shared order with the pending Master-save or commercial-save paths: those
 -- source contracts still need compatible protected locking before this proposal can pass
 -- isolated acceptance. Direct commercial writes must be retired in that same group.
 -- The deployed requirement_baselines_assign_business_code trigger remains the sole
@@ -564,7 +564,7 @@ fi
 
 # The approved runner must additionally use the wrappers above (never direct SQL) to:
 # - assert exact baseline/audit/receipt counts and forced-audit rollback;
-# - overlap protected create then controlled source update, proving the editor waits;
+# - run the protected-create/source-update overlap, proving the editor waits;
 # - overlap baseline approval with reviewer response/reassignment and protected commercial
 #   authorization update, proving each waits and the baseline snapshot is coherent;
 # - repeat a successful baseline call after a permitted source advance, asserting the
