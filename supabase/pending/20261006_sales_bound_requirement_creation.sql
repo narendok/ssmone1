@@ -225,8 +225,8 @@ REVOKE ALL ON FUNCTION public.sales_requirement_creation_payload_hash(uuid, uuid
 -- revision-bound feasibility proposal in 20261005_client_requirement_intake.sql.
 -- No legacy row is backfilled: a review with NULL provenance remains unavailable.
 -- Baseline lock order: advisory(request_key) -> receipt -> requirement -> current revision
--- -> feasibility reviews -> Master version -> commercial record. It deliberately does
--- not claim a shared order with the pending Master-save or commercial-save paths: those
+-- -> feasibility reviews -> Master version -> commercial record. It deliberately does not
+-- claim a shared order with the pending Master-save or commercial-save paths: those
 -- source contracts still need compatible protected locking before this proposal can pass
 -- isolated acceptance. Direct commercial writes must be retired in that same group.
 -- The deployed requirement_baselines_assign_business_code trigger remains the sole

@@ -64,7 +64,7 @@ fi
 
 # The approved runner must additionally use the wrappers above (never direct SQL) to:
 # - assert exact baseline/audit/receipt counts and forced-audit rollback;
-# - overlap protected create then controlled source update, proving the editor waits;
+# - run the protected-create/source-update overlap, proving the editor waits;
 # - overlap baseline approval with reviewer response/reassignment and protected commercial
 #   authorization update, proving each waits and the baseline snapshot is coherent;
 # - repeat a successful baseline call after a permitted source advance, asserting the
