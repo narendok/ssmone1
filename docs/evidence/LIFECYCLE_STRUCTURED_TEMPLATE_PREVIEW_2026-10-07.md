@@ -113,7 +113,6 @@ No database acceptance has run. The isolated target requires all of the followin
 
 The harness refuses the original target and refuses to run while any prerequisite is missing. This checklist does not request new identities, credentials, grants, or secrets.
 
-
 ## Full exact source
 
 ### `src/lib/lifecycle-structured-template-previews.ts`
@@ -150,8 +149,7 @@ export function renderStructuredLifecycleTemplatePreview(kind: StructuredLifecyc
   const preview = structuredLifecycleTemplatePreviews.find((item) => item.kind === kind);
   if (!preview) throw new Error("Unsupported structured lifecycle template.");
   return renderLifecycleDocument({ ...preview.template, documentRevisionId: localRevision }, { ...preview.fields, ...(source?.sourceFields ?? {}), ...userEdits });
-}
-```
+}```
 
 ### `src/lib/lifecycle-structured-template-previews.functions.ts`
 
@@ -174,9 +172,8 @@ export const fetchStructuredTemplatePreviewSource = createServerFn({ method: "GE
   const { data: version, error: versionError } = await context.supabase.from("master_specification_versions").select("id,specification_id,version_number,change_summary,created_at,specification_data").eq("specification_id", specification.id).eq("version_number", data.versionNumber).maybeSingle();
   if (versionError) throw new Error("The pinned Master Specification revision could not be read with your current access.");
   if (!version || version.specification_id !== specification.id) throw new Error("The pinned Master Specification revision is unavailable.");
-  return mapMasterSpecificationSource({ opportunityId: opportunity.id, opportunityNumber: opportunity.opportunity_number, opportunityName: opportunity.name, customerId: customer.id, customerName: customer.legal_name, specificationId: specification.id, specificationNumber: specification.specification_number, versionId: version.id, versionNumber: version.version_number, changeSummary: version.change_summary, savedAt: version.created_at, specificationData: version.specification_data });
-});
-```
+  return mapMasterSpecificationSource({ opportunityId: opportunity.id, opportunityNumber: opportunity.opportunity_number ?? data.opportunityNumber, opportunityName: opportunity.name, customerId: customer.id, customerName: customer.legal_name, specificationId: specification.id, specificationNumber: specification.specification_number, versionId: version.id, versionNumber: version.version_number, changeSummary: version.change_summary, savedAt: version.created_at, specificationData: version.specification_data });
+});```
 
 ### `src/components/lifecycle/StructuredTemplatePreview.tsx`
 
@@ -207,8 +204,7 @@ export function StructuredTemplatePreview() {
   </CardContent></Card>;
 }
 function SourcePin({ source }: { source: StructuredTemplateSource }) { return <section className="border p-3"><div className="flex items-center gap-2"><AlertCircle className="size-4 text-primary" /><p className="text-sm font-medium">Pinned authorized source</p></div><div className="mt-2 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2"><p>Opportunity: <span className="font-mono text-foreground">{source.opportunityNumber}</span></p><p>Customer: <span className="text-foreground">{source.customerName}</span></p><p>Master Specification: <span className="font-mono text-foreground">{source.specificationNumber} rev {source.versionNumber}</span></p><p>Revision ID: <span className="font-mono text-foreground">{source.versionId}</span></p></div><p className="mt-2 text-xs text-muted-foreground">Saved {source.savedAt ? new Date(source.savedAt).toLocaleString() : "TBC"} · {source.changeSummary ?? "Change note TBC"}</p></section>; }
-function SourceTable({ item, source }: { item: typeof structuredLifecycleTemplatePreviews[number]; source: StructuredTemplateSource | null }) { return <section className="border p-3"><p className="text-xs font-medium text-muted-foreground">Injected source fields · read-only</p><div className="mt-2 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b text-muted-foreground"><th className="p-2">Field</th><th className="p-2">Pinned value</th></tr></thead><tbody>{item.sourceFields.map((field) => <tr key={field} className="border-b last:border-0"><td className="p-2 font-mono">{field}</td><td className="p-2 whitespace-pre-wrap">{source?.sourceFields[field] ?? "TBC"}</td></tr>)}</tbody></table></div></section>; }
-```
+function SourceTable({ item, source }: { item: typeof structuredLifecycleTemplatePreviews[number]; source: StructuredTemplateSource | null }) { return <section className="border p-3"><p className="text-xs font-medium text-muted-foreground">Injected source fields · read-only</p><div className="mt-2 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b text-muted-foreground"><th className="p-2">Field</th><th className="p-2">Pinned value</th></tr></thead><tbody>{item.sourceFields.map((field) => <tr key={field} className="border-b last:border-0"><td className="p-2 font-mono">{field}</td><td className="p-2 whitespace-pre-wrap">{source?.sourceFields[field] ?? "TBC"}</td></tr>)}</tbody></table></div></section>; }```
 
 ### `src/lib/lifecycle-structured-template-previews.test.ts`
 
@@ -221,15 +217,15 @@ const source = mapMasterSpecificationSource({ opportunityId: "opportunity-id", o
 describe("structured lifecycle template previews", () => {
   it("defines distinct SOR, Contract Review, and PRS structures", () => {
     expect(structuredLifecycleTemplatePreviews.map((template) => template.kind)).toEqual(["SOR", "CONTRACT_REVIEW", "PRS"]);
-    expect(renderStructuredLifecycleTemplatePreview("SOR", source).content).toContain("1. Scope");
+    expect(renderStructuredLifecycleTemplatePreview("SOR", source).content).toContain("2. Scope");
     expect(renderStructuredLifecycleTemplatePreview("CONTRACT_REVIEW", source).content).toContain("| Review item | Verified source | Local review |");
-    expect(renderStructuredLifecycleTemplatePreview("PRS").content).toContain("| ID | Requirement | Source | Verification | Status |");
+    expect(renderStructuredLifecycleTemplatePreview("PRS", source).content).toContain("| ID | Requirement | Source / constraint | Verification | Status |");
   });
 
   it("keeps unknown source values visibly TBC and never infers authorization", () => {
     const contractReview = renderStructuredLifecycleTemplatePreview("CONTRACT_REVIEW", source).content;
     expect(contractReview).toContain("TBC");
-    expect(contractReview).toContain("No customer authorization is inferred");
+    expect(contractReview).toContain("Customer authorization: TBC (not inferred).");
   });
 
   it("substitutes user edits once and preserves HTML as literal text", () => {
@@ -258,5 +254,5 @@ describe("structured lifecycle template previews", () => {
     expect(structuredLifecycleTemplatePreviews.find((item) => item.kind === "CONTRACT_REVIEW")?.editableFields.map((field) => field.key)).toEqual(["COMMITMENT_SUMMARY", "EXCEPTIONS_AND_ACTIONS"]);
     expect(structuredLifecycleTemplatePreviews.find((item) => item.kind === "PRS")?.editableFields.map((field) => field.key)).toEqual(["FUNCTIONAL_REQUIREMENT", "VERIFICATION_METHOD"]);
   });
-});
-```
+});```
+
