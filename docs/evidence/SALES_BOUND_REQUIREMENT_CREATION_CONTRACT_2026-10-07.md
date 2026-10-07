@@ -924,7 +924,7 @@ assert_count "sales_requirement_creation_requests" 2 "barrier=$CONCURRENCY_BARRI
 
 ## Isolated caller-transport acceptance status
 
-**Read-only isolated preflight performed:** the allowlisted isolated backend `egjotuxqguifnvdnflan` was inspected without mutation. `sales_commercial_records` exists; `requirement_feasibility_reviews.source_revision_id` and the pending `save_sales_commercial_record` routine do not.
+**Read-only isolated preflight performed:** the allowlisted read-only isolated backend `egjotuxqguifnvdnflan` was inspected without mutation. `sales_commercial_records` exists; `requirement_feasibility_reviews.source_revision_id` and the pending `save_sales_commercial_record` routine do not.
 
 **Not executed:** the caller-transport harness is intentionally blocked. It now asserts persisted IDs, counts, revision history, receipts, audit rows, rollback cleanup, stale-source refusal, wrong-actor refusal, protected reviewer decisions, baseline replay, and two-session concurrency once all approved inputs are present.
 
