@@ -45,6 +45,9 @@ export function FormattedPreview({ item, source, userEdits, error, controlledTex
   const quoteOutput = tableOutput("QUOTE_LINE_ROWS", true);
   const tierOutput = tableOutput("VOLUME_TIER_ROWS");
   const bomOutput = tableOutput("BOM_COST_ROWS");
+  const dfmeaOutput = tableOutput("DFMEA_ROWS");
+  const controlPlanOutput = tableOutput("CONTROL_PLAN_ROWS");
+  const dvprOutput = tableOutput("DVPR_ROWS");
   return (
     <section className="space-y-3">
       <div><p className="text-sm font-medium">Formatted local preview</p><p className="mt-1 text-xs text-muted-foreground">React-rendered text and tables only; source and local text are escaped and never executed.</p></div>
@@ -55,6 +58,9 @@ export function FormattedPreview({ item, source, userEdits, error, controlledTex
         </>
       ) : null}
       {item.kind === "BOM_COST_TRACKER" ? <OutputTable title="BOM cost rows · local review only" headers={["Item #", "MPN", "Manufacturer", "Description", "Package", "Qty", "Lead time", "Unit cost", "Currency", "AEC-Q evidence"]} fields={["itemNumber", "mpn", "manufacturer", "description", "package", "quantity", "leadTime", "unitCost", "currency", "aecqEvidence"]} {...bomOutput} /> : null}
+       {item.kind === "DFMEA" ? <OutputTable title="DFMEA rows · local risk review only" headers={["Function", "Failure mode", "Effect", "Cause", "Prevention control", "Detection control", "Severity", "Occurrence", "Detection", "RPN", "Owner", "Action"]} fields={["function", "failureMode", "effect", "cause", "preventionControl", "detectionControl", "severity", "occurrence", "detection", "rpn", "owner", "action"]} {...dfmeaOutput} /> : null}
+       {item.kind === "MANUFACTURING_CONTROL_PLAN" ? <OutputTable title="Control-plan rows · local process review only" headers={["Process step", "Characteristic", "Specification / parameter", "Control method", "Equipment", "Sampling", "Reaction plan", "Owner"]} fields={["processStep", "characteristic", "specification", "method", "equipment", "sampleFrequency", "reactionPlan", "owner"]} {...controlPlanOutput} /> : null}
+       {item.kind === "DVPR" ? <OutputTable title="DVP&R rows · local verification review only" headers={["Test", "Applicability", "Sample count", "Criteria", "Result", "Evidence", "Standards reference"]} fields={["test", "applicability", "sampleCount", "acceptanceCriteria", "result", "evidence", "standardsReference"]} {...dvprOutput} /> : null}
       {contextRows.length > 0 ? <PreviewTable title="Document structure" rows={contextRows} state={item.kind === "CONTRACT_REVIEW" ? "NOT APPROVED / TBC" : item.kind === "NDA" ? "UNCONFIRMED / TBC" : "Local draft / TBC"} /> : null}
       {localRows.length > 0 ? <PreviewTable title="Every local editable field" rows={localRows} state="Unsaved local edit" /> : null}
       <details className="border p-3"><summary className="cursor-pointer text-sm font-medium">Controlled text rendering</summary>{error ? <p role="alert" className="mt-3 text-sm text-destructive">{error}</p> : <pre className="mt-3 whitespace-pre-wrap break-words text-xs text-muted-foreground">{controlledText}</pre>}</details>
