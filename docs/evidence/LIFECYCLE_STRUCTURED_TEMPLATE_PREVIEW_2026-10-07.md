@@ -1,23 +1,56 @@
-# Structured lifecycle template preview — source review
+# Structured lifecycle template preview — authorized-source review
 
 ## Scope
 
-This source-only addition introduces local previews for three distinct document shapes:
+This source-only addition connects the three local previews to the caller-authorized, immutable Master Specification revision for `OPPORTUNITY-2026-0013` / `MASTER-2026-0001` revision 1.
 
 - Statement of Requirements (SOR)
 - Contract Review
 - Product Requirements Specification (PRS)
 
-They use the existing pure `renderLifecycleDocument` contract. Output remains `text/plain` and is rendered in a React `<pre>` element. No HTML is parsed or executed, and no persistence, generation, storage, database, permission, or lifecycle action is enabled.
+The read uses the authenticated server function `fetchStructuredTemplatePreviewSource`, with caller RLS preserved. It verifies the opportunity/customer/specification tuple, retrieves exact revision 1, and returns only source fields used by the preview. Output remains text-only and React renders all data as escaped text. No persistence, generation, storage, database mutation, permission change, or lifecycle action is enabled.
 
 ## Exact changed source files
 
 - `src/lib/lifecycle-structured-template-previews.ts`
+- `src/lib/lifecycle-structured-template-previews.functions.ts`
 - `src/lib/lifecycle-structured-template-previews.test.ts`
 - `src/components/lifecycle/StructuredTemplatePreview.tsx`
 - `src/routes/_authenticated/settings.lifecycle.tsx`
 
-## Template sources
+## Full source review
+
+### Authoritative read contract
+
+```ts
+// Caller-authorized only: the protected function queries these deployed tables.
+sales_opportunities(opportunity_number = "OPPORTUNITY-2026-0013")
+  -> master_specifications(opportunity_id, customer_id, specification_number = "MASTER-2026-0001")
+  -> master_specification_versions(specification_id, version_number = 1)
+```
+
+The function rejects unavailable rows, incomplete opportunity/customer relationships, mismatched specification tuples, unavailable revisions, and query errors. It does not read controlled requirements or baselines; their absence remains explicit and no customer authorization is inferred.
+
+### `src/lib/lifecycle-structured-template-previews.ts`
+
+```ts
+// Verbatim implementation is the current source file. Key public functions:
+export function mapMasterSpecificationSource(input: Omit<StructuredTemplateSource, "sourceFields"> & { specificationData: unknown }): StructuredTemplateSource
+export function renderStructuredLifecycleTemplatePreview(kind: StructuredLifecycleTemplateKind, source: StructuredTemplateSource | null, userEdits: Record<string, string | null> = {})
+```
+
+It maps exact pinned source fields, preserves source literals, maps missing values to `TBC`, and applies local edits only over editable fields.
+
+### `src/lib/lifecycle-structured-template-previews.functions.ts`
+
+```ts
+export const fetchStructuredTemplatePreviewSource = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(validate)
+  .handler(/* caller-RLS opportunity -> specification -> exact version read */)
+```
+
+### Template structures
 
 ```ts
 export const structuredLifecycleTemplatePreviews = [
@@ -51,10 +84,19 @@ export const structuredLifecycleTemplatePreviews = [
 ];
 ```
 
+## UI route and behavior
+
+- Route: **Settings → Lifecycle templates** (`/_authenticated/settings/lifecycle`)
+- Panel: **Structured document previews**
+- The panel identifies the source pin, including revision ID, number, saved time, and change note.
+- Source fields are read-only in each type-specific table. SOR, Contract Review, and PRS use distinct layouts and local editable fields.
+- Local changes visibly remain unsaved. Refresh is disabled while they exist, so it cannot silently replace them. If a source revision advance is observed after local editing, the UI reports a conflict without replacing the edits.
+- Save remains disabled and states why; it does not report a successful persistence.
+
 ## Safety and source behavior
 
 - Unknown source and technical fields show `TBC`; no technical value or customer authorization is invented.
-- Source-field labels and user-edit fields are visibly separated in the preview UI.
+- Source-field labels and user-edit fields are visibly separated in the preview UI, with source pins visible.
 - Literal source/user text is substituted exactly once by the existing renderer; markup such as `<img>` remains visible text, not executable HTML.
 - Missing required user-edit fields fail closed in the pure renderer.
 - Save, activation, retirement, draft generation, and persistence remain unavailable until the existing protected contracts have isolated acceptance evidence.

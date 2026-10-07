@@ -1,44 +1,27 @@
-import { useMemo, useState } from "react";
-import { Eye, LockKeyhole } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertCircle, Eye, LockKeyhole, RefreshCw, Save } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { renderStructuredLifecycleTemplatePreview, structuredLifecycleTemplatePreviews, type StructuredLifecycleTemplateKind } from "@/lib/lifecycle-structured-template-previews";
+import { fetchStructuredTemplatePreviewSource } from "@/lib/lifecycle-structured-template-previews.functions";
+import { renderStructuredLifecycleTemplatePreview, structuredLifecycleTemplatePreviews, type StructuredLifecycleTemplateKind, type StructuredTemplateSource } from "@/lib/lifecycle-structured-template-previews";
 
+const sampleSource = { opportunityNumber: "OPPORTUNITY-2026-0013", specificationNumber: "MASTER-2026-0001", versionNumber: 1 };
+const editKey = (kind: StructuredLifecycleTemplateKind, field: string) => `${kind}:${field}`;
 export function StructuredTemplatePreview() {
-  const [kind, setKind] = useState<StructuredLifecycleTemplateKind>("SOR");
-  const [userEdits, setUserEdits] = useState<Record<string, string>>({});
-  const selected = structuredLifecycleTemplatePreviews.find((item) => item.kind === kind) ?? structuredLifecycleTemplatePreviews[0];
-  const rendered = useMemo(() => {
-    try {
-      return { content: renderStructuredLifecycleTemplatePreview(kind, userEdits).content, error: null };
-    } catch (error) {
-      return { content: "", error: error instanceof Error ? error.message : "Preview unavailable." };
-    }
-  }, [kind, userEdits]);
-
-  return <Card>
-    <CardHeader>
-      <div className="flex items-start gap-3"><Eye className="mt-0.5 size-5 text-primary" /><div><CardTitle>Structured document previews</CardTitle><CardDescription>Local, plain-text previews only. Saving and controlled generation remain unavailable.</CardDescription></div></div>
-    </CardHeader>
-    <CardContent>
-      <Tabs value={kind} onValueChange={(value) => setKind(value as StructuredLifecycleTemplateKind)}>
-        <TabsList className="h-auto flex-wrap justify-start">
-          {structuredLifecycleTemplatePreviews.map((item) => <TabsTrigger key={item.kind} value={item.kind}>{item.label}</TabsTrigger>)}
-        </TabsList>
-        {structuredLifecycleTemplatePreviews.map((item) => <TabsContent key={item.kind} value={item.kind} className="space-y-4 pt-4">
-          <p className="text-sm text-muted-foreground">{item.description}</p>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="space-y-4">
-              <section className="border p-3"><p className="text-xs font-medium text-muted-foreground">Injected source fields</p><div className="mt-2 flex flex-wrap gap-2">{item.sourceFields.map((field) => <span className="border px-2 py-1 font-mono text-xs" key={field}>{field} · TBC</span>)}</div></section>
-              <section className="space-y-3 border p-3"><div className="flex items-center gap-2"><LockKeyhole className="size-4 text-muted-foreground" /><p className="text-xs font-medium text-muted-foreground">User edits remain separate</p></div>{item.editableFields.map((field) => <div key={field} className="space-y-1.5"><Label htmlFor={`${item.kind}-${field}`}>{field.replaceAll("_", " ")}</Label>{field.includes("SUMMARY") || field.includes("ACTIONS") || field.includes("SCOPE") ? <Textarea id={`${item.kind}-${field}`} value={userEdits[field] ?? "TBC"} onChange={(event) => setUserEdits((current) => ({ ...current, [field]: event.target.value }))} maxLength={8000} /> : <Input id={`${item.kind}-${field}`} value={userEdits[field] ?? "TBC"} onChange={(event) => setUserEdits((current) => ({ ...current, [field]: event.target.value }))} maxLength={1000} />}</div>)}</section>
-            </div>
-            <section><p className="mb-2 text-sm font-medium">Plain-text preview</p>{rendered.error ? <p role="alert" className="border border-destructive/40 p-3 text-sm text-destructive">{rendered.error}</p> : <pre className="min-h-80 whitespace-pre-wrap break-words border bg-muted/30 p-3 text-sm">{rendered.content}</pre>}</section>
-          </div>
-        </TabsContent>)}
-      </Tabs>
-    </CardContent>
-  </Card>;
+  const [kind, setKind] = useState<StructuredLifecycleTemplateKind>("SOR"); const [userEdits, setUserEdits] = useState<Record<string, string>>({}); const initialVersionId = useRef<string | null>(null);
+  const source = useQuery({ queryKey: ["structured-template-source", sampleSource.opportunityNumber, sampleSource.specificationNumber, sampleSource.versionNumber], queryFn: () => fetchStructuredTemplatePreviewSource({ data: sampleSource }), retry: false });
+  const dirty = Object.keys(userEdits).length > 0; const sourceAdvanced = Boolean(source.data && initialVersionId.current && initialVersionId.current !== source.data.versionId);
+  useEffect(() => { if (source.data && !initialVersionId.current) initialVersionId.current = source.data.versionId; }, [source.data]);
+  const rendered = useMemo(() => { try { const edits = Object.fromEntries(Object.entries(userEdits).filter(([key]) => key.startsWith(`${kind}:`)).map(([key, value]) => [key.slice(kind.length + 1), value])); return { content: renderStructuredLifecycleTemplatePreview(kind, source.data ?? null, edits).content, error: null }; } catch (error) { return { content: "", error: error instanceof Error ? error.message : "Preview unavailable." }; } }, [kind, source.data, userEdits]);
+  return <Card><CardHeader><div className="flex flex-wrap items-start justify-between gap-3"><div className="flex items-start gap-3"><Eye className="mt-0.5 size-5 text-primary" /><div><CardTitle>Structured document previews</CardTitle><CardDescription>Read-only authorized source: {sampleSource.opportunityNumber} · {sampleSource.specificationNumber} rev 1.</CardDescription></div></div><Button size="sm" variant="outline" onClick={() => void source.refetch()} disabled={source.isFetching || dirty}><RefreshCw className="size-4" /> Refresh source</Button></div></CardHeader><CardContent>
+    {source.isLoading && <p className="border p-3 text-sm text-muted-foreground">Loading authorized source…</p>}{source.isError && <p role="alert" className="border border-destructive/40 p-3 text-sm text-destructive">Authorized source could not be loaded: {source.error instanceof Error ? source.error.message : "Unexpected read error"}</p>}{source.data && <SourcePin source={source.data} />}{dirty && <p role="status" className="mt-3 border border-amber-500/40 bg-amber-500/5 p-3 text-sm">Local edits are unsaved. Refresh is paused so source data cannot overwrite them silently.</p>}{sourceAdvanced && <p role="alert" className="mt-3 border border-amber-500/40 bg-amber-500/5 p-3 text-sm">The source pin advanced while local edits exist. Review the conflict before starting a new draft; no edit was replaced.</p>}
+    <Tabs value={kind} onValueChange={(value) => setKind(value as StructuredLifecycleTemplateKind)} className="mt-4"><TabsList className="h-auto flex-wrap justify-start">{structuredLifecycleTemplatePreviews.map((item) => <TabsTrigger key={item.kind} value={item.kind}>{item.label}</TabsTrigger>)}</TabsList>{structuredLifecycleTemplatePreviews.map((item) => <TabsContent key={item.kind} value={item.kind} className="space-y-4 pt-4"><p className="text-sm text-muted-foreground">{item.description}</p><div className="grid gap-4 xl:grid-cols-2"><div className="space-y-4"><SourceTable item={item} source={source.data ?? null} /><section className="space-y-3 border p-3"><div className="flex items-center gap-2"><LockKeyhole className="size-4 text-muted-foreground" /><p className="text-xs font-medium text-muted-foreground">Local review edits · unsaved</p></div>{item.editableFields.map((field) => <div key={field.key} className="space-y-1.5"><Label htmlFor={`${item.kind}-${field.key}`}>{field.label}</Label>{field.kind === "textarea" ? <Textarea id={`${item.kind}-${field.key}`} value={userEdits[editKey(item.kind, field.key)] ?? "TBC"} onChange={(event) => setUserEdits((current) => ({ ...current, [editKey(item.kind, field.key)]: event.target.value }))} maxLength={8000} /> : <Input id={`${item.kind}-${field.key}`} value={userEdits[editKey(item.kind, field.key)] ?? "TBC"} onChange={(event) => setUserEdits((current) => ({ ...current, [editKey(item.kind, field.key)]: event.target.value }))} maxLength={1000} />}</div>)}</section></div><section><p className="mb-2 text-sm font-medium">Controlled text preview</p>{rendered.error ? <p role="alert" className="border border-destructive/40 p-3 text-sm text-destructive">{rendered.error}</p> : <pre className="min-h-80 whitespace-pre-wrap break-words border bg-muted/30 p-3 text-sm">{rendered.content}</pre>}</section></div></TabsContent>)}</Tabs><div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t pt-4"><p className="text-xs text-muted-foreground">Saving and controlled document generation remain unavailable until the accepted backend contract is installed and independently verified.</p><Button disabled><Save className="size-4" /> Save unavailable</Button></div>
+  </CardContent></Card>;
 }
+function SourcePin({ source }: { source: StructuredTemplateSource }) { return <section className="border p-3"><div className="flex items-center gap-2"><AlertCircle className="size-4 text-primary" /><p className="text-sm font-medium">Pinned authorized source</p></div><div className="mt-2 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2"><p>Opportunity: <span className="font-mono text-foreground">{source.opportunityNumber}</span></p><p>Customer: <span className="text-foreground">{source.customerName}</span></p><p>Master Specification: <span className="font-mono text-foreground">{source.specificationNumber} rev {source.versionNumber}</span></p><p>Revision ID: <span className="font-mono text-foreground">{source.versionId}</span></p></div><p className="mt-2 text-xs text-muted-foreground">Saved {source.savedAt ? new Date(source.savedAt).toLocaleString() : "TBC"} · {source.changeSummary ?? "Change note TBC"}</p></section>; }
+function SourceTable({ item, source }: { item: typeof structuredLifecycleTemplatePreviews[number]; source: StructuredTemplateSource | null }) { return <section className="border p-3"><p className="text-xs font-medium text-muted-foreground">Injected source fields · read-only</p><div className="mt-2 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b text-muted-foreground"><th className="p-2">Field</th><th className="p-2">Pinned value</th></tr></thead><tbody>{item.sourceFields.map((field) => <tr key={field} className="border-b last:border-0"><td className="p-2 font-mono">{field}</td><td className="p-2 whitespace-pre-wrap">{source?.sourceFields[field] ?? "TBC"}</td></tr>)}</tbody></table></div></section>; }

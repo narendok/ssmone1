@@ -1,89 +1,32 @@
 import { renderLifecycleDocument, type DocumentTemplate } from "@/lib/lifecycle-document-renderer";
 
 export type StructuredLifecycleTemplateKind = "SOR" | "CONTRACT_REVIEW" | "PRS";
-
+export type StructuredTemplateSource = {
+  opportunityId: string; opportunityNumber: string; opportunityName: string; customerId: string; customerName: string;
+  specificationId: string; specificationNumber: string; versionId: string; versionNumber: number; changeSummary: string | null; savedAt: string | null;
+  sourceFields: Record<string, string | null>;
+};
 export type StructuredLifecycleTemplatePreview = {
-  kind: StructuredLifecycleTemplateKind;
-  label: string;
-  description: string;
-  sourceFields: string[];
-  editableFields: string[];
-  template: DocumentTemplate;
-  fields: Record<string, string | null>;
+  kind: StructuredLifecycleTemplateKind; label: string; description: string; sourceFields: string[];
+  editableFields: Array<{ key: string; label: string; kind: "text" | "textarea" }>;
+  template: DocumentTemplate; fields: Record<string, string | null>;
 };
 
 const localRevision = "local-preview-only";
-
+const tbc = "TBC";
 export const structuredLifecycleTemplatePreviews: StructuredLifecycleTemplatePreview[] = [
-  {
-    kind: "SOR",
-    label: "Statement of Requirements",
-    description: "Source requirements captured for review; technical detail remains TBC until a verified source provides it.",
-    sourceFields: ["PROJECT_CODE", "PROJECT_NAME", "PROJECT_REVISION", "CUSTOMER_NAME"],
-    editableFields: ["SCOPE_STATEMENT", "ACCEPTANCE_CRITERIA"],
-    template: {
-      templateKey: "SOR",
-      version: 1,
-      title: "Statement of Requirements",
-      content: "STATEMENT OF REQUIREMENTS\n\nProject: {{PROJECT_CODE}} — {{PROJECT_NAME}}\nRevision: {{PROJECT_REVISION}}\nCustomer: {{CUSTOMER_NAME}}\n\n1. Scope\n{{SCOPE_STATEMENT}}\n\n2. Acceptance criteria\n{{ACCEPTANCE_CRITERIA}}\n\n3. Source status\nVerified source fields are injected. User-authored scope and acceptance text remains separate pending controlled save.",
-    },
-    fields: {
-      PROJECT_CODE: "TBC",
-      PROJECT_NAME: "TBC",
-      PROJECT_REVISION: "TBC",
-      CUSTOMER_NAME: "TBC",
-      SCOPE_STATEMENT: "TBC",
-      ACCEPTANCE_CRITERIA: "TBC",
-    },
-  },
-  {
-    kind: "CONTRACT_REVIEW",
-    label: "Contract Review",
-    description: "Commercial and customer commitments stay unverified unless an authoritative controlled source supplies them.",
-    sourceFields: ["PROJECT_CODE", "CUSTOMER_NAME", "SOURCE_DOCUMENT"],
-    editableFields: ["COMMITMENT_SUMMARY", "EXCEPTIONS_AND_ACTIONS"],
-    template: {
-      templateKey: "CONTRACT-REVIEW",
-      version: 1,
-      title: "Contract Review",
-      content: "CONTRACT REVIEW\n\n| Review item | Source value | Review disposition |\n| --- | --- | --- |\n| Project | {{PROJECT_CODE}} | TBC |\n| Customer | {{CUSTOMER_NAME}} | TBC |\n| Authoritative source | {{SOURCE_DOCUMENT}} | TBC |\n\nCommitment summary\n{{COMMITMENT_SUMMARY}}\n\nExceptions, conditions and actions\n{{EXCEPTIONS_AND_ACTIONS}}\n\nNo customer authorization is inferred by this local preview.",
-    },
-    fields: {
-      PROJECT_CODE: "TBC",
-      CUSTOMER_NAME: "TBC",
-      SOURCE_DOCUMENT: "TBC",
-      COMMITMENT_SUMMARY: "TBC",
-      EXCEPTIONS_AND_ACTIONS: "TBC",
-    },
-  },
-  {
-    kind: "PRS",
-    label: "Product Requirements Specification",
-    description: "A structured requirement matrix with unverified technical values visibly held at TBC.",
-    sourceFields: ["PROJECT_CODE", "PROJECT_NAME", "PROJECT_REVISION"],
-    editableFields: ["FUNCTIONAL_REQUIREMENT", "VERIFICATION_METHOD"],
-    template: {
-      templateKey: "PRS",
-      version: 1,
-      title: "Product Requirements Specification",
-      content: "PRODUCT REQUIREMENTS SPECIFICATION\n\nProject: {{PROJECT_CODE}} — {{PROJECT_NAME}}\nRevision: {{PROJECT_REVISION}}\n\n| ID | Requirement | Source | Verification | Status |\n| --- | --- | --- | --- | --- |\n| PRS-001 | {{FUNCTIONAL_REQUIREMENT}} | TBC | {{VERIFICATION_METHOD}} | TBC |\n\nOpen technical values, applicability and approvals remain TBC until verified source data is available.",
-    },
-    fields: {
-      PROJECT_CODE: "TBC",
-      PROJECT_NAME: "TBC",
-      PROJECT_REVISION: "TBC",
-      FUNCTIONAL_REQUIREMENT: "TBC",
-      VERIFICATION_METHOD: "TBC",
-    },
-  },
+  { kind: "SOR", label: "Statement of Requirements", description: "Source requirements and review-owned scope remain separate until a controlled save contract is accepted.", sourceFields: ["PROJECT_CODE", "PROJECT_NAME", "PROJECT_REVISION", "CUSTOMER_NAME", "REQUIREMENT_SUMMARY"], editableFields: [{ key: "SCOPE_STATEMENT", label: "Scope statement", kind: "textarea" }, { key: "ACCEPTANCE_CRITERIA", label: "Acceptance criteria", kind: "textarea" }], template: { templateKey: "SOR", version: 1, title: "Statement of Requirements", content: "STATEMENT OF REQUIREMENTS\n\nProject: {{PROJECT_CODE}} — {{PROJECT_NAME}}\nMaster Specification: {{MASTER_SPECIFICATION}}\nRevision: {{PROJECT_REVISION}}\nCustomer: {{CUSTOMER_NAME}}\n\n1. Source requirement\n{{REQUIREMENT_SUMMARY}}\n\n2. Scope\n{{SCOPE_STATEMENT}}\n\n3. Acceptance criteria\n{{ACCEPTANCE_CRITERIA}}" }, fields: { PROJECT_CODE: tbc, PROJECT_NAME: tbc, PROJECT_REVISION: tbc, CUSTOMER_NAME: tbc, MASTER_SPECIFICATION: tbc, REQUIREMENT_SUMMARY: tbc, SCOPE_STATEMENT: tbc, ACCEPTANCE_CRITERIA: tbc } },
+  { kind: "CONTRACT_REVIEW", label: "Contract Review", description: "Commercial authorization is never inferred; review fields remain local and unsaved.", sourceFields: ["PROJECT_CODE", "CUSTOMER_NAME", "MASTER_SPECIFICATION", "SOURCE_DOCUMENT", "REQUIREMENT_SUMMARY"], editableFields: [{ key: "COMMITMENT_SUMMARY", label: "Commitment summary", kind: "textarea" }, { key: "EXCEPTIONS_AND_ACTIONS", label: "Exceptions, conditions and actions", kind: "textarea" }], template: { templateKey: "CONTRACT-REVIEW", version: 1, title: "Contract Review", content: "CONTRACT REVIEW\n\n| Review item | Verified source | Local review |\n| --- | --- | --- |\n| Opportunity | {{PROJECT_CODE}} | TBC |\n| Customer | {{CUSTOMER_NAME}} | TBC |\n| Master Specification | {{MASTER_SPECIFICATION}} | TBC |\n| Source record | {{SOURCE_DOCUMENT}} | TBC |\n\nSource requirement\n{{REQUIREMENT_SUMMARY}}\n\nCommitment summary\n{{COMMITMENT_SUMMARY}}\n\nExceptions, conditions and actions\n{{EXCEPTIONS_AND_ACTIONS}}\n\nCustomer authorization: TBC (not inferred)." }, fields: { PROJECT_CODE: tbc, CUSTOMER_NAME: tbc, MASTER_SPECIFICATION: tbc, SOURCE_DOCUMENT: tbc, REQUIREMENT_SUMMARY: tbc, COMMITMENT_SUMMARY: tbc, EXCEPTIONS_AND_ACTIONS: tbc } },
+  { kind: "PRS", label: "Product Requirements Specification", description: "Technical attributes are mapped from the pinned Master Specification; unknowns remain TBC.", sourceFields: ["PROJECT_CODE", "PROJECT_NAME", "PROJECT_REVISION", "POWER_AND_UNITS", "INTERFACES", "ENVIRONMENT_AND_IP"], editableFields: [{ key: "FUNCTIONAL_REQUIREMENT", label: "Functional requirement", kind: "textarea" }, { key: "VERIFICATION_METHOD", label: "Verification method", kind: "text" }], template: { templateKey: "PRS", version: 1, title: "Product Requirements Specification", content: "PRODUCT REQUIREMENTS SPECIFICATION\n\nProject: {{PROJECT_CODE}} — {{PROJECT_NAME}}\nMaster Specification: {{MASTER_SPECIFICATION}}\nRevision: {{PROJECT_REVISION}}\n\n| ID | Requirement | Source / constraint | Verification | Status |\n| --- | --- | --- | --- | --- |\n| PRS-001 | {{FUNCTIONAL_REQUIREMENT}} | {{REQUIREMENT_SUMMARY}} | {{VERIFICATION_METHOD}} | TBC |\n\n| Technical field | Pinned source value |\n| --- | --- |\n| Power / units | {{POWER_AND_UNITS}} |\n| Interfaces | {{INTERFACES}} |\n| Environment / IP | {{ENVIRONMENT_AND_IP}} |" }, fields: { PROJECT_CODE: tbc, PROJECT_NAME: tbc, PROJECT_REVISION: tbc, MASTER_SPECIFICATION: tbc, REQUIREMENT_SUMMARY: tbc, POWER_AND_UNITS: tbc, INTERFACES: tbc, ENVIRONMENT_AND_IP: tbc, FUNCTIONAL_REQUIREMENT: tbc, VERIFICATION_METHOD: tbc } },
 ];
 
-export function renderStructuredLifecycleTemplatePreview(
-  kind: StructuredLifecycleTemplateKind,
-  userEdits: Record<string, string | null> = {},
-) {
+function text(value: unknown) { return typeof value === "string" && value.trim() ? value.trim() : tbc; }
+export function mapMasterSpecificationSource(input: Omit<StructuredTemplateSource, "sourceFields"> & { specificationData: unknown }): StructuredTemplateSource {
+  const data = input.specificationData && typeof input.specificationData === "object" && !Array.isArray(input.specificationData) ? input.specificationData as Record<string, unknown> : {};
+  return { ...input, sourceFields: { PROJECT_CODE: input.opportunityNumber, PROJECT_NAME: input.opportunityName, PROJECT_REVISION: `Master Specification rev ${input.versionNumber}`, CUSTOMER_NAME: input.customerName, MASTER_SPECIFICATION: `${input.specificationNumber} rev ${input.versionNumber}`, SOURCE_DOCUMENT: `${input.specificationNumber} revision ${input.versionNumber}`, REQUIREMENT_SUMMARY: text(data.requirementSummary), POWER_AND_UNITS: text(data.powerAndUnits), INTERFACES: text(data.interfaces), ENVIRONMENT_AND_IP: text(data.environmentAndIp) } };
+}
+export function renderStructuredLifecycleTemplatePreview(kind: StructuredLifecycleTemplateKind, source: StructuredTemplateSource | null, userEdits: Record<string, string | null> = {}) {
   const preview = structuredLifecycleTemplatePreviews.find((item) => item.kind === kind);
   if (!preview) throw new Error("Unsupported structured lifecycle template.");
-  const fields = { ...preview.fields, ...userEdits };
-  return renderLifecycleDocument({ ...preview.template, documentRevisionId: localRevision }, fields);
+  return renderLifecycleDocument({ ...preview.template, documentRevisionId: localRevision }, { ...preview.fields, ...(source?.sourceFields ?? {}), ...userEdits });
 }
