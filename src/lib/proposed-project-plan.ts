@@ -42,6 +42,8 @@ export function createProposedProjectPlan(specification: ProposedProjectSpecific
   const hasMechanical = specification.workstreams.includes("MECHANICAL");
   const hasTest = specification.workstreams.includes("TEST");
   const productionScope = specification.optional.volumes;
+  const isProductionExcluded = isKnown(specification.optional.volumes) && ["none", "0", "zero", "n/a"].includes(specification.optional.volumes.toLowerCase().trim());
+  const hasProductionScope = hasManufacturing || !isProductionExcluded;
   const hasVerifiedProductionScope = isKnown(productionScope);
   const hasInterfaces = Boolean(isKnown(specification.optional.interfaces) || isKnown(specification.optional.connectivityAndGnss));
   const unknowns = Object.values(specification.optional).filter((value) => !isKnown(value)).length;
