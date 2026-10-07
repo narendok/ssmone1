@@ -130,6 +130,28 @@ The existing three previews now retain their source pin and add separate local-o
 
 The formatted preview is rendered through React table/text nodes, so injected source and local HTML remain literal text and cannot execute. Switching tabs preserves local edits in memory; save and generation remain disabled. This is not an automated persisted draft.
 
+## NDA, commercial quotation, and BOM cost tracker update
+
+The existing **Sales → View proposal → Preview documents** panel now includes three additional source-pinned, local-only tabs alongside SOR, Contract Review, and PRS:
+
+- **NDA review:** typed confidential-scope, obligations, intellectual-property, and governing-law sections. Every clause is explicitly `UNCONFIRMED / TBC`; no legal boilerplate, execution, or approval is claimed.
+- **Commercial quotation:** local quote-line and volume-tier rows with NRE, tooling, payment, and lead-time inputs. Unknown prices stay `TBC`; they are never displayed as zero. Numeric values accept a non-negative decimal or `TBC` only.
+- **BOM cost tracker:** multiline local rows for MPN, manufacturer, description, package, lead-time, unit-cost, and AEC-Q. No parts, prices, grades, stock, availability, or production BOM are inferred.
+
+All editable fields are now repeated in the React-rendered formatted output, including the PRS local verification proposal. Local edits remain memory-only, survive tab navigation, block refresh, and are always visibly marked unsaved. Text is rendered through React text nodes and the controlled single-pass text renderer, so markup and unsafe URLs remain literal, never executable.
+
+**Persisted automatic draft blocker:** the backend contract for immutable template revision pinning, protected source-authorized draft persistence, Drive/register/audit/receipt atomics, replay protection, storage compensation, and isolated caller-authenticated acceptance is still not accepted. Save, export/release, and generation remain unavailable.
+
+### Exact changed source for this update
+
+The following files are the complete source of this local-only update and should be reviewed directly in Code:
+
+- `src/lib/lifecycle-structured-template-previews.ts`
+- `src/components/lifecycle/StructuredTemplatePreview.tsx`
+- `src/lib/lifecycle-structured-template-previews.test.ts`
+
+No schema, live record, role, grant, user, fixture, storage, generation, export/release, or publishing change is included.
+
 ## Full exact source
 
 ### `src/routes/_authenticated/sales.tsx`
