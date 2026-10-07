@@ -36,6 +36,14 @@ describe("isolated Sales acceptance runner boundary", () => {
     expect(report.checks.find((check) => check.key === "rpc")?.detail).toContain("pending application RPCs");
   });
 
+  it("lists every missing caller-transport prerequisite without offering a mutation path", () => {
+    const report = isolatedSalesAcceptancePreflight(ISOLATED_SALES_ACCEPTANCE_PROJECT_REF);
+    for (const key of ["sales-caller", "reviewer-caller", "wrong-actor-caller", "rpc", "transport", "observability", "rollback", "concurrency"]) {
+      expect(report.checks.find((check) => check.key === key)?.available).toBe(false);
+    }
+    expect(report.blockedOperations.join(" ")).toContain("No mutation runner");
+  });
+
   it("uses a connection-target allowlist before the shell runner can do any work", () => {
     const runner = readFileSync("supabase/pending/tests/run_client_requirement_intake_isolated_acceptance.sh", "utf8");
     expect(runner).toContain('ISOLATED_DATABASE_URL');
