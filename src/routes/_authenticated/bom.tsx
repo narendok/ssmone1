@@ -49,7 +49,8 @@ export const Route = createFileRoute("/_authenticated/bom")({
   validateSearch: (search: Record<string, unknown>) => {
     const v = typeof search?.loadBom === "string" ? search.loadBom : undefined;
     const projectId = typeof search?.projectId === "string" ? search.projectId : undefined;
-    return { ...(v ? { loadBom: v } : {}), ...(projectId ? { projectId } : {}) };
+    const readOnly = search?.readOnly === true;
+    return { ...(v ? { loadBom: v } : {}), ...(projectId ? { projectId } : {}), ...(readOnly ? { readOnly: true } : {}) };
   },
   head: () => ({
     meta: [
@@ -100,8 +101,10 @@ function BomPage() {
   const [saving, setSaving] = useState(false);
   const [savedLink, setSavedLink] = useState<{ bom_number: string; project_id: string } | null>(null);
 
-  const loadBomId = (useSearch({ strict: false }) as any)?.loadBom as string | undefined;
-  const projectFromSearch = (useSearch({ strict: false }) as any)?.projectId as string | undefined;
+  const routeSearch = useSearch({ strict: false }) as any;
+  const loadBomId = routeSearch?.loadBom as string | undefined;
+  const projectFromSearch = routeSearch?.projectId as string | undefined;
+  const readOnlyLoadedBom = Boolean(loadBomId && routeSearch?.readOnly === true);
   const loadFn = useServerFn(loadProjectBom);
   const saveFn = useServerFn(saveProjectBom);
 

@@ -45,6 +45,42 @@ The React rendering checks belong to `src/components/lifecycle/StructuredTemplat
 
 No SQL, migrations, data, backfill, grants, RLS changes, users, fixtures, storage, Save, generation, export/release, or publishing change is part of this integration.
 
+## Committed-project BOM review acceptance — 2026-10-07
+
+Verified read-only records:
+
+- Project: `EMULATOR-V20` / `Emulator_V2.0 TCU Test Jig`
+- Saved BOM: `BOM-2026-0002`, revision `2`, `52` saved lines
+- Drive lineage: both source Drive IDs are null. The UI states `not linked / unsupported`; no Drive file or revision is inferred.
+
+```text
+/projects/$projectId → BOM review
+  → StructuredTemplatePreview(projectId)
+  → fetchProjectBoms(projectId)                     caller-RLS list
+  → fetchProjectBomItems(bomId, projectId)          caller-RLS lines + exact project check
+  → /bom?loadBom=<the exact saved BOM id>            existing BOM workspace
+```
+
+`fetchProjectBomItems` now accepts the verified project ID and rejects a selected BOM whose persisted `project_id` differs. The project review selector is therefore restricted to the exact verified project, and a foreign identifier fails explicitly rather than displaying another project's detail.
+
+- The project workspace has a reachable **BOM review** tab beside its existing **BOM** tab.
+- The committed review shows saved line references, MPNs, descriptions, quantities, costs, matched component references, and match state from the existing saved BOM contract.
+- Null unit costs remain `TBC`; persisted zero totals render `0.00`. The lifecycle view does not fetch inventory or turn unavailable stock into zero.
+- **Open in existing BOM tool** retains the selected saved BOM through its `loadBom` query value; it does not send users to a blank tool.
+- The catalogue / existing **Add component** workflow remains in the inventory workspace with its existing visible gates (`inventory.manage` or `engineering.edit`) and protected save flow. The lifecycle panel neither searches inventory nor creates a component.
+- `OPPORTUNITY-2026-0013` remains an unprojected proposal and continues to show **No project-linked BOM yet**.
+
+Focused component coverage includes: the no-project branch; exact committed BOM and revision; real MPN/line rendering; unknown versus zero cost; missing Drive lineage; and a guarded foreign-BOM detail read error. Existing lifecycle unit coverage continues to exercise the local scratch-table renderer and validation.
+
+Exact source:
+
+- `src/lib/project-bom.functions.ts`
+- `src/components/lifecycle/StructuredTemplatePreview.tsx`
+- `src/components/lifecycle/StructuredTemplatePreview.test.tsx`
+- `src/routes/_authenticated/projects.$projectId.tsx`
+
+No SQL, migration, data, backfill, role, grant, user, fixture, inventory, BOM, Drive, persistence, generation, export, or publishing change is included.
+
 ## Formatted typed-table repair — 2026-10-07
 
 The formatted local preview now invokes the typed row-output path for all three local tables:

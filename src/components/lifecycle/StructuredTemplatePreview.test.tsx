@@ -9,6 +9,20 @@ const quoteRows = serializeLocalTableRows([{ id: "quote-1", line: "1", descripti
 const tierRows = serializeLocalTableRows([{ id: "tier-1", minQuantity: "1", maxQuantity: "20", unitPrice: "0" }]);
 
 describe("formatted structured template preview", () => {
+  const authoritativeBom = {
+    id: "bom-2026-0002-id",
+    bom_number: "BOM-2026-0002",
+    name: "BOM_Emulator_V2.0 for procurement",
+    source_filename: null,
+    revision: "2",
+    notes: null,
+    line_count: 52,
+    total_cost: 0,
+    created_at: "2026-09-28T01:41:43.991Z",
+    source_drive_node_id: null,
+    source_drive_revision_id: null,
+  };
+
   it("renders every typed table through the actual formatted-preview component", () => {
     const bomItem = structuredLifecycleTemplatePreviews.find((item) => item.kind === "BOM_COST_TRACKER");
     const quoteItem = structuredLifecycleTemplatePreviews.find((item) => item.kind === "COMMERCIAL_QUOTATION");
