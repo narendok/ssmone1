@@ -337,3 +337,18 @@ describe("structured lifecycle template previews", () => {
   });
 });```
 
+
+
+## Typed quote and BOM table correction
+
+The Commercial quotation and BOM cost tracker tabs now use local-only typed React row tables rather than pipe-separated text areas. Quote rows expose **Line, Description, Qty, Unit price, Currency, Lead-time**; volume tiers expose **Min qty, Max qty, Unit price**; BOM rows expose **Item #, MPN, Manufacturer, Description, Package, Qty, Lead time, Unit cost, Currency, AEC-Q evidence**. Every row has a stable in-memory ID plus accessible add/remove and cell labels.
+
+Blank numeric values remain `TBC`; explicit `0` is retained. The local quote estimate is marked provisional and is `TBC` when quantity or unit price is unknown. Client validation rejects negative/non-finite values, reversed tiers, and overlapping volume tiers. The formatted preview renders actual table headers and cells with React text nodes only; neither markup nor URLs execute. No values are saved or used for business decisions.
+
+### Exact changed files
+
+- `src/lib/lifecycle-structured-template-previews.ts`
+- `src/components/lifecycle/StructuredTemplatePreview.tsx`
+- `src/lib/lifecycle-structured-template-previews.test.ts`
+
+Persistence remains blocked by the existing immutable protected draft-save, audit/receipt, storage compensation, and isolated caller-authenticated acceptance contracts.
