@@ -6,15 +6,15 @@ const source = mapMasterSpecificationSource({ opportunityId: "opportunity-id", o
 describe("structured lifecycle template previews", () => {
   it("defines distinct SOR, Contract Review, and PRS structures", () => {
     expect(structuredLifecycleTemplatePreviews.map((template) => template.kind)).toEqual(["SOR", "CONTRACT_REVIEW", "PRS"]);
-    expect(renderStructuredLifecycleTemplatePreview("SOR", source).content).toContain("1. Scope");
+    expect(renderStructuredLifecycleTemplatePreview("SOR", source).content).toContain("2. Scope");
     expect(renderStructuredLifecycleTemplatePreview("CONTRACT_REVIEW", source).content).toContain("| Review item | Verified source | Local review |");
-    expect(renderStructuredLifecycleTemplatePreview("PRS").content).toContain("| ID | Requirement | Source | Verification | Status |");
+    expect(renderStructuredLifecycleTemplatePreview("PRS", source).content).toContain("| ID | Requirement | Source / constraint | Verification | Status |");
   });
 
   it("keeps unknown source values visibly TBC and never infers authorization", () => {
     const contractReview = renderStructuredLifecycleTemplatePreview("CONTRACT_REVIEW", source).content;
     expect(contractReview).toContain("TBC");
-    expect(contractReview).toContain("No customer authorization is inferred");
+    expect(contractReview).toContain("Customer authorization: TBC (not inferred).");
   });
 
   it("substitutes user edits once and preserves HTML as literal text", () => {
