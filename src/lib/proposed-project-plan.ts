@@ -41,10 +41,9 @@ export function createProposedProjectPlan(specification: ProposedProjectSpecific
   const hasFirmware = specification.workstreams.includes("FIRMWARE");
   const hasMechanical = specification.workstreams.includes("MECHANICAL");
   const hasTest = specification.workstreams.includes("TEST");
-  const productionScope = specification.optional.volumes;
+  const hasManufacturing = specification.workstreams.includes("MANUFACTURING");
   const isProductionExcluded = isKnown(specification.optional.volumes) && ["none", "0", "zero", "n/a"].includes(specification.optional.volumes.toLowerCase().trim());
   const hasProductionScope = hasManufacturing || !isProductionExcluded;
-  const hasVerifiedProductionScope = isKnown(productionScope);
   const hasInterfaces = Boolean(isKnown(specification.optional.interfaces) || isKnown(specification.optional.connectivityAndGnss));
   const unknowns = Object.values(specification.optional).filter((value) => !isKnown(value)).length;
   const applicable = (condition: boolean, rationale: string): Pick<ProposedLifecycleStage, "state" | "exclusionRationale"> => condition
@@ -59,8 +58,8 @@ export function createProposedProjectPlan(specification: ProposedProjectSpecific
     { key: "pilot", title: "Pilot", responsibility: "Engineering and operations", prerequisites: ["Applicable prototype scope", "Build inputs"], suggestedDocuments: ["Pilot build plan", "Pilot review"], ...applicable(hasHardware || hasMechanical || hasFirmware, "No product development workstream is selected.") },
     { key: "validation", title: "Validation & precompliance", responsibility: "Test / Quality", prerequisites: ["Applicable requirements", "Test scope"], suggestedDocuments: ["Validation plan", "Precompliance plan"], ...applicable(hasTest || hasHardware || hasMechanical || hasInterfaces, "No validation-relevant workstream or interface is selected.") },
     { key: "final-release", title: "Final release", responsibility: "Engineering and Quality", prerequisites: ["Controlled evidence", "Human release decision"], suggestedDocuments: ["Release checklist", "Controlled release record"], ...applicable(hasHardware || hasFirmware || hasMechanical, "No engineering release is in scope.") },
-    { key: "readiness", title: "Readiness", responsibility: "Operations, Procurement and Production", prerequisites: ["Verified production scope", "Revision-linked sources"], suggestedDocuments: ["Readiness review", "Sourcing plan"], ...applicable(hasVerifiedProductionScope, "Production scope is not yet confirmed.") },
-    { key: "production-service", title: "Production, dispatch & service", responsibility: "Production, Operations and Service", prerequisites: ["Verified production scope", "Human authorization", "Released controlled records"], suggestedDocuments: ["Dispatch plan", "Service handover"], ...applicable(hasVerifiedProductionScope, "Production scope is not yet confirmed.") },
+    { key: "readiness", title: "Readiness", responsibility: "Operations, Procurement and Production", prerequisites: ["Verified production scope", "Revision-linked sources"], suggestedDocuments: ["Readiness review", "Sourcing plan"], ...applicable(hasProductionScope, "Production scope is not yet confirmed.") },
+    { key: "production-service", title: "Production, dispatch & service", responsibility: "Production, Operations and Service", prerequisites: ["Verified production scope", "Human authorization", "Released controlled records"], suggestedDocuments: ["Dispatch plan", "Service handover"], ...applicable(hasProductionScope, "Production scope is not yet confirmed.") },
   ];
 }
 
