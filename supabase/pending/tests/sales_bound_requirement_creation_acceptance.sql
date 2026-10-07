@@ -28,7 +28,10 @@ SELECT NOT has_table_privilege('authenticated', 'public.customer_requirement_rev
 SELECT NOT has_table_privilege('PUBLIC', 'public.sales_baseline_approval_requests', 'SELECT') AS no_public_baseline_receipt_read;
 SELECT NOT has_table_privilege('anon', 'public.sales_baseline_approval_requests', 'INSERT') AS no_anon_baseline_receipt_insert;
 SELECT NOT has_table_privilege('authenticated', 'public.sales_baseline_approval_requests', 'SELECT') AS no_authenticated_baseline_receipt_read;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_baseline_approval_requests', 'INSERT') AS no_authenticated_baseline_receipt_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_baseline_approval_requests', 'UPDATE') AS no_authenticated_baseline_receipt_update;
 SELECT has_function_privilege('authenticated', 'public.approve_sales_requirement_baseline(uuid, integer, uuid)', 'EXECUTE') AS protected_baseline_callable;
+SELECT NOT has_table_privilege('authenticated', 'public.requirement_baselines', 'INSERT') AS no_authenticated_baseline_insert;
 
 -- Required caller-authenticated isolated assertions, each transactionally isolated:
 -- 1. exact expected current revision and pinned provenance are mandatory; legacy NULL
@@ -40,6 +43,12 @@ SELECT has_function_privilege('authenticated', 'public.approve_sales_requirement
 -- 5. identical actor/key/payload replays after later source changes; changed payload rejects.
 -- 6. concurrent same-key approvals converge to one baseline/receipt/audit; forced audit
 --    failure rolls all three back; direct receipt/baseline writes remain denied.
+-- 7. while approval holds the revision-scoped review locks, an assigned-reviewer response
+--    and a Sales reassignment wait and then re-evaluate against the post-approval source;
+--    no baseline may snapshot a review mid-transition.
+-- 8. while approval holds its commercial row lock, a protected commercial authorization
+--    update waits and no baseline may snapshot a partly changed authorization. This cannot
+--    run until direct commercial upserts are replaced by that protected writer.
 
 -- Required executable assertions in the real caller transport runner:
 -- 1. approved isolated target refusal before any request is sent;
@@ -53,3 +62,9 @@ SELECT has_function_privilege('authenticated', 'public.approve_sales_requirement
 -- 7. a protected create holds its source locks while a protected controlled source update
 --    blocks, then resolves without changing the first create's persisted provenance;
 -- 8. direct receipt/requirement/revision writes are denied to each real caller.
+-- 9. real authenticated Sales baseline approval creates exactly one trigger-numbered
+--    baseline, audit, and receipt; an exact replay after an allowed source advance returns
+--    the original baseline only after re-checking the caller capability; changed actor or
+--    payload rejects before any new write.
+-- 10. forced audit failure rolls baseline, receipt, and number allocation transaction back;
+--    concurrent same-key baseline calls converge to one returned ID and exact counts one.

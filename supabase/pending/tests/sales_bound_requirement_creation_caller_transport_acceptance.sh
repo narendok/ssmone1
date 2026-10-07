@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# REAL CALLER-TRANSPORT ACCEPTANCE SPECIFICATION — intentionally non-executable until
-# an approved isolated target and two independently authenticated non-service callers
-# are supplied. This script refuses every unspecified/original target; it never sets
-# request.jwt.claim.* and never connects with a service-role credential.
+# REAL CALLER-TRANSPORT ACCEPTANCE HARNESS — intentionally refuses execution until an
+# approved isolated target and authenticated non-service wrappers are supplied. It never
+# sets request.jwt.claim.* and never connects with a service-role credential. The caller
+# wrappers must expose protected requirement, source editor, baseline, commercial, and
+# controlled review-transition operations over authenticated application transport.
 set -euo pipefail
 
 : "${ISOLATED_TARGET_NAME:?Name the approved isolated target}"
 : "${APPROVED_ISOLATED_TARGET_NAME:?Expected approved isolated target name}"
 : "${SALES_CALLER_TRANSPORT:?Executable that sends one authenticated Sales RPC call}"
 : "${SOURCE_EDITOR_TRANSPORT:?Executable that sends one authenticated controlled source-save call}"
+: "${BASELINE_CALLER_TRANSPORT:?Executable that sends one authenticated baseline RPC call}"
+: "${COMMERCIAL_EDITOR_TRANSPORT:?Executable that sends one authenticated protected commercial-save call}"
+: "${REVIEW_TRANSITION_TRANSPORT:?Executable that sends one authenticated protected review transition}"
 : "${OPPORTUNITY_ID:?}" "${CUSTOMER_ID:?}" "${MASTER_VERSION_ID:?}" "${SPECIFICATION_ID:?}"
 : "${REQUEST_KEY:?}" "${REQUEST_KEY_B:?}" "${EXPECTED_VERSION:?}"
 
@@ -26,6 +30,9 @@ fi
 # SQL, set JWT GUCs, use database superuser credentials, or use service_role.
 call_sales() { "$SALES_CALLER_TRANSPORT"; }
 call_editor() { "$SOURCE_EDITOR_TRANSPORT"; }
+call_baseline() { "$BASELINE_CALLER_TRANSPORT"; }
+call_commercial() { "$COMMERCIAL_EDITOR_TRANSPORT"; }
+call_review_transition() { "$REVIEW_TRANSITION_TRANSPORT"; }
 
 create_payload() {
   local key="$1" version="$2" title="$3"
@@ -55,8 +62,13 @@ if create_payload "$REQUEST_KEY_B" "$MASTER_VERSION_ID" "Fresh stale version" | 
   echo "Fresh stale-version creation unexpectedly succeeded" >&2; exit 1
 fi
 
-# The approved runner must additionally perform exact count/rollback assertions and
-# overlap two wrapper invocations: protected create first, protected source update
-# second. Capture timestamps plus returned IDs and prove the update waits for the
-# create instead of reproducing locks with direct SQL.
-echo "MANUAL RUNNER STEP REQUIRED: assert audited counts, forced-audit rollback, and protected-create/source-update overlap through caller transport."
+# The approved runner must additionally use the wrappers above (never direct SQL) to:
+# - assert exact baseline/audit/receipt counts and forced-audit rollback;
+# - overlap protected create then controlled source update, proving the editor waits;
+# - overlap baseline approval with reviewer response/reassignment and protected commercial
+#   authorization update, proving each waits and the baseline snapshot is coherent;
+# - repeat a successful baseline call after a permitted source advance, asserting the
+#   same authenticated actor/key/payload receives the historical ID while changed actor
+#   or payload rejects; and
+# - overlap two authenticated baseline calls with one key and prove exactly one result.
+printf '%s\n' "MANUAL RUNNER STEP REQUIRED: complete protected transport count, rollback, replay, and overlap assertions."
