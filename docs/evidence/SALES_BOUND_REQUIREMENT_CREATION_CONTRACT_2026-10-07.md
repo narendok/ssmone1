@@ -926,7 +926,7 @@ assert_count "sales_requirement_creation_requests" 2 "barrier=$CONCURRENCY_BARRI
 
 **Read-only isolated preflight performed:** the allowlisted read-only isolated backend `egjotuxqguifnvdnflan` was inspected without mutation. `sales_commercial_records` exists; `requirement_feasibility_reviews.source_revision_id` and the pending `save_sales_commercial_record` routine do not.
 
-**Not executed:** the caller-transport harness is intentionally blocked. It now asserts persisted IDs, counts, revision history, receipts, audit rows, rollback cleanup, stale-source refusal, wrong-actor refusal, protected reviewer decisions, baseline replay, and two-session concurrency once all approved inputs are present.
+**Not executed:** the caller-transport harness is intentionally blocked. No mutation runner is exposed or executed. It now asserts persisted IDs, counts, revision history, receipts, audit rows, rollback cleanup, stale-source refusal, wrong-actor refusal, protected reviewer decisions, baseline replay, and two-session concurrency once all approved inputs are present.
 
 **Exact missing approved prerequisites:** a non-admin Sales caller with `sales.manage`; an assigned active reviewer; a separate wrong-actor/customer caller; the pending protected RPCs; authenticated application-RPC wrappers; read-only persistence assertion transport; an isolated failure-injection boundary; and two independent caller sessions plus an overlap barrier. The original backend is refused by the preflight and must not be used.
 
