@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Upload, FileSpreadsheet, Download, Link2, Search, RotateCcw, Copy, Share2, ShoppingCart, Sparkles, FolderPlus, Save, Loader2, ClipboardCheck, ArrowLeft, Eye, Unlink } from "lucide-react";
-import { saveProjectBom, loadProjectBom, fetchProjectBomItems, type ProjectBomItemRow } from "@/lib/project-bom.functions";
+import { saveProjectBom, loadProjectBom, fetchProjectBomItems, type ProjectBomDetailHeader, type ProjectBomItemRow } from "@/lib/project-bom.functions";
 import { fetchProjectFilesByType } from "@/lib/drive";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -732,7 +732,7 @@ function BomPage() {
   );
 }
 
-function ReadOnlySavedBomDetail({ detail, loading, error }: { detail: { header: { bom_number: string; name: string; revision: string | null; project_id: string; source_drive_node_id?: string | null; source_drive_revision_id?: string | null }; items: ProjectBomItemRow[] } | undefined; loading: boolean; error: unknown }) {
+function ReadOnlySavedBomDetail({ detail, loading, error }: { detail: { header: ProjectBomDetailHeader; items: ProjectBomItemRow[] } | undefined; loading: boolean; error: unknown }) {
   if (loading) return <Card className="p-5 text-sm text-muted-foreground">Loading authorised saved BOM…</Card>;
   if (error) return <Card className="border-destructive/40 p-5 text-sm text-destructive">Saved BOM detail could not be read. No project, line, price, inventory, or Drive state is assumed.</Card>;
   if (!detail) return <Card className="p-5 text-sm text-muted-foreground">Saved BOM detail is unavailable.</Card>;

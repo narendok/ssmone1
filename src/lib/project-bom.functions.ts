@@ -46,6 +46,21 @@ export interface ProjectBomItemRow extends SavedBomItem {
   matched_name: string | null;
 }
 
+export interface ProjectBomDetailHeader {
+  id: string;
+  bom_number: string;
+  name: string;
+  source_filename: string | null;
+  revision: string | null;
+  notes: string | null;
+  line_count: number;
+  total_cost: number | null;
+  created_at: string;
+  project_id: string;
+  source_drive_node_id: string | null;
+  source_drive_revision_id: string | null;
+}
+
 const itemSchema = z.object({
   line_index: z.number().int(),
   mpn: z.string().nullable(),
@@ -236,7 +251,7 @@ export const fetchProjectBomItems = createServerFn({ method: "GET" })
     const sb = context.supabase as any;
     const { data: header, error: hErr } = await sb
       .from("project_boms")
-      .select("id, bom_number, name, source_filename, revision, notes, line_count, total_cost, created_at, project_id")
+      .select("id, bom_number, name, source_filename, revision, notes, line_count, total_cost, created_at, project_id, source_drive_node_id, source_drive_revision_id")
       .eq("id", data.bomId)
       .maybeSingle();
     if (hErr) throw new Error(hErr.message);
@@ -271,7 +286,7 @@ export const fetchProjectBomItems = createServerFn({ method: "GET" })
       matched_part_number: it.matched?.part_number ?? null,
       matched_name: it.matched?.name ?? null,
     })) as ProjectBomItemRow[];
-    return { header, items: rows };
+    return { header: header as ProjectBomDetailHeader, items: rows };
   });
 
 export interface LoadedBomLine {
