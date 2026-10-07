@@ -275,15 +275,35 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("'Approved immutable requirement baseline.'");
     expect(salesBoundSql).toContain("ORDER BY review.id");
     expect(salesBoundSql).toContain("concurrent reassignment or response either completes before this snapshot or waits");
-    expect(salesBoundSql).toContain("does not");
-    expect(salesBoundSql).toContain("claim a shared order with the pending Master-save or commercial-save paths");
-    expect(salesBoundSql).toContain("direct sales_commercial_records upsert with a protected commercial-save routine");
+    expect(salesBoundSql).toContain("Shared protected lock order");
+    expect(salesBoundSql).toContain("Commercial saves use the applicable subset");
+    expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.save_sales_commercial_record");
+    expect(salesBoundSql).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.sales_commercial_records FROM authenticated;");
+    expect(salesBoundSql).toContain("CREATE TABLE public.sales_commercial_record_revisions");
+    expect(salesBoundSql).toContain("No direct commercial receipt access");
     expect(salesBoundSql).not.toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirements FROM PUBLIC, authenticated;");
     expect(salesBoundSql).toContain("requirement_baselines_assign_business_code");
     expect(lifecycleDialogs).toContain("Read-only readiness");
     expect(lifecycleDialogs).toContain("The deployed read model cannot verify the current immutable requirement revision");
     expect(lifecycleDialogs).toContain("Create approved baseline</Button>");
     expect(lifecycleDialogs).toContain("disabled>Create approved baseline");
+  });
+
+  it("keeps commercial saves fail-closed while the pending replay-safe contract is unaccepted", () => {
+    const salesFunctions = readFileSync("src/lib/sales.functions.ts", "utf8");
+    const lifecycleDialogs = readFileSync("src/components/sales/SalesLifecycleDialogs.tsx", "utf8");
+    expect(salesFunctions).toContain("Commercial authorization save is unavailable");
+    expect(salesFunctions).not.toContain('from("sales_commercial_records").upsert');
+    expect(salesBoundSql).toContain("expected_revision_number integer NOT NULL");
+    expect(salesBoundSql).toContain("IF v_commercial.revision_number <> p_expected_revision_number THEN");
+    expect(salesBoundSql).toContain("INSERT INTO public.sales_commercial_record_revisions");
+    expect(salesBoundSql).toContain("Commercial revision history is immutable");
+    expect(salesBoundAcceptanceSql).toContain("no_authenticated_commercial_insert");
+    expect(salesBoundAcceptanceSql).toContain("protected_commercial_callable");
+    expect(transportHarness).toContain("Changed commercial replay unexpectedly succeeded");
+    expect(transportHarness).toContain("Stale commercial revision unexpectedly succeeded");
+    expect(lifecycleDialogs).toContain("Commercial save is unavailable until the protected, replay-safe contract");
+    expect(lifecycleDialogs).toContain("disabled>Save commercial record");
   });
 
   it("labels direct psql simulation structural-only and requires a real caller transport target refusal", () => {
