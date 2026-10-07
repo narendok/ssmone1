@@ -33,7 +33,15 @@ describe("isolated Sales acceptance runner boundary", () => {
   it("distinguishes verified caller transport from the unavailable isolated contract", () => {
     const report = isolatedSalesAcceptancePreflight(ISOLATED_SALES_ACCEPTANCE_PROJECT_REF);
     expect(report.caller).toEqual({ transport: "authenticated-server-function", identity: "verified" });
-    expect(report.checks.find((check) => check.key === "rpc")?.detail).toContain("pending application RPCs");
+    expect(report.checks.find((check) => check.key === "rpc")?.detail).toContain("pending protected Master save");
+  });
+
+  it("lists every missing caller-transport prerequisite without offering a mutation path", () => {
+    const report = isolatedSalesAcceptancePreflight(ISOLATED_SALES_ACCEPTANCE_PROJECT_REF);
+    for (const key of ["sales-caller", "reviewer-caller", "wrong-actor-caller", "rpc", "transport", "observability", "rollback", "concurrency"]) {
+      expect(report.checks.find((check) => check.key === key)?.available).toBe(false);
+    }
+    expect(report.blockedOperations.join(" ")).toContain("No mutation runner");
   });
 
   it("uses a connection-target allowlist before the shell runner can do any work", () => {

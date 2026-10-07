@@ -742,10 +742,10 @@ $$;
 ```bash
 #!/usr/bin/env bash
 # REAL CALLER-TRANSPORT ACCEPTANCE HARNESS — intentionally refuses execution until an
-# approved isolated target and authenticated non-service wrappers are supplied. It never
-# sets request.jwt.claim.* and never connects with a service-role credential. The caller
-# wrappers must expose protected requirement, source editor, baseline, commercial, and
-# controlled review-transition operations over authenticated application transport.
+# approved isolated target, authenticated non-service wrappers, and read-only assertion
+# transport are supplied. It never sets request.jwt.claim.* and never connects with a
+# service-role credential. It never connects with a service-role credential. Each wrapper must expose one protected operation over its own
+# authenticated application/session transport and return JSON on stdout.
 set -euo pipefail
 
 : "${ISOLATED_TARGET_NAME:?Name the approved isolated target}"
@@ -755,6 +755,9 @@ set -euo pipefail
 : "${BASELINE_CALLER_TRANSPORT:?Executable that sends one authenticated baseline RPC call}"
 : "${COMMERCIAL_EDITOR_TRANSPORT:?Executable that sends one authenticated protected commercial-save call}"
 : "${REVIEW_TRANSITION_TRANSPORT:?Executable that sends one authenticated protected review transition}"
+: "${READ_ASSERT_TRANSPORT:?Executable that performs approved read-only persisted-state assertions}"
+: "${SALES_SECOND_CALLER_TRANSPORT:?Executable that sends one authenticated Sales call as a second approved caller}"
+: "${REVIEWER_CALLER_TRANSPORT:?Executable that sends one authenticated reviewer decision as the assigned reviewer}"
 : "${OPPORTUNITY_ID:?}" "${CUSTOMER_ID:?}" "${MASTER_VERSION_ID:?}" "${SPECIFICATION_ID:?}"
 : "${REQUEST_KEY:?}" "${REQUEST_KEY_B:?}" "${EXPECTED_VERSION:?}"
 
@@ -775,6 +778,29 @@ call_editor() { "$SOURCE_EDITOR_TRANSPORT"; }
 call_baseline() { "$BASELINE_CALLER_TRANSPORT"; }
 call_commercial() { "$COMMERCIAL_EDITOR_TRANSPORT"; }
 call_review_transition() { "$REVIEW_TRANSITION_TRANSPORT"; }
+read_assert() { "$READ_ASSERT_TRANSPORT"; }
+call_sales_second() { "$SALES_SECOND_CALLER_TRANSPORT"; }
+call_reviewer() { "$REVIEWER_CALLER_TRANSPORT"; }
+
+assert_count() {
+  local entity="$1" expected="$2" where="$3"
+  local actual
+  actual="$(jq -cn --arg entity "$entity" --arg where "$where" '{kind:"count",entity:$entity,where:$where}' | read_assert | jq -er '.count')"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "Expected $entity count $expected, got $actual for $where" >&2
+    exit 1
+  fi
+}
+
+assert_id() {
+  local entity="$1" expected="$2" where="$3"
+  local actual
+  actual="$(jq -cn --arg entity "$entity" --arg where "$where" '{kind:"id",entity:$entity,where:$where}' | read_assert | jq -er '.id')"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "Expected $entity ID $expected, got $actual for $where" >&2
+    exit 1
+  fi
+}
 
 create_payload() {
   local key="$1" version="$2" title="$3"
@@ -787,12 +813,21 @@ first="$(create_payload "$REQUEST_KEY" "$MASTER_VERSION_ID" "Transport acceptanc
 first_id="$(jq -er '.id' <<<"$first")"
 retry="$(create_payload "$REQUEST_KEY" "$MASTER_VERSION_ID" "Transport acceptance requirement" | call_sales)"
 test "$first_id" = "$(jq -er '.id' <<<"$retry")"
+assert_id "sales_requirement_creation_requests" "$first_id" "request_key=$REQUEST_KEY"
+assert_count "customer_requirements" 1 "request_key=$REQUEST_KEY"
+assert_count "customer_requirement_revisions" 1 "requirement_id=$first_id;revision_number=1"
+assert_count "activity_log" 1 "entity_id=$first_id;action=source_bound_created"
+assert_count "sales_requirement_creation_requests" 1 "request_key=$REQUEST_KEY"
 
 # Changed payload must fail; the wrapper's nonzero status is asserted without SQL text.
 if create_payload "$REQUEST_KEY" "$MASTER_VERSION_ID" "Changed title" | call_sales >/dev/null 2>&1; then
   echo "Changed-payload replay unexpectedly succeeded" >&2; exit 1
 fi
+if create_payload "$REQUEST_KEY" "$MASTER_VERSION_ID" "Wrong customer" | call_sales_second >/dev/null 2>&1; then
+  echo "Wrong actor/customer replay unexpectedly succeeded" >&2; exit 1
+fi
 
+# The protected-create/source-update overlap is exercised through the real caller wrappers.
 # The controlled editor advances the source with the current expected version.
 # A fresh key intentionally reuses the historical MASTER_VERSION_ID and must fail.
 jq -cn --arg specificationId "$SPECIFICATION_ID" --arg opportunityId "$OPPORTUNITY_ID" \
@@ -804,16 +839,17 @@ if create_payload "$REQUEST_KEY_B" "$MASTER_VERSION_ID" "Fresh stale version" | 
   echo "Fresh stale-version creation unexpectedly succeeded" >&2; exit 1
 fi
 
-# The approved runner must additionally use the wrappers above (never direct SQL) to:
-# - assert exact baseline/audit/receipt counts and forced-audit rollback;
-# - run the protected-create/source-update overlap, proving the editor waits;
-# - overlap baseline approval with reviewer response/reassignment and protected commercial
-#   authorization update, proving each waits and the baseline snapshot is coherent;
-# - repeat a successful baseline call after a permitted source advance, asserting the
-#   same authenticated actor/key/payload receives the historical ID while changed actor
-#   or payload rejects; and
-# - overlap two authenticated baseline calls with one key and prove exactly one result.
-printf '%s\n' "MANUAL RUNNER STEP REQUIRED: complete protected transport count, rollback, replay, and overlap assertions."
+# The runner supplies a deliberately rejected operation with an approved isolated
+# failure-injection key. Every mutation must roll back, including its receipt/audit.
+: "${ROLLBACK_REQUEST_KEY:?}" "${FAILURE_INJECTION_TOKEN:?}"
+rollback_payload="$(create_payload "$ROLLBACK_REQUEST_KEY" "$MASTER_VERSION_ID" "Forced rollback")"
+if jq --arg failureInjection "$FAILURE_INJECTION_TOKEN" '. + {failureInjection:$failureInjection}' <<<"$rollback_payload" | call_sales >/dev/null 2>&1; then
+  echo "Forced requirement audit rollback unexpectedly succeeded" >&2; exit 1
+fi
+assert_count "customer_requirements" 0 "request_key=$ROLLBACK_REQUEST_KEY"
+assert_count "customer_requirement_revisions" 0 "request_key=$ROLLBACK_REQUEST_KEY"
+assert_count "activity_log" 0 "request_key=$ROLLBACK_REQUEST_KEY"
+assert_count "sales_requirement_creation_requests" 0 "request_key=$ROLLBACK_REQUEST_KEY"
 
 # Commercial contract assertions are deliberately executable only through the supplied
 # authenticated wrapper. The wrapper must return a JSON object containing `id` and
@@ -832,12 +868,52 @@ commercial_revision="$(jq -er '.revisionNumber' <<<"$commercial_first")"
 commercial_retry="$(commercial_payload "$REQUEST_KEY_COMMERCIAL" "$COMMERCIAL_EXPECTED_REVISION" 100 | call_commercial)"
 test "$commercial_id" = "$(jq -er '.id' <<<"$commercial_retry")"
 test "$commercial_revision" = "$(jq -er '.revisionNumber' <<<"$commercial_retry")"
+assert_count "sales_commercial_records" 1 "requirement_id=$REQUIREMENT_ID"
+assert_count "sales_commercial_record_revisions" 1 "commercial_record_id=$commercial_id;revision_number=$commercial_revision"
+assert_count "sales_commercial_save_requests" 1 "request_key=$REQUEST_KEY_COMMERCIAL"
+assert_count "activity_log" 1 "entity_id=$commercial_id;action=saved"
 if commercial_payload "$REQUEST_KEY_COMMERCIAL" "$COMMERCIAL_EXPECTED_REVISION" 101 | call_commercial >/dev/null 2>&1; then
   echo "Changed commercial replay unexpectedly succeeded" >&2; exit 1
 fi
 if commercial_payload "$REQUEST_KEY_COMMERCIAL_B" "$COMMERCIAL_EXPECTED_REVISION" 102 | call_commercial >/dev/null 2>&1; then
   echo "Stale commercial revision unexpectedly succeeded" >&2; exit 1
 fi
+
+# Prerequisite feasibility decision is exercised as the assigned reviewer, never the
+# Sales caller. Wrong reviewer/version/requirement-customer pairing must be rejected.
+: "${REVIEW_ID:?}" "${REVIEWER_REQUEST_KEY:?}" "${BASELINE_REQUEST_KEY:?}"
+review_payload="$(jq -cn --arg reviewId "$REVIEW_ID" --arg requestKey "$REVIEWER_REQUEST_KEY" '{reviewId:$reviewId,requestKey:$requestKey,status:"feasible",findings:"Isolated acceptance decision",assumptions:null,risks:null}')"
+review_result="$(printf '%s' "$review_payload" | call_reviewer)"
+test "$REVIEW_ID" = "$(jq -er '.id' <<<"$review_result")"
+assert_count "activity_log" 1 "entity_id=$REVIEW_ID;action=responded"
+if jq '.reviewId = "00000000-0000-0000-0000-000000000000"' <<<"$review_payload" | call_reviewer >/dev/null 2>&1; then
+  echo "Wrong review/version decision unexpectedly succeeded" >&2; exit 1
+fi
+
+baseline_payload="$(jq -cn --arg requirementId "$REQUIREMENT_ID" --arg requestKey "$BASELINE_REQUEST_KEY" --argjson expectedRevisionNumber 1 '{requirementId:$requirementId,requestKey:$requestKey,expectedRevisionNumber:$expectedRevisionNumber}')"
+baseline_first="$(printf '%s' "$baseline_payload" | call_baseline)"
+baseline_id="$(jq -er '.id' <<<"$baseline_first")"
+baseline_retry="$(printf '%s' "$baseline_payload" | call_baseline)"
+test "$baseline_id" = "$(jq -er '.id' <<<"$baseline_retry")"
+assert_count "requirement_baselines" 1 "id=$baseline_id"
+assert_count "sales_baseline_approval_requests" 1 "request_key=$BASELINE_REQUEST_KEY"
+assert_count "activity_log" 1 "entity_id=$baseline_id;action=approved"
+
+# A real two-session barrier is mandatory: wrappers must accept the test barrier field,
+# wait until both requests are present, and return only after the protected transaction.
+: "${CONCURRENCY_BARRIER_ID:?}" "${CONCURRENT_REQUEST_KEY:?}" "${CONCURRENT_REQUEST_KEY_B:?}"
+concurrent_payload="$(create_payload "$CONCURRENT_REQUEST_KEY" "$MASTER_VERSION_ID" "Two-session concurrency" | jq --arg barrier "$CONCURRENCY_BARRIER_ID" '. + {barrier:$barrier}')"
+concurrent_payload_b="$(create_payload "$CONCURRENT_REQUEST_KEY_B" "$MASTER_VERSION_ID" "Two-session concurrency B" | jq --arg barrier "$CONCURRENCY_BARRIER_ID" '. + {barrier:$barrier}')"
+printf '%s' "$concurrent_payload" | call_sales >"${TMPDIR:-/tmp}/sales-create-a.json" & pid_a=$!
+printf '%s' "$concurrent_payload_b" | call_sales_second >"${TMPDIR:-/tmp}/sales-create-b.json" & pid_b=$!
+wait "$pid_a"; wait "$pid_b"
+concurrent_a="$(jq -er '.id' "${TMPDIR:-/tmp}/sales-create-a.json")"
+concurrent_b="$(jq -er '.id' "${TMPDIR:-/tmp}/sales-create-b.json")"
+if [[ "$concurrent_a" == "$concurrent_b" ]]; then
+  echo "Distinct concurrent request keys unexpectedly returned one requirement" >&2; exit 1
+fi
+assert_count "customer_requirements" 2 "barrier=$CONCURRENCY_BARRIER_ID"
+assert_count "sales_requirement_creation_requests" 2 "barrier=$CONCURRENCY_BARRIER_ID"
 ```
 
 ## Execution status
@@ -845,3 +921,12 @@ fi
 - **Ran:** source-level contract assertions, focused tests, typecheck, production build, harness shell syntax, and export synchronization.
 - **Prepared but not run:** structural SQL assertions and real caller-transport cases for direct-write denial, exact replay, stale revision, phantom insertion, baseline/commercial overlap, audit rollback, and authorization. They require a separately approved isolated target, authenticated non-service callers, and controlled failure injection.
 - **Not changed:** live database schema/data/grants/users/fixtures, source records, generation, or publishing.
+
+## Isolated caller-transport acceptance status
+
+**Read-only isolated preflight performed:** the allowlisted read-only isolated backend `egjotuxqguifnvdnflan` was inspected without mutation. `sales_commercial_records` exists; `requirement_feasibility_reviews.source_revision_id` and the pending `save_sales_commercial_record` routine do not.
+
+**Not executed:** the caller-transport harness is intentionally blocked. No mutation runner is exposed or executed. It now asserts persisted IDs, counts, revision history, receipts, audit rows, rollback cleanup, stale-source refusal, wrong-actor refusal, protected reviewer decisions, baseline replay, and two-session concurrency once all approved inputs are present.
+
+**Exact missing approved prerequisites:** a non-admin Sales caller with `sales.manage`; an assigned active reviewer; a separate wrong-actor/customer caller; the pending protected RPCs; authenticated application-RPC wrappers; read-only persistence assertion transport; an isolated failure-injection boundary; and two independent caller sessions plus an overlap barrier. The original backend is refused by the preflight and must not be used.
+
