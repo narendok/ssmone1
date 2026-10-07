@@ -273,6 +273,11 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0))");
     expect(salesBoundSql).toContain("Request key conflicts with a different caller or payload");
     expect(salesBoundSql).toContain("'Approved immutable requirement baseline.'");
+    expect(salesBoundSql).toContain("ORDER BY review.id");
+    expect(salesBoundSql).toContain("concurrent reassignment or response either completes before this snapshot or waits");
+    expect(salesBoundSql).toContain("does not");
+    expect(salesBoundSql).toContain("claim a shared order with the pending Master-save or commercial-save paths");
+    expect(salesBoundSql).toContain("direct sales_commercial_records upsert with a protected commercial-save routine");
     expect(salesBoundSql).not.toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.customer_requirements FROM PUBLIC, authenticated;");
     expect(salesBoundSql).toContain("requirement_baselines_assign_business_code");
     expect(lifecycleDialogs).toContain("Read-only readiness");

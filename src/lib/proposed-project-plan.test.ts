@@ -20,9 +20,16 @@ describe("createProposedProjectPlan", () => {
     expect(plan.every((stage) => !stage.suggestedDocuments.some((document) => /software/i.test(document)))).toBe(true);
   });
 
-  it("marks production stages out of scope without manufacturing", () => {
+  it("keeps production stages confirmation-needed when production scope is unknown", () => {
     const plan = createProposedProjectPlan(base);
-    expect(plan.find((stage) => stage.key === "production-service")).toMatchObject({ state: "NOT_APPLICABLE", exclusionRationale: expect.stringContaining("Manufacturing") });
+    expect(plan.find((stage) => stage.key === "readiness")).toMatchObject({ state: "PRELIMINARY", exclusionRationale: null });
+    expect(plan.find((stage) => stage.key === "production-service")).toMatchObject({ state: "PRELIMINARY", exclusionRationale: null });
+  });
+
+  it("uses the verified production parameter rather than an engineering workstream to set production applicability", () => {
+    const plan = createProposedProjectPlan({ ...base, optional: { ...base.optional, volumes: "Pilot build: 20 units" } });
+    expect(plan.find((stage) => stage.key === "readiness")).toMatchObject({ state: "PRELIMINARY", exclusionRationale: null });
+    expect(plan.find((stage) => stage.key === "production-service")).toMatchObject({ state: "PRELIMINARY", exclusionRationale: null });
   });
 
   it("keeps mixed tracker interfaces in the preliminary validation plan", () => {
