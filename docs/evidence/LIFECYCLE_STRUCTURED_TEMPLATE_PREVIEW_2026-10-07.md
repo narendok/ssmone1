@@ -300,6 +300,25 @@ All editable fields are now repeated in the React-rendered formatted output, inc
 
 The following files are the complete source of this local-only update and should be reviewed directly in Code:
 
+## Final specialized local-preview group — 2026-10-08
+
+This source-only group adds three tabs to the existing pinned `OPPORTUNITY-2026-0013` / `MASTER-2026-0001` revision 1 review surface:
+
+- **PDI** uses local typed checkpoint rows: checkpoint, expected condition, actual observation, evidence, and disposition. Missing evidence is visibly `TBC`; no serialized unit, checksum, RF/GPS measurement, completed inspection, shipment, or sign-off is asserted.
+- **Commercial tax invoice** uses local buyer/consignee text and typed draft lines. Currency must be a three-letter uppercase code, tax is limited to `0–100`, and deterministic decimal subtotal/tax/total values appear only when all line inputs are valid and complete. GST, HSN, bank details, tax registration, legal issue status, and server number remain `TBC`.
+- **Annual skill matrix** is an explicit unsupported HR-scope placeholder in Sales. It exposes no employee, department, competency, or HR data and cannot create an HR record.
+
+The same local edit state stays namespaced by tab, is not persisted, and blocks source refresh while dirty. Saving, issuing, export/release, and generation remain disabled pending the accepted backend contract and independent acceptance.
+
+Exact changed source and tests:
+
+- `src/lib/lifecycle-structured-template-previews.ts`
+- `src/components/lifecycle/StructuredTemplatePreview.tsx`
+- `src/lib/lifecycle-structured-template-previews.test.ts`
+- `src/components/lifecycle/StructuredTemplatePreview.test.tsx`
+
+No database, SQL, company data, fixtures, users, authentication, permissions, stock, Drive, or publishing change is included.
+
 - `src/lib/lifecycle-structured-template-previews.ts`
 - `src/components/lifecycle/StructuredTemplatePreview.tsx`
 - `src/lib/lifecycle-structured-template-previews.test.ts`
