@@ -1,5 +1,15 @@
 # Structured lifecycle template preview — authorized-source review
 
+## Formatted typed-table repair — 2026-10-07
+
+The formatted local preview now invokes the typed row-output path for all three local tables:
+
+- **Commercial quotation:** Quote lines and volume tiers render their real column headers, cells, explicit zero values, and `TBC` blanks. A row with invalid numeric input reports its field-level validation error and has no usable estimate.
+- **BOM cost tracker:** BOM rows render Item #, MPN, Manufacturer, Description, Package, Qty, Lead time, Unit cost, Currency, and AEC-Q evidence. Invalid cells remain visible with explicit errors; they do not become a usable cost estimate.
+- **Manual total:** The editable BOM total is explicitly labeled **manual / unverified**. It is not calculated from, substituted for, or trusted over the typed rows.
+
+`FormattedPreview` is exercised directly through React static rendering in `src/lib/lifecycle-structured-template-previews.test.ts`, covering real BOM, quote, and tier table output, invalid BOM feedback, zero preservation, and literal escaped markup. Browser validation covers valid, invalid, recovery, and tab-preservation flows.
+
 ## Scope
 
 This source-only addition connects the three local previews to the caller-authorized, immutable Master Specification revision for `OPPORTUNITY-2026-0013` / `MASTER-2026-0001` revision 1.
