@@ -241,6 +241,7 @@ export const fetchProjectBomItems = createServerFn({ method: "GET" })
       .maybeSingle();
     if (hErr) throw new Error(hErr.message);
     if (!header) throw new Error("BOM not found");
+    // An optional project pin lets callers safely reject a foreign saved-BOM ID.
     if (data.projectId && header.project_id !== data.projectId) {
       throw new Error("This saved BOM does not belong to the selected project.");
     }
