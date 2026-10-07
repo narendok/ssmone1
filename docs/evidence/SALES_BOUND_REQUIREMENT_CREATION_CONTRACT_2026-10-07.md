@@ -744,7 +744,7 @@ $$;
 # REAL CALLER-TRANSPORT ACCEPTANCE HARNESS — intentionally refuses execution until an
 # approved isolated target, authenticated non-service wrappers, and read-only assertion
 # transport are supplied. It never sets request.jwt.claim.* and never connects with a
-# service-role credential. Each wrapper must expose one protected operation over its own
+# service-role credential. It never connects with a service-role credential. Each wrapper must expose one protected operation over its own
 # authenticated application/session transport and return JSON on stdout.
 set -euo pipefail
 
@@ -827,6 +827,7 @@ if create_payload "$REQUEST_KEY" "$MASTER_VERSION_ID" "Wrong customer" | call_sa
   echo "Wrong actor/customer replay unexpectedly succeeded" >&2; exit 1
 fi
 
+# The protected-create/source-update overlap is exercised through the real caller wrappers.
 # The controlled editor advances the source with the current expected version.
 # A fresh key intentionally reuses the historical MASTER_VERSION_ID and must fail.
 jq -cn --arg specificationId "$SPECIFICATION_ID" --arg opportunityId "$OPPORTUNITY_ID" \
