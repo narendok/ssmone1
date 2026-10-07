@@ -120,6 +120,33 @@ export type BaselineReadinessSnapshot = {
   message: string;
 };
 
+export type SalesSourceContractAvailability = {
+  state: "AVAILABLE" | "UNAVAILABLE";
+  blockers: string[];
+  message: string;
+};
+
+/**
+ * This is a deployed-read-model status only. It must never probe pending columns
+ * from the aggregate Sales query or turn an unavailable contract into a passing gate.
+ */
+export function buildSalesSourceContractAvailability(input: {
+  feasibilityProvenanceAvailable: boolean;
+  feasibilityProvenanceError?: string | null;
+}): SalesSourceContractAvailability {
+  if (input.feasibilityProvenanceAvailable) {
+    return { state: "AVAILABLE", blockers: [], message: "Immutable feasibility provenance is available for read-only planning." };
+  }
+  return {
+    state: "UNAVAILABLE",
+    blockers: [
+      input.feasibilityProvenanceError?.trim() || "The deployed Sales read model does not expose immutable feasibility provenance.",
+      "Protected source-bound requirement, reviewer decision, commercial save, and baseline approval contracts are pending isolated caller-authenticated acceptance.",
+    ],
+    message: "Source-bound readiness is unavailable. No feasibility verdict, commercial authorization, or baseline gate is treated as passing.",
+  };
+}
+
 /**
  * Read-only baseline readiness composition. It never authorizes, persists, or
  * approves a baseline. Every applicable department must expose a matching,
