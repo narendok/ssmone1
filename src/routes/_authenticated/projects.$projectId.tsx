@@ -148,7 +148,7 @@ function ProjectDetailPage() {
         </TabsContent>
 
         <TabsContent value="bom-review" className="pt-4">
-          <StructuredTemplatePreview projectId={projectId} />
+          <StructuredTemplatePreview projectId={projectId} project={{ id: project.id, name: project.name, code: project.code }} />
         </TabsContent>
 
         <TabsContent value="files" className="pt-4">
