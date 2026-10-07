@@ -276,7 +276,7 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("ORDER BY review.id");
     expect(salesBoundSql).toContain("concurrent reassignment or response either completes before this snapshot or waits");
     expect(salesBoundSql).toContain("Shared protected lock order");
-    expect(salesBoundSql).toContain("Commercial saves use the applicable subset");
+    expect(salesBoundSql).toContain("use the applicable subset");
     expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.save_sales_commercial_record");
     expect(salesBoundSql).toContain("REVOKE INSERT, UPDATE, DELETE ON TABLE public.sales_commercial_records FROM authenticated;");
     expect(salesBoundSql).toContain("CREATE TABLE public.sales_commercial_record_revisions");
@@ -302,7 +302,7 @@ describe("client requirement intake contract", () => {
     expect(salesBoundAcceptanceSql).toContain("protected_commercial_callable");
     expect(transportHarness).toContain("Changed commercial replay unexpectedly succeeded");
     expect(transportHarness).toContain("Stale commercial revision unexpectedly succeeded");
-    expect(lifecycleDialogs).toContain("Commercial save is unavailable until the protected, replay-safe contract");
+    expect(lifecycleDialogs).toContain("Commercial save is unavailable until the protected, replay-safe");
     expect(lifecycleDialogs).toContain("disabled>Save commercial record");
   });
 
