@@ -39,17 +39,17 @@ required=(
   OBSERVABILITY_READBACK_READY
 )
 
-for key in "${required[@]}"; do
+if [[ "$ACCEPTANCE_BACKEND_REF" != "egjotuxqguifnvdnflan" ]]; then
+  echo "FAIL: target is not the isolated remix; refusing to continue." >&2
+  exit 4
+fi
+
+for key in "${required[@]:1}"; do
   if [[ "${!key-}" != "yes" ]]; then
     echo "FAIL: $key must be exactly yes; no caller acceptance was run." >&2
     exit 3
   fi
 done
-
-if [[ "$ACCEPTANCE_BACKEND_REF" != "egjotuxqguifnvdnflan" ]]; then
-  echo "FAIL: target is not the isolated remix; refusing to continue." >&2
-  exit 4
-fi
 
 if [[ "${ORIGINAL_BACKEND_REF-}" == "yyrvduosyyaluifqvwkr" ]]; then
   echo "FAIL: manifest names the original backend; refusing to continue." >&2
