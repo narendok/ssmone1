@@ -33,6 +33,40 @@ SELECT NOT has_table_privilege('authenticated', 'public.sales_baseline_approval_
 SELECT has_function_privilege('authenticated', 'public.approve_sales_requirement_baseline(uuid, integer, uuid)', 'EXECUTE') AS protected_baseline_callable;
 SELECT NOT has_table_privilege('authenticated', 'public.requirement_baselines', 'INSERT') AS no_authenticated_baseline_insert;
 
+-- Pending protected commercial-save structural preflight. This remains structural-only
+-- until a real caller transport executes the function against an approved isolated target.
+SELECT NOT has_table_privilege('PUBLIC', 'public.sales_commercial_save_requests', 'SELECT') AS no_public_commercial_receipt_read;
+SELECT NOT has_table_privilege('anon', 'public.sales_commercial_save_requests', 'INSERT') AS no_anon_commercial_receipt_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_commercial_save_requests', 'SELECT') AS no_authenticated_commercial_receipt_read;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_commercial_save_requests', 'INSERT') AS no_authenticated_commercial_receipt_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_commercial_record_revisions', 'SELECT') AS no_authenticated_commercial_history_read;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_commercial_records', 'INSERT') AS no_authenticated_commercial_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_commercial_records', 'UPDATE') AS no_authenticated_commercial_update;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_commercial_records', 'DELETE') AS no_authenticated_commercial_delete;
+SELECT has_function_privilege('authenticated', 'public.save_sales_commercial_record(uuid, integer, text, text, numeric, text, text, text, uuid)', 'EXECUTE') AS protected_commercial_callable;
+DO $$
+DECLARE
+  v_revision_column boolean;
+  v_unique_history boolean;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'sales_commercial_records'
+      AND column_name = 'revision_number' AND data_type = 'integer' AND is_nullable = 'NO'
+  ) INTO v_revision_column;
+  SELECT EXISTS (
+    SELECT 1 FROM pg_constraint constraint_row
+    JOIN pg_class relation ON relation.oid = constraint_row.conrelid
+    JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+    WHERE namespace.nspname = 'public' AND relation.relname = 'sales_commercial_record_revisions'
+      AND constraint_row.contype = 'u' AND pg_get_constraintdef(constraint_row.oid) LIKE '%commercial_record_id, revision_number%'
+  ) INTO v_unique_history;
+  IF NOT v_revision_column OR NOT v_unique_history THEN
+    RAISE EXCEPTION 'Commercial revision/history schema contract is incomplete';
+  END IF;
+END;
+$$;
+
 -- Required caller-authenticated isolated assertions, each transactionally isolated:
 -- 1. exact expected current revision and pinned provenance are mandatory; legacy NULL
 --    provenance, stale revisions, mismatched source pairs, or TBC workstreams fail.
@@ -47,8 +81,13 @@ SELECT NOT has_table_privilege('authenticated', 'public.requirement_baselines', 
 --    and a Sales reassignment wait and then re-evaluate against the post-approval source;
 --    no baseline may snapshot a review mid-transition.
 -- 8. while approval holds its commercial row lock, a protected commercial authorization
---    update waits and no baseline may snapshot a partly changed authorization. This cannot
---    run until direct commercial upserts are replaced by that protected writer.
+--    update waits and no baseline may snapshot a partly changed authorization.
+-- 9. two new commercial saves for the same requirement serialize through the requirement
+--    lock: exactly one revision-one row/history/receipt/audit survives; the other stale
+--    expected-revision request fails rather than silently overwriting it.
+-- 10. an exact same-actor/key/payload replay returns the stored commercial record without
+--    appending history/audit; changed actor or payload rejects. A forced activity-log
+--    failure leaves no commercial row, history row, or receipt.
 
 -- Required executable assertions in the real caller transport runner:
 -- 1. approved isolated target refusal before any request is sent;
