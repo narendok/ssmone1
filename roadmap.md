@@ -2,7 +2,7 @@
 
 ## Current request
 
-- [ ] Restore a reachable, authorised read-only review entry for saved BOM `BOM-2026-0002` on committed project `EMULATOR-V20` without inferring ownership. **Blocked from department workspace listing:** the project has a null `department_id`; the strict department tracker correctly excludes it. No department backfill, ownership inference, RLS change, or broad unassigned-project visibility is allowed. The existing global project route and exact saved-BOM detail remain the verified read-only path.
+- [x] Restore a reachable, authorised read-only review entry for saved BOM `BOM-2026-0002` on committed project `EMULATOR-V20` without inferring ownership. The existing `/bom` page now lists saved BOM metadata immediately after selecting the verified project and opens its exact detail route. **Department workspace listing remains blocked:** the project has a null `department_id`; the strict department tracker correctly excludes it. No department backfill, ownership inference, RLS change, or broad unassigned-project visibility was added.
 - [ ] Harden the Master Specification controlled-write contract before any further deployment: the deployed `sales.manage` direct table grants/policies currently bypass source pairing, optimistic version locking, revision progression, actor provenance, and audit. **Source-only proposal and denial acceptance are required before any revocation; no production migration, permission widening, fixtures, identities, or publication.** Client requirement intake and assigned engineering feasibility remain source-only until scoped external RLS compatibility is accepted.
 
 ## Current compatibility hardening

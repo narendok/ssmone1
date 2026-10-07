@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Upload, FileSpreadsheet, Download, Link2, Search, RotateCcw, Copy, Share2, ShoppingCart, Sparkles, FolderPlus, Save, Loader2, ClipboardCheck, ArrowLeft, Eye, Unlink } from "lucide-react";
-import { saveProjectBom, loadProjectBom, fetchProjectBomItems, type ProjectBomDetailHeader, type ProjectBomItemRow } from "@/lib/project-bom.functions";
+import { saveProjectBom, loadProjectBom, fetchProjectBomItems, fetchProjectBoms, type ProjectBomDetailHeader, type ProjectBomItemRow } from "@/lib/project-bom.functions";
 import { fetchProjectFilesByType } from "@/lib/drive";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ import { CreatePODialog, type PoDraftLine } from "@/components/procurement/Creat
 import { InvoiceImportDialog } from "@/components/inventory/InvoiceImportDialog";
 import { InventoryCsvReviewDialog } from "@/components/inventory/InventoryCsvReviewDialog";
 import { fetchProjects } from "@/lib/projects";
+import { SelectedProjectBomReview } from "@/components/projects/SelectedProjectBomReview";
 
 
 export const Route = createFileRoute("/_authenticated/bom")({
@@ -108,6 +109,7 @@ function BomPage() {
   const loadFn = useServerFn(loadProjectBom);
   const saveFn = useServerFn(saveProjectBom);
   const bomDetailFn = useServerFn(fetchProjectBomItems);
+  const projectBomsFn = useServerFn(fetchProjectBoms);
 
   useEffect(() => {
     if (!loadBomId) return;
@@ -240,6 +242,7 @@ function BomPage() {
   });
 
   const activeProject = projects.find((p) => p.id === projectId) ?? null;
+  const selectedProjectBoms = useQuery({ queryKey: ["bom-selected-project-saved-boms", activeProject?.id], queryFn: () => projectBomsFn({ data: { projectId: activeProject?.id ?? "" } }), enabled: Boolean(activeProject?.id) });
 
   const { data: projectBomFiles = [] } = useQuery({
     queryKey: ["project_bom_source_files", activeProject?.id],
@@ -447,6 +450,8 @@ function BomPage() {
             : "Pick a project to link matched parts to it, or keep it as a one-off stock check."}
         </p>
       </Card>
+
+      {activeProject && <SelectedProjectBomReview projectName={`${activeProject.code} · ${activeProject.name}`} boms={selectedProjectBoms.data ?? []} loading={selectedProjectBoms.isLoading} error={selectedProjectBoms.error} />}
 
 
       {!sheet && (

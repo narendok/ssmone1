@@ -99,6 +99,25 @@ Read-only source inspection confirms `EMULATOR-V20` has a null `department_id`, 
 - The project tracker remains department-scoped. It does not add all eight null-department legacy projects to Hardware & R&D or every workspace.
 - A precise historical department correction would require separately verified data stewardship; it is not part of this UI-only read-only work.
 
+## Existing BOM-page saved review entry — 2026-10-07
+
+The existing `/bom` import page now exposes a separate **Saved BOMs for [selected project]** panel immediately beneath the project selector. This preserves the import workflow above and adds no save, stock, CSV, or inventory action.
+
+```text
+/bom → select EMULATOR-V20 · Emulator_V2.0 TCU Test Jig
+     → Saved BOMs for EMULATOR-V20 …
+     → BOM-2026-0002 · revision 2 · 52 saved lines
+     → Review saved BOM
+     → /bom?loadBom=4fabe830-793e-48e6-828e-450d08a7eb85&readOnly=true
+```
+
+- The panel uses the existing caller-RLS `fetchProjectBoms(selectedProjectId)` read. It only appears after a project is selected, so no department association is inferred or changed.
+- Each entry is read-only metadata: saved BOM number, name, revision, persisted line count, and verified Drive lineage state. `BOM-2026-0002` continues to show `not linked / unsupported` because both persisted Drive identifiers are null.
+- **Review saved BOM** opens the existing detail-only mode. It lists saved header and line data, but does not show import, save, match, stock, CSV, or inventory actions.
+- The global project selector remains subject to its existing caller-RLS project read. The department tracker remains unchanged: `EMULATOR-V20` stays unassigned and excluded from department-specific lists.
+
+Exact files changed: `src/routes/_authenticated/bom.tsx`, `src/components/projects/SelectedProjectBomReview.tsx`, `src/components/projects/SelectedProjectBomReview.test.tsx`, and this evidence file.
+
 ## Formatted typed-table repair — 2026-10-07
 
 The formatted local preview now invokes the typed row-output path for all three local tables:
