@@ -120,6 +120,16 @@ The harness refuses the original target and refuses to run while any prerequisit
 From **Sales** → **View proposal** on `OPPORTUNITY-2026-0013` → **Preview documents**.
 The action opens the existing structured-document preview in the same dialog and passes the proposal's exact immutable pin: `OPPORTUNITY-2026-0013` / `MASTER-2026-0001` revision `1`. It exposes Statement of Requirements, Contract Review, and Product Requirements Specification tabs. Local edit state remains unsaved; saving remains disabled.
 
+## Structured review completeness update
+
+The existing three previews now retain their source pin and add separate local-only review structures:
+
+- **SOR:** OEM requirement rows, CAN / telemetry notes, pilot and rollout notes, and SLA / warranty / delivery notes. Pinned values show `12/24V nominal input`, `CAN requested`, `LTE/GNSS requested`, and `20 pilot units` only when present in the saved Master Specification.
+- **Contract Review:** Hardware, firmware, and mechanical feasibility rows with local evidence/risk/owner inputs. Every decision and customer authorization is explicitly `NOT APPROVED / TBC`; local edits cannot establish a real feasibility verdict or approval.
+- **PRS:** Power, interfaces, connectivity/GNSS, mechanical/environmental, and firmware rows. Components and missing standards remain `TBC`; no controller, IP rating, compliance, or standard is fabricated.
+
+The formatted preview is rendered through React table/text nodes, so injected source and local HTML remain literal text and cannot execute. Switching tabs preserves local edits in memory; save and generation remain disabled. This is not an automated persisted draft.
+
 ## Full exact source
 
 ### `src/routes/_authenticated/sales.tsx`
