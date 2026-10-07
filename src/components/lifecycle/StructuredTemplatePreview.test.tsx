@@ -61,4 +61,18 @@ describe("formatted structured template preview", () => {
     expect(renderToStaticMarkup(<FormattedPreview item={controlItem} source={source} userEdits={{ "MANUFACTURING_CONTROL_PLAN:CONTROL_PLAN_ROWS": control, "MANUFACTURING_CONTROL_PLAN:CONTROL_PLAN_NOTE": "TBC" }} error={null} controlledText="TBC" />)).toContain("Control-plan rows");
     expect(renderToStaticMarkup(<FormattedPreview item={dvprItem} source={source} userEdits={{ "DVPR:DVPR_ROWS": dvpr, "DVPR:DVPR_REVIEW_NOTE": "TBC" }} error={null} controlledText="TBC" />)).toContain("Customer-requested reference only");
   });
+
+  it("renders PDI and invoice typed tables as escaped local drafts and protects the HR placeholder", () => {
+    const pdiItem = structuredLifecycleTemplatePreviews.find((item) => item.kind === "PDI");
+    const invoiceItem = structuredLifecycleTemplatePreviews.find((item) => item.kind === "COMMERCIAL_TAX_INVOICE");
+    const skillItem = structuredLifecycleTemplatePreviews.find((item) => item.kind === "ANNUAL_SKILL_MATRIX");
+    if (!pdiItem || !invoiceItem || !skillItem) throw new Error("Expected final preview definitions.");
+    const pdi = serializeLocalTableRows([{ id: "pdi", checkpoint: "Packing <img src=x>", expectedCondition: "TBC", actualObservation: "TBC", evidence: "", disposition: "TBC" }]);
+    const invoice = serializeLocalTableRows([{ id: "invoice", description: "Pilot <img src=x>", quantity: "2", unitPrice: "10.50", currency: "INR", taxRate: "18" }]);
+    expect(renderToStaticMarkup(<FormattedPreview item={pdiItem} source={source} userEdits={{ "PDI:PDI_ROWS": pdi, "PDI:PDI_REVIEW_NOTE": "TBC" }} error={null} controlledText="TBC" />)).toContain("Packing &lt;img src=x&gt;");
+    const invoicePreview = renderToStaticMarkup(<FormattedPreview item={invoiceItem} source={source} userEdits={{ "COMMERCIAL_TAX_INVOICE:BUYER_DETAILS": "TBC", "COMMERCIAL_TAX_INVOICE:CONSIGNEE_DETAILS": "TBC", "COMMERCIAL_TAX_INVOICE:TAX_INVOICE_ROWS": invoice, "COMMERCIAL_TAX_INVOICE:INVOICE_NOTE": "TBC" }} error={null} controlledText="TBC" />);
+    expect(invoicePreview).toContain("Pilot &lt;img src=x&gt;");
+    expect(invoicePreview).toContain("24.78");
+    expect(renderToStaticMarkup(<FormattedPreview item={skillItem} source={source} userEdits={{}} error={null} controlledText="HR SCOPE REQUIRED" />)).toContain("No employee data was read.");
+  });
 });
