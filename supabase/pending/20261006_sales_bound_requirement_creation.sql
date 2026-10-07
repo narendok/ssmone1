@@ -259,7 +259,7 @@ CREATE TABLE public.sales_commercial_save_requests (
   request_key uuid PRIMARY KEY,
   requested_by uuid NOT NULL,
   requirement_id uuid NOT NULL REFERENCES public.customer_requirements(id) ON DELETE RESTRICT,
-  expected_updated_at timestamptz,
+  expected_revision_number integer NOT NULL CHECK (expected_revision_number >= 0),
   payload_hash text NOT NULL,
   payload_canonical jsonb NOT NULL,
   commercial_record_id uuid NOT NULL REFERENCES public.sales_commercial_records(id) ON DELETE RESTRICT,
@@ -273,14 +273,42 @@ ALTER TABLE public.sales_commercial_save_requests ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "No direct commercial receipt access" ON public.sales_commercial_save_requests
   FOR ALL TO authenticated USING (false) WITH CHECK (false);
 
+ALTER TABLE public.sales_commercial_records
+  ADD COLUMN revision_number integer NOT NULL DEFAULT 1 CHECK (revision_number >= 1);
+CREATE TABLE public.sales_commercial_record_revisions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  commercial_record_id uuid NOT NULL REFERENCES public.sales_commercial_records(id) ON DELETE RESTRICT,
+  requirement_id uuid NOT NULL REFERENCES public.customer_requirements(id) ON DELETE RESTRICT,
+  revision_number integer NOT NULL CHECK (revision_number >= 1),
+  snapshot jsonb NOT NULL CHECK (jsonb_typeof(snapshot) = 'object'),
+  created_by uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (commercial_record_id, revision_number)
+);
+GRANT ALL ON TABLE public.sales_commercial_record_revisions TO service_role;
+REVOKE ALL ON TABLE public.sales_commercial_record_revisions FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.sales_commercial_record_revisions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "No direct commercial revision access" ON public.sales_commercial_record_revisions
+  FOR ALL TO authenticated USING (false) WITH CHECK (false);
+CREATE OR REPLACE FUNCTION public.reject_sales_commercial_revision_mutation()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  RAISE EXCEPTION 'Commercial revision history is immutable';
+END;
+$$;
+CREATE TRIGGER sales_commercial_record_revisions_immutable
+  BEFORE UPDATE OR DELETE ON public.sales_commercial_record_revisions
+  FOR EACH ROW EXECUTE FUNCTION public.reject_sales_commercial_revision_mutation();
+REVOKE ALL ON FUNCTION public.reject_sales_commercial_revision_mutation() FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.sales_commercial_save_canonical_payload(
-  p_requirement_id uuid, p_expected_updated_at timestamptz, p_quotation_reference text,
+  p_requirement_id uuid, p_expected_revision_number integer, p_quotation_reference text,
   p_currency text, p_quoted_amount numeric, p_status text, p_authorization_reference text,
   p_notes text
 ) RETURNS jsonb LANGUAGE sql IMMUTABLE SET search_path = public AS $$
   SELECT jsonb_build_object(
     'requirement_id', p_requirement_id,
-    'expected_updated_at', p_expected_updated_at,
+    'expected_revision_number', p_expected_revision_number,
     'quotation_reference', nullif(btrim(coalesce(p_quotation_reference, '')), ''),
     'currency', upper(btrim(p_currency)),
     'quoted_amount', p_quoted_amount,
@@ -290,18 +318,18 @@ CREATE OR REPLACE FUNCTION public.sales_commercial_save_canonical_payload(
   )
 $$;
 CREATE OR REPLACE FUNCTION public.sales_commercial_save_payload_hash(
-  p_requirement_id uuid, p_expected_updated_at timestamptz, p_quotation_reference text,
+  p_requirement_id uuid, p_expected_revision_number integer, p_quotation_reference text,
   p_currency text, p_quoted_amount numeric, p_status text, p_authorization_reference text,
   p_notes text
 ) RETURNS text LANGUAGE sql IMMUTABLE SET search_path = public AS $$
   SELECT md5(public.sales_commercial_save_canonical_payload(
-    p_requirement_id, p_expected_updated_at, p_quotation_reference, p_currency,
+    p_requirement_id, p_expected_revision_number, p_quotation_reference, p_currency,
     p_quoted_amount, p_status, p_authorization_reference, p_notes
   )::text)
 $$;
 
 CREATE OR REPLACE FUNCTION public.save_sales_commercial_record(
-  p_requirement_id uuid, p_expected_updated_at timestamptz, p_quotation_reference text,
+  p_requirement_id uuid, p_expected_revision_number integer, p_quotation_reference text,
   p_currency text, p_quoted_amount numeric, p_status text, p_authorization_reference text,
   p_notes text, p_request_key uuid
 ) RETURNS TABLE(id uuid, updated_at timestamptz)
@@ -315,7 +343,7 @@ BEGIN
   IF v_actor_id IS NULL OR NOT public.has_permission(v_actor_id, 'sales.manage') THEN
     RAISE EXCEPTION 'Sales management permission is required';
   END IF;
-  IF p_requirement_id IS NULL OR p_request_key IS NULL OR NULLIF(btrim(p_currency), '') IS NULL
+  IF p_requirement_id IS NULL OR p_request_key IS NULL OR coalesce(p_expected_revision_number, -1) < 0 OR NULLIF(btrim(p_currency), '') IS NULL
      OR char_length(btrim(p_currency)) NOT BETWEEN 3 AND 8
      OR p_quoted_amount IS NOT NULL AND p_quoted_amount < 0
      OR p_status NOT IN ('draft', 'internal_review', 'sent', 'customer_authorized', 'declined', 'expired')
@@ -328,11 +356,11 @@ BEGIN
     RAISE EXCEPTION 'An explicit customer authorization reference is required';
   END IF;
   v_payload_canonical := public.sales_commercial_save_canonical_payload(
-    p_requirement_id, p_expected_updated_at, p_quotation_reference, p_currency,
+    p_requirement_id, p_expected_revision_number, p_quotation_reference, p_currency,
     p_quoted_amount, p_status, p_authorization_reference, p_notes
   );
   v_payload_hash := public.sales_commercial_save_payload_hash(
-    p_requirement_id, p_expected_updated_at, p_quotation_reference, p_currency,
+    p_requirement_id, p_expected_revision_number, p_quotation_reference, p_currency,
     p_quoted_amount, p_status, p_authorization_reference, p_notes
   );
   PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0));
@@ -340,7 +368,7 @@ BEGIN
   WHERE request_key = p_request_key FOR UPDATE;
   IF FOUND THEN
     IF v_prior.requested_by = v_actor_id AND v_prior.requirement_id = p_requirement_id
-       AND v_prior.expected_updated_at IS NOT DISTINCT FROM p_expected_updated_at
+       AND v_prior.expected_revision_number = p_expected_revision_number
        AND v_prior.payload_hash = v_payload_hash AND v_prior.payload_canonical = v_payload_canonical THEN
       RETURN QUERY SELECT v_prior.commercial_record_id, commercial.updated_at
       FROM public.sales_commercial_records commercial WHERE commercial.id = v_prior.commercial_record_id;
@@ -356,7 +384,7 @@ BEGIN
   SELECT * INTO v_commercial FROM public.sales_commercial_records
   WHERE requirement_id = v_requirement.id FOR UPDATE;
   IF FOUND THEN
-    IF p_expected_updated_at IS NULL OR v_commercial.updated_at IS DISTINCT FROM p_expected_updated_at THEN
+    IF v_commercial.revision_number <> p_expected_revision_number THEN
       RAISE EXCEPTION 'Commercial record changed by another user; reopen before saving';
     END IF;
     v_authorized_at := CASE
@@ -370,23 +398,35 @@ BEGIN
       currency = upper(btrim(p_currency)), quoted_amount = p_quoted_amount, status = p_status,
       customer_authorized_at = v_authorized_at,
       authorization_reference = nullif(btrim(coalesce(p_authorization_reference, '')), ''),
-      notes = nullif(btrim(coalesce(p_notes, '')), '')
+      notes = nullif(btrim(coalesce(p_notes, '')), ''),
+      revision_number = v_commercial.revision_number + 1
     WHERE id = v_commercial.id RETURNING * INTO v_commercial;
   ELSE
-    IF p_expected_updated_at IS NOT NULL THEN
+    IF p_expected_revision_number <> 0 THEN
       RAISE EXCEPTION 'No commercial record exists at the expected revision';
     END IF;
     v_authorized_at := CASE WHEN p_status = 'customer_authorized' THEN now() ELSE NULL END;
     INSERT INTO public.sales_commercial_records (
       requirement_id, quotation_reference, currency, quoted_amount, status,
-      customer_authorized_at, authorization_reference, notes, created_by
+      customer_authorized_at, authorization_reference, notes, created_by, revision_number
     ) VALUES (
       v_requirement.id, nullif(btrim(coalesce(p_quotation_reference, '')), ''),
       upper(btrim(p_currency)), p_quoted_amount, p_status, v_authorized_at,
       nullif(btrim(coalesce(p_authorization_reference, '')), ''),
-      nullif(btrim(coalesce(p_notes, '')), ''), v_actor_id
+      nullif(btrim(coalesce(p_notes, '')), ''), v_actor_id, 1
     ) RETURNING * INTO v_commercial;
   END IF;
+  INSERT INTO public.sales_commercial_record_revisions (
+    commercial_record_id, requirement_id, revision_number, snapshot, created_by
+  ) VALUES (
+    v_commercial.id, v_requirement.id, v_commercial.revision_number,
+    jsonb_build_object('commercial_record_id', v_commercial.id, 'requirement_id', v_requirement.id,
+      'revision_number', v_commercial.revision_number, 'quotation_reference', v_commercial.quotation_reference,
+      'currency', v_commercial.currency, 'quoted_amount', v_commercial.quoted_amount,
+      'status', v_commercial.status, 'customer_authorized_at', v_commercial.customer_authorized_at,
+      'authorization_reference', v_commercial.authorization_reference, 'notes', v_commercial.notes),
+    v_actor_id
+  );
   INSERT INTO public.activity_log (actor_user_id, module_key, entity_type, entity_id, action, summary, after_data)
   VALUES (v_actor_id, 'sales', 'sales_commercial_record', v_commercial.id, 'saved',
     'Commercial record saved through the protected contract.',
@@ -395,17 +435,17 @@ BEGIN
       'authorization_reference', v_commercial.authorization_reference,
       'request_key', p_request_key));
   INSERT INTO public.sales_commercial_save_requests (
-    request_key, requested_by, requirement_id, expected_updated_at, payload_hash,
+    request_key, requested_by, requirement_id, expected_revision_number, payload_hash,
     payload_canonical, commercial_record_id
-  ) VALUES (p_request_key, v_actor_id, v_requirement.id, p_expected_updated_at,
+  ) VALUES (p_request_key, v_actor_id, v_requirement.id, p_expected_revision_number,
     v_payload_hash, v_payload_canonical, v_commercial.id);
   RETURN QUERY SELECT v_commercial.id, v_commercial.updated_at;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.save_sales_commercial_record(uuid, timestamptz, text, text, numeric, text, text, text, uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.save_sales_commercial_record(uuid, timestamptz, text, text, numeric, text, text, text, uuid) TO authenticated, service_role;
-REVOKE ALL ON FUNCTION public.sales_commercial_save_canonical_payload(uuid, timestamptz, text, text, numeric, text, text, text) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.sales_commercial_save_payload_hash(uuid, timestamptz, text, text, numeric, text, text, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.save_sales_commercial_record(uuid, integer, text, text, numeric, text, text, text, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.save_sales_commercial_record(uuid, integer, text, text, numeric, text, text, text, uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.sales_commercial_save_canonical_payload(uuid, integer, text, text, numeric, text, text, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.sales_commercial_save_payload_hash(uuid, integer, text, text, numeric, text, text, text) FROM PUBLIC, anon, authenticated;
 
 -- The protected save above is the sole pending commercial mutation path. It preserves
 -- existing rows and their history; it does not backfill, infer, or approve customer intent.
