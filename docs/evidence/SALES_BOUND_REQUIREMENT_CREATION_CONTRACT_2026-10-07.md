@@ -1,27 +1,18 @@
-# Sales-Bound Requirement and Baseline Approval — Full Pending Contract Export (2026-10-07 UTC)
+# Sales-bound requirement, baseline, and commercial contract — source-only review export
 
-**Status:** source-only and disabled. No SQL was applied, and no live data, grants, users, fixtures, generation setting, or publication changed. Source checks are not database acceptance.
+**Status:** Pending only. Nothing in this document was applied to the live backend. It requires an approved isolated environment and real authenticated caller-transport acceptance before any deployment or UI enablement.
 
-## Observed schema evidence
+## Observed deployed schema evidence
 
-- `drizzle/migrations/0009_complete_phase4_customer_lifecycle.sql` defines `customer_requirements`, `customer_requirement_revisions`, `requirement_feasibility_reviews`, `sales_commercial_records`, and `requirement_baselines`.
-- `requirement_baselines` has `UNIQUE(requirement_id, revision_number)` and a nullable-at-insert business number after `drizzle/migrations/0014_stabilization_sales_project_numbers.sql`.
-- The deployed `requirement_baselines_assign_business_code` trigger calls `assign_stabilization_codes`, which assigns `next_business_number('baseline', NULL, NULL)` when `baseline_number` is NULL or blank. The pending approval routine supplies NULL and never accepts a caller number.
-- The deployed feasibility table lacks the pinned provenance columns. `supabase/pending/20261005_client_requirement_intake.sql` supplies them and revision-scoped uniqueness; baseline approval requires that pending prerequisite.
-- The deployed commercial write is still a direct `sales_commercial_records` upsert in `src/lib/sales.functions.ts`. No protected commercial writer currently exists, so this export does **not** claim a complete shared lock order with it.
-- The pending Master-save contract likewise needs compatible source locking before any combined acceptance. These are explicit dependencies, not silently assumed guarantees.
+- `drizzle/migrations/0009_complete_phase4_customer_lifecycle.sql` defines `sales_commercial_records` with one record per requirement, the six deployed statuses, customer authorization fields, authenticated direct write grants, a Sales-manage RLS write policy, and only an `updated_at` touch trigger.
+- `drizzle/migrations/0014_stabilization_sales_project_numbers.sql` keeps baseline numbering server-owned through `requirement_baselines_assign_business_code`; the baseline contract passes `NULL` for `baseline_number`.
+- No deployed commercial revision/history or request-receipt table exists. The pending SQL below adds them without changing existing records.
 
-## Locking and replay boundary
+## Pending design and lock order
 
-Baseline approval authenticates and checks `sales.manage` **before** its receipt lookup. It then locks request key → receipt → requirement → immutable revision → all revision-scoped reviews → pinned Master version → commercial record. An exact actor/payload-bound receipt returns the historic baseline before mutable source validation, but never bypasses the current authenticated capability check.
+The protected commercial save uses `advisory(request key) → commercial receipt → requirement → commercial record`. The baseline transaction takes the same shared prefix before continuing to revision-scoped reviews and the Master version. Locking the requirement before probing the unique child serializes a missing-record insert race. Direct commercial writes are revoked only inside this same pending compatibility group.
 
-The feasibility assignment/response proposal independently uses requirement → revision → review → version, so baseline's review lock is compatible with those review transitions. Commercial updates cannot yet be proven compatible: the direct upsert must be replaced by the explicitly named protected commercial-save routine before acceptance.
-
-## Prepared versus executed
-
-**Prepared, not executed:** structural privilege/catalog assertions; the caller-transport harness including replay, unauthorized, concurrent baseline, forced-audit rollback, commercial-lock, and review-transition overlap cases.
-
-**Executed in this turn:** source tests, typecheck, production build, shell syntax, and export synchronization (results recorded after the commands complete). **Not executed:** any database query, migration, RLS/grant change, caller-authenticated transport test, or live mutation.
+The Sales UI and server facade are deliberately unavailable now: there is no direct-write fallback. Existing commercial rows, manual edits, baselines, the 24v tracker, and history are neither changed nor backfilled.
 
 ## Full pending SQL
 
@@ -249,14 +240,18 @@ GRANT EXECUTE ON FUNCTION public.create_sales_bound_customer_requirement(uuid, u
 REVOKE ALL ON FUNCTION public.sales_requirement_creation_canonical_payload(uuid, uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sales_requirement_creation_payload_hash(uuid, uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 
--- BASELINE APPROVAL COMPATIBILITY GROUP — SOURCE-ONLY. This requires the pending
+-- BASELINE APPROVAL AND COMMERCIAL COORDINATION GROUP — SOURCE-ONLY. This requires the pending
 -- revision-bound feasibility proposal in 20261005_client_requirement_intake.sql.
 -- No legacy row is backfilled: a review with NULL provenance remains unavailable.
--- Baseline lock order: advisory(request_key) -> receipt -> requirement -> current revision
--- -> feasibility reviews -> Master version -> commercial record. It deliberately does not
--- claim a shared order with the pending Master-save or commercial-save paths: those
--- source contracts still need compatible protected locking before this proposal can pass
--- isolated acceptance. Direct commercial writes must be retired in that same group.
+-- Shared protected lock order: advisory(request_key) -> receipt -> requirement -> current
+-- revision -> feasibility reviews -> Master version -> commercial record. Commercial saves
+-- use the applicable subset: advisory(request_key) -> commercial receipt -> requirement ->
+-- commercial record. The requirement row serializes a missing-commercial insertion race:
+-- a baseline gate and a first commercial create cannot both observe a phantom row.
+-- Master Specification save and requirement creation separately serialize opportunity ->
+-- specification. This group intentionally does not claim that commercial mutation itself
+-- authorizes a customer decision beyond recording the explicitly supplied status and
+-- authorization reference.
 -- The deployed requirement_baselines_assign_business_code trigger remains the sole
 -- baseline-number issuer; this contract supplies a NULL baseline_number.
 
@@ -278,6 +273,204 @@ REVOKE ALL ON TABLE public.sales_baseline_approval_requests FROM PUBLIC, anon, a
 ALTER TABLE public.sales_baseline_approval_requests ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "No direct baseline receipt access" ON public.sales_baseline_approval_requests
   FOR ALL TO authenticated USING (false) WITH CHECK (false);
+
+CREATE TABLE public.sales_commercial_save_requests (
+  request_key uuid PRIMARY KEY,
+  requested_by uuid NOT NULL,
+  requirement_id uuid NOT NULL REFERENCES public.customer_requirements(id) ON DELETE RESTRICT,
+  expected_revision_number integer NOT NULL CHECK (expected_revision_number >= 0),
+  payload_hash text NOT NULL,
+  payload_canonical jsonb NOT NULL,
+  commercial_record_id uuid NOT NULL REFERENCES public.sales_commercial_records(id) ON DELETE RESTRICT,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (length(btrim(payload_hash)) > 0),
+  CHECK (jsonb_typeof(payload_canonical) = 'object')
+);
+GRANT ALL ON TABLE public.sales_commercial_save_requests TO service_role;
+REVOKE ALL ON TABLE public.sales_commercial_save_requests FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.sales_commercial_save_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "No direct commercial receipt access" ON public.sales_commercial_save_requests
+  FOR ALL TO authenticated USING (false) WITH CHECK (false);
+
+ALTER TABLE public.sales_commercial_records
+  ADD COLUMN revision_number integer NOT NULL DEFAULT 1 CHECK (revision_number >= 1);
+CREATE TABLE public.sales_commercial_record_revisions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  commercial_record_id uuid NOT NULL REFERENCES public.sales_commercial_records(id) ON DELETE RESTRICT,
+  requirement_id uuid NOT NULL REFERENCES public.customer_requirements(id) ON DELETE RESTRICT,
+  revision_number integer NOT NULL CHECK (revision_number >= 1),
+  snapshot jsonb NOT NULL CHECK (jsonb_typeof(snapshot) = 'object'),
+  created_by uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (commercial_record_id, revision_number)
+);
+GRANT ALL ON TABLE public.sales_commercial_record_revisions TO service_role;
+REVOKE ALL ON TABLE public.sales_commercial_record_revisions FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.sales_commercial_record_revisions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "No direct commercial revision access" ON public.sales_commercial_record_revisions
+  FOR ALL TO authenticated USING (false) WITH CHECK (false);
+CREATE OR REPLACE FUNCTION public.reject_sales_commercial_revision_mutation()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  RAISE EXCEPTION 'Commercial revision history is immutable';
+END;
+$$;
+CREATE TRIGGER sales_commercial_record_revisions_immutable
+  BEFORE UPDATE OR DELETE ON public.sales_commercial_record_revisions
+  FOR EACH ROW EXECUTE FUNCTION public.reject_sales_commercial_revision_mutation();
+REVOKE ALL ON FUNCTION public.reject_sales_commercial_revision_mutation() FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.sales_commercial_save_canonical_payload(
+  p_requirement_id uuid, p_expected_revision_number integer, p_quotation_reference text,
+  p_currency text, p_quoted_amount numeric, p_status text, p_authorization_reference text,
+  p_notes text
+) RETURNS jsonb LANGUAGE sql IMMUTABLE SET search_path = public AS $$
+  SELECT jsonb_build_object(
+    'requirement_id', p_requirement_id,
+    'expected_revision_number', p_expected_revision_number,
+    'quotation_reference', nullif(btrim(coalesce(p_quotation_reference, '')), ''),
+    'currency', upper(btrim(p_currency)),
+    'quoted_amount', p_quoted_amount,
+    'status', p_status,
+    'authorization_reference', nullif(btrim(coalesce(p_authorization_reference, '')), ''),
+    'notes', nullif(btrim(coalesce(p_notes, '')), '')
+  )
+$$;
+CREATE OR REPLACE FUNCTION public.sales_commercial_save_payload_hash(
+  p_requirement_id uuid, p_expected_revision_number integer, p_quotation_reference text,
+  p_currency text, p_quoted_amount numeric, p_status text, p_authorization_reference text,
+  p_notes text
+) RETURNS text LANGUAGE sql IMMUTABLE SET search_path = public AS $$
+  SELECT md5(public.sales_commercial_save_canonical_payload(
+    p_requirement_id, p_expected_revision_number, p_quotation_reference, p_currency,
+    p_quoted_amount, p_status, p_authorization_reference, p_notes
+  )::text)
+$$;
+
+CREATE OR REPLACE FUNCTION public.save_sales_commercial_record(
+  p_requirement_id uuid, p_expected_revision_number integer, p_quotation_reference text,
+  p_currency text, p_quoted_amount numeric, p_status text, p_authorization_reference text,
+  p_notes text, p_request_key uuid
+) RETURNS TABLE(id uuid, updated_at timestamptz)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp AS $$
+DECLARE
+  v_actor_id uuid := auth.uid(); v_requirement public.customer_requirements%ROWTYPE;
+  v_commercial public.sales_commercial_records%ROWTYPE;
+  v_prior public.sales_commercial_save_requests%ROWTYPE;
+  v_payload_canonical jsonb; v_payload_hash text; v_authorized_at timestamptz;
+BEGIN
+  IF v_actor_id IS NULL OR NOT public.has_permission(v_actor_id, 'sales.manage') THEN
+    RAISE EXCEPTION 'Sales management permission is required';
+  END IF;
+  IF p_requirement_id IS NULL OR p_request_key IS NULL OR coalesce(p_expected_revision_number, -1) < 0 OR NULLIF(btrim(p_currency), '') IS NULL
+     OR char_length(btrim(p_currency)) NOT BETWEEN 3 AND 8
+     OR p_quoted_amount IS NOT NULL AND p_quoted_amount < 0
+     OR p_status NOT IN ('draft', 'internal_review', 'sent', 'customer_authorized', 'declined', 'expired')
+     OR char_length(coalesce(p_quotation_reference, '')) > 160
+     OR char_length(coalesce(p_authorization_reference, '')) > 240
+     OR char_length(coalesce(p_notes, '')) > 4000 THEN
+    RAISE EXCEPTION 'Commercial payload is incomplete or invalid';
+  END IF;
+  IF p_status = 'customer_authorized' AND NULLIF(btrim(coalesce(p_authorization_reference, '')), '') IS NULL THEN
+    RAISE EXCEPTION 'An explicit customer authorization reference is required';
+  END IF;
+  v_payload_canonical := public.sales_commercial_save_canonical_payload(
+    p_requirement_id, p_expected_revision_number, p_quotation_reference, p_currency,
+    p_quoted_amount, p_status, p_authorization_reference, p_notes
+  );
+  v_payload_hash := public.sales_commercial_save_payload_hash(
+    p_requirement_id, p_expected_revision_number, p_quotation_reference, p_currency,
+    p_quoted_amount, p_status, p_authorization_reference, p_notes
+  );
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0));
+  SELECT * INTO v_prior FROM public.sales_commercial_save_requests
+  WHERE request_key = p_request_key FOR UPDATE;
+  IF FOUND THEN
+    IF v_prior.requested_by = v_actor_id AND v_prior.requirement_id = p_requirement_id
+       AND v_prior.expected_revision_number = p_expected_revision_number
+       AND v_prior.payload_hash = v_payload_hash AND v_prior.payload_canonical = v_payload_canonical THEN
+      RETURN QUERY SELECT v_prior.commercial_record_id, commercial.updated_at
+      FROM public.sales_commercial_records commercial WHERE commercial.id = v_prior.commercial_record_id;
+      RETURN;
+    END IF;
+    RAISE EXCEPTION 'Request key conflicts with a different caller or payload';
+  END IF;
+  -- Locking this parent row before probing the unique child is required: FOR UPDATE of a
+  -- missing child cannot protect against an insert phantom from another first-save call.
+  SELECT * INTO v_requirement FROM public.customer_requirements
+  WHERE id = p_requirement_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Commercial source requirement is unavailable'; END IF;
+  SELECT * INTO v_commercial FROM public.sales_commercial_records
+  WHERE requirement_id = v_requirement.id FOR UPDATE;
+  IF FOUND THEN
+    IF v_commercial.revision_number <> p_expected_revision_number THEN
+      RAISE EXCEPTION 'Commercial record changed by another user; reopen before saving';
+    END IF;
+    v_authorized_at := CASE
+      WHEN p_status = 'customer_authorized' AND v_commercial.status = 'customer_authorized'
+        THEN v_commercial.customer_authorized_at
+      WHEN p_status = 'customer_authorized' THEN now()
+      ELSE NULL
+    END;
+    UPDATE public.sales_commercial_records SET
+      quotation_reference = nullif(btrim(coalesce(p_quotation_reference, '')), ''),
+      currency = upper(btrim(p_currency)), quoted_amount = p_quoted_amount, status = p_status,
+      customer_authorized_at = v_authorized_at,
+      authorization_reference = nullif(btrim(coalesce(p_authorization_reference, '')), ''),
+      notes = nullif(btrim(coalesce(p_notes, '')), ''),
+      revision_number = v_commercial.revision_number + 1
+    WHERE id = v_commercial.id RETURNING * INTO v_commercial;
+  ELSE
+    IF p_expected_revision_number <> 0 THEN
+      RAISE EXCEPTION 'No commercial record exists at the expected revision';
+    END IF;
+    v_authorized_at := CASE WHEN p_status = 'customer_authorized' THEN now() ELSE NULL END;
+    INSERT INTO public.sales_commercial_records (
+      requirement_id, quotation_reference, currency, quoted_amount, status,
+      customer_authorized_at, authorization_reference, notes, created_by, revision_number
+    ) VALUES (
+      v_requirement.id, nullif(btrim(coalesce(p_quotation_reference, '')), ''),
+      upper(btrim(p_currency)), p_quoted_amount, p_status, v_authorized_at,
+      nullif(btrim(coalesce(p_authorization_reference, '')), ''),
+      nullif(btrim(coalesce(p_notes, '')), ''), v_actor_id, 1
+    ) RETURNING * INTO v_commercial;
+  END IF;
+  INSERT INTO public.sales_commercial_record_revisions (
+    commercial_record_id, requirement_id, revision_number, snapshot, created_by
+  ) VALUES (
+    v_commercial.id, v_requirement.id, v_commercial.revision_number,
+    jsonb_build_object('commercial_record_id', v_commercial.id, 'requirement_id', v_requirement.id,
+      'revision_number', v_commercial.revision_number, 'quotation_reference', v_commercial.quotation_reference,
+      'currency', v_commercial.currency, 'quoted_amount', v_commercial.quoted_amount,
+      'status', v_commercial.status, 'customer_authorized_at', v_commercial.customer_authorized_at,
+      'authorization_reference', v_commercial.authorization_reference, 'notes', v_commercial.notes),
+    v_actor_id
+  );
+  INSERT INTO public.activity_log (actor_user_id, module_key, entity_type, entity_id, action, summary, after_data)
+  VALUES (v_actor_id, 'sales', 'sales_commercial_record', v_commercial.id, 'saved',
+    'Commercial record saved through the protected contract.',
+    jsonb_build_object('requirement_id', v_requirement.id, 'status', v_commercial.status,
+      'customer_authorized_at', v_commercial.customer_authorized_at,
+      'authorization_reference', v_commercial.authorization_reference,
+      'request_key', p_request_key));
+  INSERT INTO public.sales_commercial_save_requests (
+    request_key, requested_by, requirement_id, expected_revision_number, payload_hash,
+    payload_canonical, commercial_record_id
+  ) VALUES (p_request_key, v_actor_id, v_requirement.id, p_expected_revision_number,
+    v_payload_hash, v_payload_canonical, v_commercial.id);
+  RETURN QUERY SELECT v_commercial.id, v_commercial.updated_at;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.save_sales_commercial_record(uuid, integer, text, text, numeric, text, text, text, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.save_sales_commercial_record(uuid, integer, text, text, numeric, text, text, text, uuid) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.sales_commercial_save_canonical_payload(uuid, integer, text, text, numeric, text, text, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.sales_commercial_save_payload_hash(uuid, integer, text, text, numeric, text, text, text) FROM PUBLIC, anon, authenticated;
+
+-- The protected save above is the sole pending commercial mutation path. It preserves
+-- existing rows and their history; it does not backfill, infer, or approve customer intent.
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.sales_commercial_records FROM authenticated;
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.sales_commercial_records FROM PUBLIC;
+DROP POLICY IF EXISTS "Sales users manage commercial records" ON public.sales_commercial_records;
 
 CREATE OR REPLACE FUNCTION public.sales_baseline_approval_canonical_payload(p_requirement_id uuid, p_expected_revision_number integer)
 RETURNS jsonb LANGUAGE sql IMMUTABLE SET search_path = public AS $$
@@ -339,6 +532,8 @@ BEGIN
   IF v_review_count <> cardinality(v_required_department_ids) THEN RAISE EXCEPTION 'Every applicable department requires a pinned terminal feasible review before baseline approval'; END IF;
   SELECT count(*) INTO v_unresolved_conditions FROM public.requirement_feasibility_reviews review WHERE review.source_revision_id = v_revision.id AND review.department_id = ANY(v_required_department_ids) AND review.status = 'feasible_with_conditions' AND (NULLIF(btrim(coalesce(review.assumptions, '')), '') IS NOT NULL OR NULLIF(btrim(coalesce(review.risks, '')), '') IS NOT NULL);
   IF v_unresolved_conditions > 0 THEN RAISE EXCEPTION 'Pinned feasibility reviews contain unresolved conditions or risks'; END IF;
+  -- The preceding requirement lock also serializes the no-row state against a protected
+  -- first commercial save. Direct writes are revoked in this same pending group.
   SELECT * INTO v_commercial FROM public.sales_commercial_records WHERE requirement_id = v_requirement.id FOR UPDATE;
   IF NOT FOUND OR v_commercial.status IS DISTINCT FROM 'customer_authorized' OR v_commercial.customer_authorized_at IS NULL OR NULLIF(btrim(coalesce(v_commercial.authorization_reference, '')), '') IS NULL THEN RAISE EXCEPTION 'Verified customer commercial authorization is required before baseline approval'; END IF;
   INSERT INTO public.requirement_baselines (requirement_id, baseline_number, revision_number, requirement_snapshot, commercial_snapshot, status, approved_by) VALUES (
@@ -356,14 +551,9 @@ GRANT EXECUTE ON FUNCTION public.approve_sales_requirement_baseline(uuid, intege
 REVOKE ALL ON FUNCTION public.sales_baseline_approval_canonical_payload(uuid, integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sales_baseline_approval_payload_hash(uuid, integer) FROM PUBLIC, anon, authenticated;
 
--- Required companion compatibility group, intentionally not implemented here: replace the
--- direct sales_commercial_records upsert with a protected commercial-save routine
--- that locks requirement -> commercial record and remove authenticated UPDATE/INSERT
--- access. That routine must preserve manual history and coordinate with this baseline
--- contract before either source proposal is eligible for caller-transport acceptance.
 ```
 
-## Full facade
+## Full server facade
 
 ```ts
 import { createServerFn } from "@tanstack/react-start";
@@ -401,7 +591,20 @@ export const createCustomerRequirement = createServerFn({ method: "POST" })
     throw new Error("Legacy customer requirement creation is retired. Use the protected source-bound requirement flow after database acceptance.");
   });
 export const assignFeasibilityReview = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => feasibilityAssignmentSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: reviewId, error } = await sb.rpc("assign_requirement_feasibility_review", { p_requirement_id: data.requirementId, p_department_id: data.departmentId, p_reviewer_user_id: data.reviewerUserId }); if (error || typeof reviewId !== "string") throw new Error(error?.message ?? "Could not assign feasibility review."); return { id: reviewId }; });
-export const saveCommercialRecord = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => commercialSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: record, error } = await sb.from("sales_commercial_records").upsert({ requirement_id: data.requirementId, quotation_reference: data.quotationReference, currency: data.currency, quoted_amount: data.quotedAmount, status: data.status, authorization_reference: data.authorizationReference, customer_authorized_at: data.status === "customer_authorized" ? new Date().toISOString() : null, notes: data.notes, created_by: context.userId }, { onConflict: "requirement_id" }).select("id").single(); if (error || !record) throw new Error(error?.message ?? "Could not save commercial record."); await logSalesActivity(sb, context.userId, "sales_commercial_record", record.id, "saved", `Commercial status: ${data.status}`); return { id: record.id }; });
+/**
+ * Intentionally unavailable: the deployed commercial writer is a non-atomic upsert
+ * without source locks, expected-version checks, immutable audit, or replay receipts.
+ * The pending protected contract replaces it after isolated caller-authenticated
+ * acceptance; this facade must never silently fall back to direct table writes.
+ */
+export const saveCommercialRecord = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => commercialSchema.parse(data))
+  .handler(({ data, context }) => {
+    void data;
+    void context;
+    throw new Error("Commercial authorization save is unavailable until the pending protected, replay-safe commercial contract passes real isolated caller-authenticated acceptance.");
+  });
 /**
  * Deliberately fail-closed: the applied feasibility table cannot bind a terminal
  * verdict to an immutable requirement revision, and no replay-safe baseline
@@ -420,7 +623,7 @@ export const createCustomerPortalAccess = createServerFn({ method: "POST" }).mid
 export const initiateSalesHandover = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).inputValidator((data) => handoverSchema.parse(data)).handler(async ({ data, context }) => { const sb = context.supabase as any; await requireSales(sb, context.userId); const { data: handover, error } = await sb.from("sales_project_handovers").upsert({ baseline_id: data.baselineId, status: "initiated", handover_notes: data.handoverNotes, initiated_by: context.userId, initiated_at: new Date().toISOString() }, { onConflict: "baseline_id" }).select("id").single(); if (error || !handover) throw new Error(error?.message ?? "Could not initiate handover."); await sb.from("requirement_baselines").update({ status: "project_initiated" }).eq("id", data.baselineId); await logSalesActivity(sb, context.userId, "sales_project_handover", handover.id, "initiated", "Initiated approved-baseline project handover"); return { id: handover.id }; });
 ```
 
-## Full structural-only acceptance checks
+## Full structural acceptance file
 
 ```sql
 -- STRUCTURAL-ONLY SOURCE CHECK. This file is not caller-authenticated database
@@ -458,6 +661,40 @@ SELECT NOT has_table_privilege('authenticated', 'public.sales_baseline_approval_
 SELECT has_function_privilege('authenticated', 'public.approve_sales_requirement_baseline(uuid, integer, uuid)', 'EXECUTE') AS protected_baseline_callable;
 SELECT NOT has_table_privilege('authenticated', 'public.requirement_baselines', 'INSERT') AS no_authenticated_baseline_insert;
 
+-- Pending protected commercial-save structural preflight. This remains structural-only
+-- until a real caller transport executes the function against an approved isolated target.
+SELECT NOT has_table_privilege('PUBLIC', 'public.sales_commercial_save_requests', 'SELECT') AS no_public_commercial_receipt_read;
+SELECT NOT has_table_privilege('anon', 'public.sales_commercial_save_requests', 'INSERT') AS no_anon_commercial_receipt_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_commercial_save_requests', 'SELECT') AS no_authenticated_commercial_receipt_read;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_commercial_save_requests', 'INSERT') AS no_authenticated_commercial_receipt_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_commercial_record_revisions', 'SELECT') AS no_authenticated_commercial_history_read;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_commercial_records', 'INSERT') AS no_authenticated_commercial_insert;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_commercial_records', 'UPDATE') AS no_authenticated_commercial_update;
+SELECT NOT has_table_privilege('authenticated', 'public.sales_commercial_records', 'DELETE') AS no_authenticated_commercial_delete;
+SELECT has_function_privilege('authenticated', 'public.save_sales_commercial_record(uuid, integer, text, text, numeric, text, text, text, uuid)', 'EXECUTE') AS protected_commercial_callable;
+DO $$
+DECLARE
+  v_revision_column boolean;
+  v_unique_history boolean;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'sales_commercial_records'
+      AND column_name = 'revision_number' AND data_type = 'integer' AND is_nullable = 'NO'
+  ) INTO v_revision_column;
+  SELECT EXISTS (
+    SELECT 1 FROM pg_constraint constraint_row
+    JOIN pg_class relation ON relation.oid = constraint_row.conrelid
+    JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
+    WHERE namespace.nspname = 'public' AND relation.relname = 'sales_commercial_record_revisions'
+      AND constraint_row.contype = 'u' AND pg_get_constraintdef(constraint_row.oid) LIKE '%commercial_record_id, revision_number%'
+  ) INTO v_unique_history;
+  IF NOT v_revision_column OR NOT v_unique_history THEN
+    RAISE EXCEPTION 'Commercial revision/history schema contract is incomplete';
+  END IF;
+END;
+$$;
+
 -- Required caller-authenticated isolated assertions, each transactionally isolated:
 -- 1. exact expected current revision and pinned provenance are mandatory; legacy NULL
 --    provenance, stale revisions, mismatched source pairs, or TBC workstreams fail.
@@ -472,8 +709,13 @@ SELECT NOT has_table_privilege('authenticated', 'public.requirement_baselines', 
 --    and a Sales reassignment wait and then re-evaluate against the post-approval source;
 --    no baseline may snapshot a review mid-transition.
 -- 8. while approval holds its commercial row lock, a protected commercial authorization
---    update waits and no baseline may snapshot a partly changed authorization. This cannot
---    run until direct commercial upserts are replaced by that protected writer.
+--    update waits and no baseline may snapshot a partly changed authorization.
+-- 9. two new commercial saves for the same requirement serialize through the requirement
+--    lock: exactly one revision-one row/history/receipt/audit survives; the other stale
+--    expected-revision request fails rather than silently overwriting it.
+-- 10. an exact same-actor/key/payload replay returns the stored commercial record without
+--    appending history/audit; changed actor or payload rejects. A forced activity-log
+--    failure leaves no commercial row, history row, or receipt.
 
 -- Required executable assertions in the real caller transport runner:
 -- 1. approved isolated target refusal before any request is sent;
@@ -495,7 +737,7 @@ SELECT NOT has_table_privilege('authenticated', 'public.requirement_baselines', 
 --    concurrent same-key baseline calls converge to one returned ID and exact counts one.
 ```
 
-## Full caller-transport harness
+## Full real caller-transport harness
 
 ```bash
 #!/usr/bin/env bash
@@ -572,4 +814,34 @@ fi
 #   or payload rejects; and
 # - overlap two authenticated baseline calls with one key and prove exactly one result.
 printf '%s\n' "MANUAL RUNNER STEP REQUIRED: complete protected transport count, rollback, replay, and overlap assertions."
+
+# Commercial contract assertions are deliberately executable only through the supplied
+# authenticated wrapper. The wrapper must return a JSON object containing `id` and
+# `revisionNumber`; it must not use SQL transport or service credentials.
+commercial_payload() {
+  local key="$1" expected_revision="$2" amount="$3"
+  jq -cn --arg requirementId "$REQUIREMENT_ID" --arg requestKey "$key" \
+    --argjson expectedRevisionNumber "$expected_revision" --argjson quotedAmount "$amount" \
+    '{requirementId:$requirementId,requestKey:$requestKey,expectedRevisionNumber:$expectedRevisionNumber,quotationReference:"TRANSPORT-COMMERCIAL",currency:"INR",quotedAmount:$quotedAmount,status:"sent",authorizationReference:null,notes:"Isolated acceptance only."}'
+}
+
+: "${REQUEST_KEY_COMMERCIAL:?}" "${REQUEST_KEY_COMMERCIAL_B:?}" "${REQUIREMENT_ID:?}" "${COMMERCIAL_EXPECTED_REVISION:?}"
+commercial_first="$(commercial_payload "$REQUEST_KEY_COMMERCIAL" "$COMMERCIAL_EXPECTED_REVISION" 100 | call_commercial)"
+commercial_id="$(jq -er '.id' <<<"$commercial_first")"
+commercial_revision="$(jq -er '.revisionNumber' <<<"$commercial_first")"
+commercial_retry="$(commercial_payload "$REQUEST_KEY_COMMERCIAL" "$COMMERCIAL_EXPECTED_REVISION" 100 | call_commercial)"
+test "$commercial_id" = "$(jq -er '.id' <<<"$commercial_retry")"
+test "$commercial_revision" = "$(jq -er '.revisionNumber' <<<"$commercial_retry")"
+if commercial_payload "$REQUEST_KEY_COMMERCIAL" "$COMMERCIAL_EXPECTED_REVISION" 101 | call_commercial >/dev/null 2>&1; then
+  echo "Changed commercial replay unexpectedly succeeded" >&2; exit 1
+fi
+if commercial_payload "$REQUEST_KEY_COMMERCIAL_B" "$COMMERCIAL_EXPECTED_REVISION" 102 | call_commercial >/dev/null 2>&1; then
+  echo "Stale commercial revision unexpectedly succeeded" >&2; exit 1
+fi
 ```
+
+## Execution status
+
+- **Ran:** source-level contract assertions, focused tests, typecheck, production build, harness shell syntax, and export synchronization.
+- **Prepared but not run:** structural SQL assertions and real caller-transport cases for direct-write denial, exact replay, stale revision, phantom insertion, baseline/commercial overlap, audit rollback, and authorization. They require a separately approved isolated target, authenticated non-service callers, and controlled failure injection.
+- **Not changed:** live database schema/data/grants/users/fixtures, source records, generation, or publishing.
