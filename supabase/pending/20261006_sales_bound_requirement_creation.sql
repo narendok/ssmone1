@@ -290,6 +290,16 @@ REVOKE ALL ON TABLE public.sales_commercial_record_revisions FROM PUBLIC, anon, 
 ALTER TABLE public.sales_commercial_record_revisions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "No direct commercial revision access" ON public.sales_commercial_record_revisions
   FOR ALL TO authenticated USING (false) WITH CHECK (false);
+CREATE OR REPLACE FUNCTION public.reject_sales_commercial_revision_mutation()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  RAISE EXCEPTION 'Commercial revision history is immutable';
+END;
+$$;
+CREATE TRIGGER sales_commercial_record_revisions_immutable
+  BEFORE UPDATE OR DELETE ON public.sales_commercial_record_revisions
+  FOR EACH ROW EXECUTE FUNCTION public.reject_sales_commercial_revision_mutation();
+REVOKE ALL ON FUNCTION public.reject_sales_commercial_revision_mutation() FROM PUBLIC, anon, authenticated;
 
 CREATE OR REPLACE FUNCTION public.sales_commercial_save_canonical_payload(
   p_requirement_id uuid, p_expected_revision_number integer, p_quotation_reference text,
