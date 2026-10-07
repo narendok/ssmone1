@@ -15,6 +15,7 @@ import { TaskBoard } from "@/components/tasks/TaskBoard";
 import { ProjectTeamTab } from "@/components/projects/ProjectTeamTab";
 import { ProjectOperationalTab } from "@/components/projects/ProjectOperationalTabs";
 import { SharedProductLifecycle } from "@/components/projects/SharedProductLifecycle";
+import { StructuredTemplatePreview } from "@/components/lifecycle/StructuredTemplatePreview";
 import type { Project } from "@/lib/projects";
 import { ProjectDialog } from "@/components/projects/ProjectDialog";
 import { useAuth } from "@/hooks/useAuth";
@@ -97,6 +98,7 @@ function ProjectDetailPage() {
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
           <TabsTrigger value="engineering">Engineering</TabsTrigger>
           <TabsTrigger value="bom">BOM</TabsTrigger>
+          <TabsTrigger value="bom-review">BOM review</TabsTrigger>
           <TabsTrigger value="files">Files</TabsTrigger>
           <TabsTrigger value="firmware">Firmware</TabsTrigger>
           <TabsTrigger value="mechanical">Mechanical</TabsTrigger>
@@ -143,6 +145,10 @@ function ProjectDetailPage() {
 
         <TabsContent value="bom" className="pt-4">
           <ProjectBomsTab projectId={projectId} />
+        </TabsContent>
+
+        <TabsContent value="bom-review" className="pt-4">
+          <StructuredTemplatePreview projectId={projectId} />
         </TabsContent>
 
         <TabsContent value="files" className="pt-4">

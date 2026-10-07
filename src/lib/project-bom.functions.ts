@@ -231,7 +231,7 @@ export const fetchDriveProjectBoms = createServerFn({ method: "GET" })
 
 export const fetchProjectBomItems = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { bomId: string }) => z.object({ bomId: z.string().uuid() }).parse(data))
+  .inputValidator((data: { bomId: string; projectId?: string }) => z.object({ bomId: z.string().uuid(), projectId: z.string().uuid().optional() }).parse(data))
   .handler(async ({ data, context }) => {
     const sb = context.supabase as any;
     const { data: header, error: hErr } = await sb
@@ -241,6 +241,9 @@ export const fetchProjectBomItems = createServerFn({ method: "GET" })
       .maybeSingle();
     if (hErr) throw new Error(hErr.message);
     if (!header) throw new Error("BOM not found");
+    if (data.projectId && header.project_id !== data.projectId) {
+      throw new Error("This saved BOM does not belong to the selected project.");
+    }
     const { data: items, error: iErr } = await sb
       .from("project_bom_items")
       .select("id, bom_id, line_index, mpn, manufacturer, value, description, refs, footprint, quantity, remark, unit_cost, total_cost, matched_component_id, match_status, shortage, matched:components(part_number, name)")
