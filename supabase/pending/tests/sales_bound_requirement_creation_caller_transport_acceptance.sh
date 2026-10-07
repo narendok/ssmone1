@@ -72,3 +72,27 @@ fi
 #   or payload rejects; and
 # - overlap two authenticated baseline calls with one key and prove exactly one result.
 printf '%s\n' "MANUAL RUNNER STEP REQUIRED: complete protected transport count, rollback, replay, and overlap assertions."
+
+# Commercial contract assertions are deliberately executable only through the supplied
+# authenticated wrapper. The wrapper must return a JSON object containing `id` and
+# `revisionNumber`; it must not use SQL transport or service credentials.
+commercial_payload() {
+  local key="$1" expected_revision="$2" amount="$3"
+  jq -cn --arg requirementId "$REQUIREMENT_ID" --arg requestKey "$key" \
+    --argjson expectedRevisionNumber "$expected_revision" --argjson quotedAmount "$amount" \
+    '{requirementId:$requirementId,requestKey:$requestKey,expectedRevisionNumber:$expectedRevisionNumber,quotationReference:"TRANSPORT-COMMERCIAL",currency:"INR",quotedAmount:$quotedAmount,status:"sent",authorizationReference:null,notes:"Isolated acceptance only."}'
+}
+
+: "${REQUEST_KEY_COMMERCIAL:?}" "${REQUEST_KEY_COMMERCIAL_B:?}" "${REQUIREMENT_ID:?}" "${COMMERCIAL_EXPECTED_REVISION:?}"
+commercial_first="$(commercial_payload "$REQUEST_KEY_COMMERCIAL" "$COMMERCIAL_EXPECTED_REVISION" 100 | call_commercial)"
+commercial_id="$(jq -er '.id' <<<"$commercial_first")"
+commercial_revision="$(jq -er '.revisionNumber' <<<"$commercial_first")"
+commercial_retry="$(commercial_payload "$REQUEST_KEY_COMMERCIAL" "$COMMERCIAL_EXPECTED_REVISION" 100 | call_commercial)"
+test "$commercial_id" = "$(jq -er '.id' <<<"$commercial_retry")"
+test "$commercial_revision" = "$(jq -er '.revisionNumber' <<<"$commercial_retry")"
+if commercial_payload "$REQUEST_KEY_COMMERCIAL" "$COMMERCIAL_EXPECTED_REVISION" 101 | call_commercial >/dev/null 2>&1; then
+  echo "Changed commercial replay unexpectedly succeeded" >&2; exit 1
+fi
+if commercial_payload "$REQUEST_KEY_COMMERCIAL_B" "$COMMERCIAL_EXPECTED_REVISION" 102 | call_commercial >/dev/null 2>&1; then
+  echo "Stale commercial revision unexpectedly succeeded" >&2; exit 1
+fi
