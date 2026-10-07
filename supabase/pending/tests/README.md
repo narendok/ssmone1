@@ -27,12 +27,21 @@ The embedded runtime has a single connection; run the two-session acceptance
 script against a separately provisioned isolated PostgreSQL/Supabase environment.
 
 `lifecycle_document_draft_acceptance.sql` and
-`lifecycle_document_draft_concurrency.sh` remain isolated-environment acceptance
-scripts. They need approved manager/out-of-scope identities, project/template
-fixtures, the exact activated document revision and real staged storage objects.
-The SQL fixture persists upload-attempt provenance before rolling back its
-generated metadata, matching separate registration/commit RPC transactions.
-Use disposable fixtures; do not execute these scripts against production.
+`lifecycle_document_draft_concurrency.sh` are **structural SQL** acceptance
+scripts. They set `request.jwt.claim.*` directly, so passing them does not prove
+real browser/server JWT transport. They need approved manager/out-of-scope
+identities, project/template fixtures, the exact activated document revision and
+real staged storage objects. The SQL fixture persists upload-attempt provenance
+before rolling back its generated metadata, matching separate
+registration/commit RPC transactions. Use disposable fixtures; do not execute
+these scripts against production.
+
+For the missing end-to-end proof, use
+`lifecycle_document_draft_real_caller_acceptance.md`. It deliberately contains
+no credentials or user-creation instructions: it requires already-approved
+isolated callers and the existing authenticated application transport. It
+separates physical upload/download, server-side actor propagation, transaction
+rollback, exact replay/conflict, cleanup, and two-session concurrency.
 
 The unapplied transport proposal is applied after the document proposal in an
 isolated environment. Extend HTTP acceptance to call the real web handlers as

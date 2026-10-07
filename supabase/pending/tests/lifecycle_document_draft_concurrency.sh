@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ISOLATED ENVIRONMENT ONLY. Required environment variables match the SQL
-# fixture plus ISOLATED_DATABASE_URL, REQUEST_KEY_A, REQUEST_KEY_B,
-# STORAGE_PATH_A and STORAGE_PATH_B. Both request keys must be the same to
-# prove semantic replay; paths must differ to prove losing-attempt cleanup.
+# ISOLATED ENVIRONMENT ONLY. This structural psql runner sets JWT GUCs and
+# therefore does NOT prove browser/server JWT transport. Run it only after the
+# real caller-transport acceptance in lifecycle_document_draft_real_caller_acceptance.md.
+# Required environment variables match the SQL fixture plus ISOLATED_DATABASE_URL,
+# REQUEST_KEY_A, REQUEST_KEY_B, STORAGE_PATH_A and STORAGE_PATH_B. Both request
+# keys must be the same to prove semantic replay; paths must differ to prove
+# losing-attempt cleanup.
 : "${ISOLATED_DATABASE_URL:?}" "${MANAGER_USER_ID:?}" "${PROJECT_ID:?}"
 : "${TARGET_FOLDER_ID:?}" "${TEMPLATE_KEY:?}" "${TEMPLATE_VERSION:?}"
 : "${TEMPLATE_REVISION_ID:?}" "${REQUEST_KEY_A:?}" "${REQUEST_KEY_B:?}"
