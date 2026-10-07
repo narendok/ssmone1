@@ -224,8 +224,11 @@ REVOKE ALL ON FUNCTION public.sales_requirement_creation_payload_hash(uuid, uuid
 -- BASELINE APPROVAL COMPATIBILITY GROUP — SOURCE-ONLY. This requires the pending
 -- revision-bound feasibility proposal in 20261005_client_requirement_intake.sql.
 -- No legacy row is backfilled: a review with NULL provenance remains unavailable.
--- Lock order: advisory(request_key) -> receipt -> requirement -> current revision
--- -> feasibility reviews -> Master version -> commercial record.
+-- Baseline lock order: advisory(request_key) -> receipt -> requirement -> current revision
+-- -> feasibility reviews -> Master version -> commercial record. It deliberately does
+-- not claim a shared order with the pending Master-save or commercial-save paths: those
+-- source contracts still need compatible protected locking before this proposal can pass
+-- isolated acceptance. Direct commercial writes must be retired in that same group.
 -- The deployed requirement_baselines_assign_business_code trigger remains the sole
 -- baseline-number issuer; this contract supplies a NULL baseline_number.
 
@@ -291,7 +294,13 @@ BEGIN
     v_source_version_number := (v_revision.requirement_data #>> '{source,master_specification_version_number}')::integer;
   EXCEPTION WHEN invalid_text_representation THEN RAISE EXCEPTION 'Expected immutable requirement revision has an invalid Master Specification source tuple'; END;
   IF v_source_opportunity_id IS NULL OR v_source_customer_id IS NULL OR v_source_version_number IS NULL OR v_source_opportunity_id IS DISTINCT FROM v_requirement.opportunity_id OR v_source_customer_id IS DISTINCT FROM v_requirement.customer_id THEN RAISE EXCEPTION 'Expected immutable requirement revision source does not match its requirement opportunity and customer'; END IF;
-  PERFORM 1 FROM public.requirement_feasibility_reviews review WHERE review.source_revision_id = v_revision.id FOR UPDATE;
+  -- Lock every review for this immutable revision before evaluating it. Assignment and
+  -- response routines lock requirement -> revision -> review -> version as well, so a
+  -- concurrent reassignment or response either completes before this snapshot or waits.
+  PERFORM 1 FROM public.requirement_feasibility_reviews review
+  WHERE review.source_revision_id = v_revision.id
+  ORDER BY review.id
+  FOR UPDATE;
   SELECT version.* INTO v_master_version FROM public.master_specification_versions version JOIN public.master_specifications specification ON specification.id = version.specification_id WHERE version.id = v_master_version_id AND version.version_number = v_source_version_number AND specification.opportunity_id = v_requirement.opportunity_id AND specification.customer_id = v_requirement.customer_id FOR KEY SHARE;
   IF NOT FOUND THEN RAISE EXCEPTION 'Pinned Master Specification version is unavailable for the immutable requirement revision'; END IF;
   v_workstreams := v_revision.requirement_data #> '{source,applicable_workstreams}';
@@ -318,3 +327,9 @@ REVOKE ALL ON FUNCTION public.approve_sales_requirement_baseline(uuid, integer, 
 GRANT EXECUTE ON FUNCTION public.approve_sales_requirement_baseline(uuid, integer, uuid) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.sales_baseline_approval_canonical_payload(uuid, integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sales_baseline_approval_payload_hash(uuid, integer) FROM PUBLIC, anon, authenticated;
+
+-- Required companion compatibility group, intentionally not implemented here: replace
+-- the direct sales_commercial_records upsert with a protected commercial-save routine
+-- that locks requirement -> commercial record and remove authenticated UPDATE/INSERT
+-- access. That routine must preserve manual history and coordinate with this baseline
+-- contract before either source proposal is eligible for caller-transport acceptance.
