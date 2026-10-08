@@ -18,7 +18,7 @@
 - Present shared product-lifecycle status as a read-only composition of governed records; lifecycle screens must not infer approvals, ownership, releases, or external publication.
 - Keep lifecycle draft planning as a pure read-only derivation; template materialization, feedback revisions, task creation, and notifications require separately reviewed server-side contracts.
 - Lifecycle contracts must authorize before replay, bind receipts and generated records to immutable actor/template provenance, reject duplicate source-stage regeneration, and serialize all project dependency graph writes.
-- Lifecycle façades authenticate and re-check department scope; mutation remains disabled until isolated acceptance passes.
+- Lifecycle action façades must authenticate and re-check department scope before any mutation bridge is enabled; it remains disabled until isolated authorization, rollback, replay/concurrency, and non-admin RLS acceptance all pass.
 - Lifecycle document-draft persistence must use one protected transaction that pins an immutable template revision, re-renders server-owned fields, locks target ancestry, and writes Drive metadata, register, audit, and an actor-bound receipt together; staged object cleanup is allowed only after an exact unreferenced-reference proof.
 - Lifecycle document staging must register the exact server-owned attempt after confirmed upload and before commit; rendered substitutions are single-pass from validated source template tokens so project values remain literal.
 - Lifecycle document requests accept only immutable identifiers; server-only preflight loads template content, target Drive scope, project fields, and the canonical fingerprint before the gated commit revalidates them.
