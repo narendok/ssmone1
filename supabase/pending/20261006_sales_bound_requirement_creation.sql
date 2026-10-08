@@ -801,3 +801,152 @@ GRANT EXECUTE ON FUNCTION public.approve_sales_requirement_baseline(uuid, intege
 REVOKE ALL ON FUNCTION public.sales_baseline_approval_canonical_payload(uuid, integer) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sales_baseline_approval_payload_hash(uuid, integer) FROM PUBLIC, anon, authenticated;
 
+-- PENDING POSITIVE-ONLY BASELINE READBACK CONTRACT — SOURCE-ONLY. This returns no
+-- receipt payload, baseline snapshot, count, or arbitrary filter API. It validates one
+-- actor-bound approval receipt graph from immutable receipt and baseline snapshots only.
+-- Empty results cannot prove rollback absence, reviewer history, or concurrency, so those
+-- assertions remain BLOCKED pending separately scoped contracts. The requirement/source
+-- lookup mirrors the deployed global sales.manage caller-RLS scope; no nullable department
+-- or ownership field is inferred here.
+CREATE OR REPLACE FUNCTION public.read_sales_requirement_baseline_approval_receipt(
+  p_requirement_id uuid,
+  p_expected_revision_number integer,
+  p_source_revision_id uuid,
+  p_master_specification_version_id uuid,
+  p_request_key uuid
+) RETURNS TABLE(
+  request_key uuid,
+  requirement_id uuid,
+  expected_revision_number integer,
+  source_revision_id uuid,
+  master_specification_version_id uuid,
+  master_specification_version_number integer,
+  baseline_id uuid,
+  audit_id uuid
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_actor_id uuid := auth.uid();
+  v_receipt public.sales_baseline_approval_requests%ROWTYPE;
+  v_requirement public.customer_requirements%ROWTYPE;
+  v_revision public.customer_requirement_revisions%ROWTYPE;
+  v_master_version public.master_specification_versions%ROWTYPE;
+  v_baseline public.requirement_baselines%ROWTYPE;
+  v_audit_id uuid;
+  v_audit_count integer;
+  v_payload_canonical jsonb;
+  v_payload_hash text;
+BEGIN
+  -- Authorize before every receipt lookup so a wrong actor or scope cannot learn existence.
+  IF v_actor_id IS NULL OR NOT public.has_permission(v_actor_id, 'sales.manage') THEN
+    RAISE EXCEPTION 'Sales management permission is required';
+  END IF;
+  IF p_requirement_id IS NULL OR p_expected_revision_number IS NULL
+     OR p_expected_revision_number < 1 OR p_source_revision_id IS NULL
+     OR p_master_specification_version_id IS NULL OR p_request_key IS NULL THEN
+    RAISE EXCEPTION 'Immutable baseline receipt-readback scope is required';
+  END IF;
+
+  -- This asserts an existing globally Sales-readable requirement before inspecting a receipt.
+  SELECT * INTO v_requirement
+  FROM public.customer_requirements requirement
+  WHERE requirement.id = p_requirement_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Scoped baseline source is unavailable';
+  END IF;
+
+  SELECT * INTO v_receipt
+  FROM public.sales_baseline_approval_requests receipt
+  WHERE receipt.request_key = p_request_key
+    AND receipt.requested_by = v_actor_id
+    AND receipt.requirement_id = p_requirement_id
+    AND receipt.source_revision_id = p_source_revision_id
+    AND receipt.master_specification_version_id = p_master_specification_version_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Positive scoped baseline receipt graph is unavailable or incomplete';
+  END IF;
+
+  v_payload_canonical := public.sales_baseline_approval_canonical_payload(
+    v_receipt.requirement_id, p_expected_revision_number
+  );
+  v_payload_hash := public.sales_baseline_approval_payload_hash(
+    v_receipt.requirement_id, p_expected_revision_number
+  );
+  IF v_receipt.payload_canonical IS DISTINCT FROM v_payload_canonical
+     OR v_receipt.payload_hash IS DISTINCT FROM v_payload_hash THEN
+    RAISE EXCEPTION 'Positive scoped baseline receipt graph is unavailable or incomplete';
+  END IF;
+
+  SELECT * INTO v_revision
+  FROM public.customer_requirement_revisions revision
+  WHERE revision.id = v_receipt.source_revision_id
+    AND revision.requirement_id = v_receipt.requirement_id
+    AND revision.revision_number = p_expected_revision_number
+    AND revision.requirement_data #>> '{source,master_specification_version_id}' = v_receipt.master_specification_version_id::text;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Positive scoped baseline receipt graph is unavailable or incomplete';
+  END IF;
+
+  SELECT * INTO v_master_version
+  FROM public.master_specification_versions version
+  WHERE version.id = v_receipt.master_specification_version_id;
+  IF NOT FOUND
+     OR v_revision.requirement_data #>> '{source,master_specification_version_number}' IS DISTINCT FROM v_master_version.version_number::text THEN
+    RAISE EXCEPTION 'Positive scoped baseline receipt graph is unavailable or incomplete';
+  END IF;
+
+  SELECT * INTO v_baseline
+  FROM public.requirement_baselines baseline
+  WHERE baseline.id = v_receipt.baseline_id
+    AND baseline.requirement_id = v_receipt.requirement_id
+    AND baseline.revision_number = p_expected_revision_number
+    AND baseline.approved_by = v_receipt.requested_by
+    AND baseline.requirement_snapshot #>> '{requirement_id}' = v_receipt.requirement_id::text
+    AND baseline.requirement_snapshot #>> '{source_revision_id}' = v_receipt.source_revision_id::text
+    AND baseline.requirement_snapshot #>> '{source_revision_number}' = p_expected_revision_number::text
+    AND baseline.requirement_snapshot #>> '{master_specification_version_id}' = v_receipt.master_specification_version_id::text
+    AND baseline.requirement_snapshot #>> '{master_specification_version_number}' = v_master_version.version_number::text
+    AND baseline.commercial_snapshot #>> '{requirement_id}' = v_receipt.requirement_id::text
+    AND NULLIF(btrim(coalesce(baseline.commercial_snapshot #>> '{id}', '')), '') IS NOT NULL
+    AND baseline.commercial_snapshot #>> '{status}' = 'customer_authorized'
+    AND NULLIF(btrim(coalesce(baseline.commercial_snapshot #>> '{authorization_reference}', '')), '') IS NOT NULL;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Positive scoped baseline receipt graph is unavailable or incomplete';
+  END IF;
+
+  SELECT count(*), min(audit.id::text)::uuid
+  INTO v_audit_count, v_audit_id
+  FROM public.activity_log audit
+  WHERE audit.entity_id = v_baseline.id
+    AND audit.module_key = 'sales'
+    AND audit.entity_type = 'requirement_baseline'
+    AND audit.action = 'approved'
+    AND audit.actor_user_id = v_receipt.requested_by
+    AND audit.after_data #>> '{requirement_id}' = v_receipt.requirement_id::text
+    AND audit.after_data #>> '{source_revision_id}' = v_receipt.source_revision_id::text
+    AND audit.after_data #>> '{source_revision_number}' = p_expected_revision_number::text
+    AND audit.after_data #>> '{master_specification_version_id}' = v_receipt.master_specification_version_id::text
+    AND audit.after_data #>> '{master_specification_version_number}' = v_master_version.version_number::text
+    AND audit.after_data #>> '{commercial_record_id}' = v_baseline.commercial_snapshot #>> '{id}'
+    AND audit.after_data #>> '{request_key}' = v_receipt.request_key::text;
+  IF v_audit_count <> 1 THEN
+    RAISE EXCEPTION 'Positive scoped baseline receipt graph is unavailable or incomplete';
+  END IF;
+
+  RETURN QUERY SELECT
+    v_receipt.request_key,
+    v_receipt.requirement_id,
+    p_expected_revision_number,
+    v_receipt.source_revision_id,
+    v_receipt.master_specification_version_id,
+    v_master_version.version_number,
+    v_baseline.id,
+    v_audit_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.read_sales_requirement_baseline_approval_receipt(uuid, integer, uuid, uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.read_sales_requirement_baseline_approval_receipt(uuid, integer, uuid, uuid, uuid) TO authenticated, service_role;
+
