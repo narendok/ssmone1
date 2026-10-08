@@ -209,3 +209,10 @@ export function createIsolatedLifecycleHttpDriver({ backendRef, origin, fetchImp
 
   return { inspectReadiness, invokeSaveDraft, readSavedFileAndVerify, runMutationCases }
 }
+
+/** Loader entry point used by the generic acceptance runner. It is read-only
+ * unless that runner later receives an explicit mutation opt-in and approved
+ * runtime fixture adapter. */
+export function createDriver({ backendRef, origin }) {
+  return createIsolatedLifecycleHttpDriver({ backendRef, origin })
+}
