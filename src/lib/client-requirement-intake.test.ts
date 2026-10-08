@@ -46,6 +46,12 @@ describe("client requirement intake contract", () => {
     expect(feasibilityResponseSchema.parse({ reviewId: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8", requestKey: "9ce5a383-9ebf-430e-9bba-2e550c20fe3e", verdict: "feasible_with_conditions", findings: "CAN termination is required.", assumptions: null, risks: null }).verdict).toBe("feasible_with_conditions");
   });
 
+  it("forwards the reviewer request key to the pending protected response RPC", () => {
+    const feasibilityFunctions = readFileSync("src/lib/client-requirement-intake.functions.ts", "utf8");
+    expect(feasibilityFunctions).toContain("p_request_key: data.requestKey");
+    expect(feasibilityFunctions).toContain('rpc("record_requirement_feasibility_response"');
+  });
+
   it("requires active, unrevoked, explicitly scoped client access", () => {
     const access = { isActive: true, revokedAt: null, expiresAt: "2026-10-06T19:00:00.000Z", accessScope: { opportunityIds: ["opportunity"], customerIds: ["customer"] }, opportunityId: "opportunity", customerId: "customer" };
     expect(mayExposeClientRequirement(access, new Date("2026-10-06T18:00:00.000Z"))).toBe(true);
