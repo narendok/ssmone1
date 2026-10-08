@@ -4,10 +4,44 @@ import {
   ISOLATED_LIFECYCLE_ACCEPTANCE_BACKEND,
   ORIGINAL_LIFECYCLE_BACKEND,
   blockedLifecycleDeploymentObservation,
+  observeScopedLifecycleReadback,
   lifecycleDocumentServerOperations,
   deriveBackendRef,
   validateLifecycleTarget,
 } from "./lifecycle-deployment-observation";
+
+const ids = {
+  project: "00000000-0000-0000-0000-000000000001",
+  request: "00000000-0000-0000-0000-000000000002",
+  template: "00000000-0000-0000-0000-000000000003",
+  source: "00000000-0000-0000-0000-000000000004",
+  node: "00000000-0000-0000-0000-000000000005",
+  revision: "00000000-0000-0000-0000-000000000006",
+  register: "00000000-0000-0000-0000-000000000007",
+  audit: "00000000-0000-0000-0000-000000000008",
+};
+
+function scopedClient(rows: Record<string, Record<string, unknown> | null>, errors: Record<string, string> = {}) {
+  return {
+    from(table: string) {
+      return {
+        select() { return this; },
+        eq() { return this; },
+        maybeSingle: async () => ({ data: rows[table] ?? null, error: errors[table] ? { message: errors[table] } : null }),
+      };
+    },
+  };
+}
+
+function completeRows() {
+  return {
+    project_lifecycle_document_drafts: { project_id: ids.project, request_key: ids.request, template_id: ids.template, template_document_revision_id: ids.source, generated_drive_node_id: ids.node, generated_revision_id: ids.revision, document_control_register_id: ids.register, audit_event_id: ids.audit, source_fingerprint: "f".repeat(64), storage_bucket: "project-drive", storage_path: "safe/path.pdf", sha256_checksum: "a".repeat(64), size_bytes: 12 },
+    department_process_template_document_revisions: { id: ids.source, template_id: ids.template, content_sha256: "b".repeat(64) },
+    drive_nodes: { id: ids.node, project_id: ids.project, node_type: "FILE", is_trashed: false, storage_bucket: "project-drive", storage_path: "safe/path.pdf", sha256_checksum: "a".repeat(64), file_size_bytes: 12 },
+    drive_node_revisions: { id: ids.revision, node_id: ids.node, storage_path: "safe/path.pdf", sha256_checksum: "a".repeat(64), file_size_bytes: 12 },
+    document_control_registers: { id: ids.register, project_id: ids.project, drive_node_id: ids.node, source_revision_id: ids.revision },
+  };
+}
 
 describe("lifecycle deployment observation boundary", () => {
   describe("backend identity derivation", () => {
@@ -80,19 +114,43 @@ describe("lifecycle deployment observation boundary", () => {
     });
   });
 
-  it("keeps all deployment-specific evidence blocked until a reviewed observer exists", () => {
-    expect(blockedLifecycleDeploymentObservation(ISOLATED_LIFECYCLE_ACCEPTANCE_BACKEND)).toEqual({
-      status: "BLOCKED",
-      missingContract: "reviewed_read_only_deployment_observation_adapter",
-      backendRef: ISOLATED_LIFECYCLE_ACCEPTANCE_BACKEND,
-      capabilities: {
-        authenticatedApplicationTransport: "OBSERVED",
-        actorGateway: "BLOCKED",
-        rpcSchema: "BLOCKED",
-        projectDriveStorage: "BLOCKED",
-        observabilityReadback: "BLOCKED",
-      },
-    });
+  it("keeps physical storage, RPC catalog, and audit evidence blocked", () => {
+    const report = blockedLifecycleDeploymentObservation(ISOLATED_LIFECYCLE_ACCEPTANCE_BACKEND);
+    expect(report.status).toBe("BLOCKED");
+    expect(report.capabilities.projectDriveStorage.status).toBe("BLOCKED");
+    expect(report.capabilities.rpcSchema.status).toBe("BLOCKED");
+    expect(report.capabilities.observabilityReadback.status).toBe("BLOCKED");
+  });
+
+  it("observes only a complete caller-RLS-scoped receipt lineage", async () => {
+    const readback = await observeScopedLifecycleReadback(scopedClient(completeRows()), { projectId: ids.project, requestKey: ids.request });
+    expect(readback.receipt.status).toBe("OBSERVED");
+    expect(readback.source.status).toBe("OBSERVED");
+    expect(readback.generatedNode.status).toBe("OBSERVED");
+    expect(readback.generatedRevision.status).toBe("OBSERVED");
+    expect(readback.controlledRegister.status).toBe("OBSERVED");
+    expect(readback.storageMetadata.status).toBe("OBSERVED");
+    expect(readback.audit).toEqual({ status: "BLOCKED", reason: "activity_log_has_no_scoped_authenticated_read_contract" });
+  });
+
+  it("fails closed for an RLS-hidden receipt without scanning another record", async () => {
+    const readback = await observeScopedLifecycleReadback(scopedClient({}), { projectId: ids.project, requestKey: ids.request });
+    expect(readback.receipt).toEqual({ status: "BLOCKED", reason: "receipt_not_found_or_hidden_by_rls" });
+    expect(readback.generatedNode.status).toBe("BLOCKED");
+  });
+
+  it("reports receipt query denial without exposing data", async () => {
+    const readback = await observeScopedLifecycleReadback(scopedClient({}, { project_lifecycle_document_drafts: "permission denied" }), { projectId: ids.project, requestKey: ids.request });
+    expect(readback.receipt).toEqual({ status: "BLOCKED", reason: "receipt_read_denied_or_failed: permission denied" });
+  });
+
+  it("blocks missing source and mismatched storage metadata", async () => {
+    const rows = completeRows();
+    rows.department_process_template_document_revisions = null;
+    (rows.drive_node_revisions as Record<string, unknown>).sha256_checksum = "c".repeat(64);
+    const readback = await observeScopedLifecycleReadback(scopedClient(rows), { projectId: ids.project, requestKey: ids.request });
+    expect(readback.source).toEqual({ status: "BLOCKED", reason: "immutable_source_not_found_or_hidden_by_rls" });
+    expect(readback.storageMetadata).toEqual({ status: "BLOCKED", reason: "storage_metadata_link_or_checksum_mismatch" });
   });
 
   it("preserves the exact pending actor-operation contract without treating it as deployed", () => {
@@ -110,8 +168,9 @@ describe("lifecycle deployment observation boundary", () => {
     expect(facade).toContain("requireSupabaseAuth");
     expect(facade).toContain("validateLifecycleTarget");
     expect(facade).toContain("process.env.SUPABASE_URL");
-    // Ensure it doesn't do database calls
-    expect(facade).not.toContain("supabase.from(");
-    expect(facade).not.toContain("supabase.rpc(");
+    expect(facade).toContain("observeScopedLifecycleReadback");
+    expect(facade).not.toContain(".rpc(");
+    expect(facade).not.toContain("client.server");
+    expect(facade).not.toContain("supabaseAdmin");
   });
 });
