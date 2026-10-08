@@ -4,8 +4,8 @@ import { chmodSync, mkdtempSync, readFileSync as readTemporaryFileSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
-import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability, salesBoundRequirementReadScopeSchema, salesCommercialReadScopeSchema } from "./client-requirement-intake";
-import { createSalesBoundRequirementReadbackAdapter, createSalesCommercialReadbackAdapter, observeSalesBoundRequirementReadback, observeSalesCommercialReadback, salesBoundRequirementReadRequestSchema, salesCommercialReadRequestSchema } from "./sales-bound-requirement-readback";
+import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability, salesBaselineReadScopeSchema, salesBoundRequirementReadScopeSchema, salesCommercialReadScopeSchema } from "./client-requirement-intake";
+import { createSalesBaselineReadbackAdapter, createSalesBoundRequirementReadbackAdapter, createSalesCommercialReadbackAdapter, observeSalesBaselineReadback, observeSalesBoundRequirementReadback, observeSalesCommercialReadback, salesBaselineReadRequestSchema, salesBoundRequirementReadRequestSchema, salesCommercialReadRequestSchema } from "./sales-bound-requirement-readback";
 
 const pendingSql = readFileSync("supabase/pending/20261005_client_requirement_intake.sql", "utf8");
 const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_intake_acceptance.sql", "utf8");
@@ -389,6 +389,46 @@ describe("client requirement intake contract", () => {
     await expect(observeSalesCommercialReadback(request)).resolves.toMatchObject({ status: "BLOCKED", missingContract: expect.stringContaining("pending isolated acceptance") });
   });
 
+  it("binds only the reviewed positive baseline RPC and blocks malformed, duplicate, mismatched, absent, and denied evidence", async () => {
+    const scope = {
+      requirementId: "e5ca7061-aa3d-4d60-a2f4-6e4b1e0a3bae",
+      expectedRevisionNumber: 1,
+      sourceRevisionId: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8",
+      masterSpecificationVersionId: "d5ed71c0-4e61-4f00-a3c4-314db2801bed",
+      requestKey: "38f3ba86-06ec-4270-a1ba-876673f02901",
+    };
+    expect(salesBaselineReadScopeSchema.safeParse(scope).success).toBe(true);
+    expect(salesBaselineReadScopeSchema.safeParse({ ...scope, expectedRevisionNumber: 0 }).success).toBe(false);
+    const request = salesBaselineReadRequestSchema.parse({ kind: "sales-baseline-read", assertion: "baseline-receipt-readback", scope });
+    const row = {
+      request_key: scope.requestKey,
+      requirement_id: scope.requirementId,
+      expected_revision_number: scope.expectedRevisionNumber,
+      source_revision_id: scope.sourceRevisionId,
+      master_specification_version_id: scope.masterSpecificationVersionId,
+      master_specification_version_number: 1,
+      baseline_id: "82b89192-93a7-4ca4-a236-d6e1e2ff07ed",
+      audit_id: "ecfd0f8a-3cb2-497f-8d5b-c6c72003ef36",
+    };
+    const observedAdapter = createSalesBaselineReadbackAdapter({
+      enabled: true,
+      callerRlsRpc: { rpc: async (name, args) => {
+        expect(name).toBe("read_sales_requirement_baseline_approval_receipt");
+        expect(args).toEqual({ p_requirement_id: scope.requirementId, p_expected_revision_number: "1", p_source_revision_id: scope.sourceRevisionId, p_master_specification_version_id: scope.masterSpecificationVersionId, p_request_key: scope.requestKey });
+        return { data: [row], error: null };
+      } },
+    });
+    await expect(observedAdapter.observe(request)).resolves.toEqual({ status: "OBSERVED", assertion: "baseline-receipt-readback", ok: true });
+
+    for (const data of [[], [row, row], [{ ...row, source_revision_id: "2e0f1f6d-bb6a-4bb4-b862-9ab0e8e5c6c3" }], [{ ...row, expected_revision_number: 2 }], [{ ...row, extra: true }]]) {
+      const adapter = createSalesBaselineReadbackAdapter({ enabled: true, callerRlsRpc: { rpc: async () => ({ data, error: null }) } });
+      await expect(adapter.observe(request)).resolves.toMatchObject({ status: "BLOCKED" });
+    }
+    const deniedAdapter = createSalesBaselineReadbackAdapter({ enabled: true, callerRlsRpc: { rpc: async () => ({ data: null, error: { message: "denied" } }) } });
+    await expect(deniedAdapter.observe(request)).resolves.toMatchObject({ status: "BLOCKED" });
+    await expect(observeSalesBaselineReadback(request)).resolves.toMatchObject({ status: "BLOCKED", missingContract: expect.stringContaining("pending isolated acceptance") });
+  });
+
   it("keeps the pending receipt readback narrowly actor-bound and graph-complete without granting receipt SELECT", () => {
     expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.read_sales_bound_requirement_creation_receipt");
     expect(salesBoundSql).toContain("v_actor_id uuid := auth.uid()");
@@ -438,6 +478,28 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).not.toContain("GRANT SELECT ON TABLE public.sales_commercial_save_requests TO authenticated");
     expect(salesBoundSql).toContain("Empty results cannot prove rollback absence, history,");
     expect(salesBoundTransportHarness).toContain('kind:"sales-commercial-read"');
+  });
+
+  it("keeps pending baseline receipt readback actor-bound, immutable, positive-only, and direct receipt access denied", () => {
+    expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.read_sales_requirement_baseline_approval_receipt");
+    expect(salesBoundSql).toContain("Immutable baseline receipt-readback scope is required");
+    expect(salesBoundSql).toContain("receipt.requested_by = v_actor_id");
+    expect(salesBoundSql).toContain("receipt.source_revision_id = p_source_revision_id");
+    expect(salesBoundSql).toContain("receipt.master_specification_version_id = p_master_specification_version_id");
+    expect(salesBoundSql).toContain("v_receipt.payload_canonical IS DISTINCT FROM v_payload_canonical");
+    expect(salesBoundSql).toContain("v_receipt.payload_hash IS DISTINCT FROM v_payload_hash");
+    expect(salesBoundSql).toContain("baseline.requirement_snapshot #>> '{source_revision_id}'");
+    expect(salesBoundSql).toContain("baseline.commercial_snapshot #>> '{id}'");
+    expect(salesBoundSql).toContain("audit.entity_type = 'requirement_baseline'");
+    expect(salesBoundSql).toContain("audit.after_data #>> '{commercial_record_id}' = v_baseline.commercial_snapshot #>> '{id}'");
+    expect(salesBoundSql).toContain("SELECT count(*), min(audit.id::text)::uuid");
+    expect(salesBoundSql).toContain("Positive scoped baseline receipt graph is unavailable or incomplete");
+    expect(salesBoundSql).toContain("rollback absence, reviewer history, or concurrency");
+    expect(salesBoundSql).toContain("REVOKE ALL ON FUNCTION public.read_sales_requirement_baseline_approval_receipt(uuid, integer, uuid, uuid, uuid) FROM PUBLIC, anon;");
+    expect(salesBoundSql).toContain("GRANT EXECUTE ON FUNCTION public.read_sales_requirement_baseline_approval_receipt(uuid, integer, uuid, uuid, uuid) TO authenticated, service_role;");
+    expect(salesBoundSql).toContain("REVOKE ALL ON TABLE public.sales_baseline_approval_requests FROM PUBLIC, anon, authenticated;");
+    expect(salesBoundSql).not.toContain("GRANT SELECT ON TABLE public.sales_baseline_approval_requests TO authenticated");
+    expect(salesBoundTransportHarness).toContain('kind:"sales-baseline-read"');
   });
 
   it("requires authoritative scoped preflight before any caller transport mutation wrapper", () => {
