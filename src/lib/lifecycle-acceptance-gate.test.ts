@@ -5,6 +5,16 @@ it("defaults closed and refuses the company backend even with an opt-in", () => 
   expect(lifecycleAcceptanceEnabled("https://yyrvduosyyaluifqvwkr.supabase.co", "isolated-accepted")).toBe(false);
   expect(lifecycleAcceptanceEnabled("https://egjotuxqguifnvdnflan.supabase.co", "isolated-accepted")).toBe(true);
 });
-it.each(["http://egjotuxqguifnvdnflan.supabase.co", "https://egjotuxqguifnvdnflan.supabase.co.attacker.test", "https://egjotuxqguifnvdnflan.supabase.co/path", "https://egjotuxqguifnvdnflan.supabase.co?override=true", "not-a-url"])("rejects mismatched configuration %s", (url) => {
+it.each([
+  "https://egjotuxqguifnvdnflan.extra.supabase.co",
+  "https://egjotuxqguifnvdnflan.supabase.co.attacker.test",
+  "http://egjotuxqguifnvdnflan.supabase.co",
+  "https://user:password@egjotuxqguifnvdnflan.supabase.co",
+  "https://egjotuxqguifnvdnflan.supabase.co:8443",
+  "https://egjotuxqguifnvdnflan.supabase.co/path",
+  "https://egjotuxqguifnvdnflan.supabase.co?override=true",
+  "https://egjotuxqguifnvdnflan.supabase.co#fragment",
+  "not-a-url",
+])("rejects non-canonical configuration %s", (url) => {
   expect(lifecycleAcceptanceEnabled(url, "isolated-accepted")).toBe(false);
 });

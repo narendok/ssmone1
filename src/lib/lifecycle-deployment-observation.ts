@@ -32,20 +32,25 @@ export type LifecycleDeploymentObservationReport = {
 };
 
 /**
- * Derives the backend reference from a Supabase URL.
- * Supports both standard Supabase URLs and custom domains if needed,
- * but focuses on project-ref extraction from the subdomain.
+ * Derives a project reference only from the exact canonical project endpoint.
+ * Lifecycle acceptance cannot use custom domains or nested subdomains.
  */
 export function deriveBackendRef(url: string | undefined): string | null {
   if (!url) return null;
   try {
     const parsed = new URL(url);
-    const hostParts = parsed.host.split(".");
-    // Standard Supabase URL: [project-ref].supabase.co
-    if (hostParts.length >= 3 && hostParts[hostParts.length - 2] === "supabase" && hostParts[hostParts.length - 1] === "co") {
-      return hostParts[0];
-    }
-    return null;
+    if (
+      parsed.protocol !== "https:" ||
+      parsed.username ||
+      parsed.password ||
+      parsed.port ||
+      parsed.pathname !== "/" ||
+      parsed.search ||
+      parsed.hash
+    ) return null;
+
+    const match = /^([a-z0-9]{20})\.supabase\.co$/.exec(parsed.hostname);
+    return match?.[1] ?? null;
   } catch {
     return null;
   }
