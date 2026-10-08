@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { mkdtempSync, readFileSync as readTemporaryFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync as readTemporaryFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -256,9 +256,11 @@ describe("client requirement intake contract", () => {
     expect(salesBoundTransportHarness).toContain('kind:"sales-bound-requirement-read"');
     expect(salesBoundTransportHarness).toContain('assert_observed "requirement-create-replay-graph"');
     expect(salesBoundTransportHarness).toContain('assert_observed "requirement-create-rollback-graph-absent"');
-    expect(salesBoundTransportHarness).toContain('assert_blocked "commercial-receipt-readback"');
-    expect(salesBoundTransportHarness).toContain('assert_blocked "baseline-receipt-readback"');
-    expect(salesBoundTransportHarness).toContain('assert_blocked "requirement-create-concurrency-persisted-barrier"');
+    expect(salesBoundTransportHarness).toContain('assert_observed "commercial-receipt-readback"');
+    expect(salesBoundTransportHarness).toContain('assert_observed "reviewer-response-readback"');
+    expect(salesBoundTransportHarness).toContain('assert_observed "baseline-receipt-readback"');
+    expect(salesBoundTransportHarness).toContain('assert_observed "requirement-create-concurrency-persisted-barrier"');
+    expect(salesBoundTransportHarness).not.toContain("assert_blocked()");
     expect(salesBoundTransportHarness).toContain("receipt.request_key -> receipt.requirement_id -> requirement.id -> revision.requirement_id");
     expect(salesBoundTransportHarness).toContain("activity_log.after_data.request_key");
     expect(salesBoundTransportHarness).not.toContain('"customer_requirements" 1 "request_key=$REQUEST_KEY"');
@@ -342,6 +344,7 @@ describe("client requirement intake contract", () => {
     writeFileSync(mutationWrapper, `#!/usr/bin/env bash\nprintf '%s\\n' mutation >> "${mutationLog}"\nexit 97\n`);
     writeFileSync(blockedAdapter, "#!/usr/bin/env bash\ncat >/dev/null\nprintf '%s\\n' '{\"status\":\"BLOCKED\",\"missingContract\":\"scoped caller-RLS read adapter unavailable\"}'\n");
     writeFileSync(invalidAdapter, "#!/usr/bin/env bash\ncat >/dev/null\nprintf '%s\\n' '{\"status\":\"OBSERVED\",\"capability\":\"wrong\",\"ok\":true}'\n");
+    for (const executable of [mutationWrapper, blockedAdapter, invalidAdapter]) chmodSync(executable, 0o700);
 
     for (const adapter of [blockedAdapter, invalidAdapter]) {
       try {
@@ -366,6 +369,71 @@ describe("client requirement intake contract", () => {
         expect((error as { status?: number }).status).toBe(69);
       }
       expect(() => readTemporaryFileSync(mutationLog, "utf8")).toThrow();
+    }
+    rmSync(temporaryDirectory, { recursive: true, force: true });
+  });
+
+  it.skipIf(!shellRuntimeAvailable)("fails closed when a required postcondition is BLOCKED or malformed before later mutations", () => {
+    const temporaryDirectory = mkdtempSync(join(tmpdir(), "sales-postcondition-"));
+    const mutationLog = join(temporaryDirectory, "mutations.log");
+    const adapter = join(temporaryDirectory, "adapter.sh");
+    const salesWrapper = join(temporaryDirectory, "sales-wrapper.sh");
+    const laterMutationWrapper = join(temporaryDirectory, "later-mutation-wrapper.sh");
+    const environment = {
+      ISOLATED_TARGET_NAME: "approved-isolated",
+      APPROVED_ISOLATED_TARGET_NAME: "approved-isolated",
+      ORIGINAL_TARGET_NAME: "original-backend",
+      OPPORTUNITY_ID: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8",
+      CUSTOMER_ID: "dfd5f3f8-0caf-46cb-bf16-436a1c063650",
+      MASTER_VERSION_ID: "9ce5a383-9ebf-430e-9bba-2e550c20fe3e",
+      SPECIFICATION_ID: "e56a52f2-ffef-4abc-b8f8-2944b2e7ae71",
+      MISMATCHED_CUSTOMER_ID: "5e9252c9-f470-4f48-9540-8edc4e78b599",
+      REQUEST_KEY: "0741a6a9-8f32-4e68-bdd4-d1a56250e603",
+      REQUEST_KEY_B: "53fea4ad-d0dc-4d4a-aeec-952befc3a26a",
+      ROLLBACK_REQUEST_KEY: "2639f63b-dc03-44a8-8cbd-b3c56f06f447",
+      EXPECTED_VERSION: "1",
+      FAILURE_INJECTION_TOKEN: "test-only",
+      REQUEST_KEY_COMMERCIAL: "38f3ba86-06ec-4270-a1ba-876673f02901",
+      REQUEST_KEY_COMMERCIAL_B: "e8f94679-ff2d-4557-b94f-529b488ad09e",
+      REQUIREMENT_ID: "e5ca7061-aa3d-4d60-a2f4-6e4b1e0a3bae",
+      COMMERCIAL_EXPECTED_REVISION: "1",
+      REVIEW_ID: "589cfd51-af84-4c8c-b8da-539587c09fe7",
+      REVIEWER_REQUEST_KEY: "02f7e4ad-6e1e-4c45-b4a4-724ad0e2e1e7",
+      BASELINE_REQUEST_KEY: "64b23f18-060f-43e7-b06f-a2cbe1975376",
+      CONCURRENCY_BARRIER_ID: "postcondition-only",
+      CONCURRENT_REQUEST_KEY: "3a6a30cc-c729-4375-96c3-9b84-ce7c7edc",
+      CONCURRENT_REQUEST_KEY_B: "1adf62e7-2c9f-4df4-bb23-2b052b6edbf8",
+    };
+    writeFileSync(salesWrapper, `#!/usr/bin/env bash\ncat >/dev/null\nprintf '%s\\n' sales >> "${mutationLog}"\nprintf '%s\\n' '{"id":"e5ca7061-aa3d-4d60-a2f4-6e4b1e0a3bae"}'\n`);
+    writeFileSync(laterMutationWrapper, `#!/usr/bin/env bash\nprintf '%s\\n' later >> "${mutationLog}"\nexit 97\n`);
+    writeFileSync(adapter, `#!/usr/bin/env bash\npayload="$(cat)"\nif jq -e '.kind == "sales-bound-requirement-preflight"' <<<"$payload" >/dev/null; then\n  capability="$(jq -r '.capability' <<<"$payload")"\n  jq -cn --arg capability "$capability" '{status:"OBSERVED",capability:$capability,ok:true,authoritativeTarget:true,authenticatedCaller:true}'\nelif [[ "\${POSTCONDITION_MODE:?}" == "blocked" ]]; then\n  printf '%s\\n' '{"status":"BLOCKED","missingContract":"scoped caller-RLS read adapter unavailable"}'\nelse\n  printf '%s\\n' '{"status":"OBSERVED","assertion":"wrong","ok":true}'\nfi\n`);
+    for (const executable of [salesWrapper, laterMutationWrapper, adapter]) chmodSync(executable, 0o700);
+
+    for (const postconditionMode of ["blocked", "malformed"]) {
+      try {
+        execFileSync("bash", ["supabase/pending/tests/sales_bound_requirement_creation_caller_transport_acceptance.sh"], {
+          cwd: process.cwd(),
+          env: {
+            ...process.env,
+            ...environment,
+            POSTCONDITION_MODE: postconditionMode,
+            READ_ASSERT_TRANSPORT: adapter,
+            SALES_CALLER_TRANSPORT: salesWrapper,
+            SALES_SECOND_CALLER_TRANSPORT: laterMutationWrapper,
+            SOURCE_EDITOR_TRANSPORT: laterMutationWrapper,
+            BASELINE_CALLER_TRANSPORT: laterMutationWrapper,
+            COMMERCIAL_EDITOR_TRANSPORT: laterMutationWrapper,
+            REVIEW_TRANSITION_TRANSPORT: laterMutationWrapper,
+            REVIEWER_CALLER_TRANSPORT: laterMutationWrapper,
+          },
+          stdio: "pipe",
+        });
+        throw new Error("blocked postcondition unexpectedly succeeded");
+      } catch (error) {
+        expect((error as { status?: number }).status).toBe(69);
+      }
+      expect(readTemporaryFileSync(mutationLog, "utf8").trim().split("\n")).toEqual(["sales", "sales"]);
+      writeFileSync(mutationLog, "");
     }
     rmSync(temporaryDirectory, { recursive: true, force: true });
   });
