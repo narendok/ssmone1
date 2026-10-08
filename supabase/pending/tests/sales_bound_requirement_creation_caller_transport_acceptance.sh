@@ -2,7 +2,7 @@
 # REAL CALLER-TRANSPORT ACCEPTANCE HARNESS — intentionally refuses execution until an
 # approved isolated target, authenticated non-service wrappers, and read-only assertion
 # transport are supplied. It never sets request.jwt.claim.* and never connects with a
-# service-role credential. It never connects with a service-role credential. Each wrapper must expose one protected operation over its own
+# service-role credential. Each wrapper must expose one protected operation over its own
 # authenticated application/session transport and return JSON on stdout.
 set -euo pipefail
 
@@ -82,12 +82,63 @@ assert_blocked() {
   fi
 }
 
+# This preflight is the only permitted declaration of readiness. The assertion transport
+# must independently authenticate its caller and inspect the authoritative configured
+# isolated backend; it cannot accept operator-provided PASS flags. Each capability is
+# scoped to these immutable identifiers and must return OBSERVED only when the exact
+# caller-RLS read is supported. Unknown, invalid, denied, or unsupported scope is BLOCKED.
+preflight_capability() {
+  local capability="$1"
+  jq -cn \
+    --arg capability "$capability" \
+    --arg target "$ISOLATED_TARGET_NAME" \
+    --arg opportunityId "$OPPORTUNITY_ID" \
+    --arg customerId "$CUSTOMER_ID" \
+    --arg masterSpecificationVersionId "$MASTER_VERSION_ID" \
+    --arg requestKey "$REQUEST_KEY" \
+    --arg rollbackRequestKey "$ROLLBACK_REQUEST_KEY" \
+    '{kind:"sales-bound-requirement-preflight",capability:$capability,target:$target,scope:{opportunityId:$opportunityId,customerId:$customerId,masterSpecificationVersionId:$masterSpecificationVersionId,requestKey:$requestKey,rollbackRequestKey:$rollbackRequestKey}}' \
+    | read_assert \
+    | jq -e --arg capability "$capability" '
+        if .status == "OBSERVED" and .capability == $capability and .ok == true
+           and .authoritativeTarget == true and .authenticatedCaller == true then .
+        elif .status == "BLOCKED" and (.missingContract | type == "string") and (.missingContract | length > 0) then .
+        else error("invalid preflight response") end
+      '
+}
+
+require_preflight_capability() {
+  local capability="$1"
+  local result
+  result="$(preflight_capability "$capability")"
+  if [[ "$(jq -r '.status' <<<"$result")" != "OBSERVED" ]]; then
+    jq -r --arg capability "$capability" '"BLOCKED " + $capability + ": " + .missingContract' <<<"$result" >&2
+    exit 69
+  fi
+}
+
+require_preflight() {
+  # Verify every planned persisted-state proof before the first create, editor,
+  # reviewer, commercial, baseline, or concurrency wrapper is invoked.
+  require_preflight_capability "authoritative-isolated-target"
+  require_preflight_capability "authenticated-caller-availability"
+  require_preflight_capability "requirement-create-replay-graph"
+  require_preflight_capability "requirement-create-source-version-graph"
+  require_preflight_capability "requirement-create-rollback-graph-absent"
+  require_preflight_capability "commercial-receipt-readback"
+  require_preflight_capability "reviewer-response-readback"
+  require_preflight_capability "baseline-receipt-readback"
+  require_preflight_capability "requirement-create-concurrency-persisted-barrier"
+}
+
 create_payload() {
   local key="$1" version="$2" title="$3"
   jq -cn --arg opportunityId "$OPPORTUNITY_ID" --arg customerId "$CUSTOMER_ID" \
     --arg masterSpecificationVersionId "$version" --arg requestKey "$key" --arg title "$title" \
     '{opportunityId:$opportunityId,customerId:$customerId,masterSpecificationVersionId:$masterSpecificationVersionId,requestKey:$requestKey,title:$title,customerReference:"TRANSPORT-ACCEPT",summary:"Isolated acceptance only."}'
 }
+
+require_preflight
 
 first="$(create_payload "$REQUEST_KEY" "$MASTER_VERSION_ID" "Transport acceptance requirement" | call_sales)"
 first_id="$(jq -er '.id' <<<"$first")"

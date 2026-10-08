@@ -277,6 +277,30 @@ describe("client requirement intake contract", () => {
     expect(salesBoundTransportHarness).toContain('.customerId = $customerId');
   });
 
+  it("requires authoritative scoped preflight before any caller transport mutation wrapper", () => {
+    const preflightIndex = salesBoundTransportHarness.indexOf("require_preflight\n\nfirst=");
+    expect(preflightIndex).toBeGreaterThan(-1);
+    expect(preflightIndex).toBeLessThan(salesBoundTransportHarness.indexOf("| call_sales)"));
+    expect(salesBoundTransportHarness).toContain('kind:"sales-bound-requirement-preflight"');
+    expect(salesBoundTransportHarness).toContain('"authoritative-isolated-target"');
+    expect(salesBoundTransportHarness).toContain('"authenticated-caller-availability"');
+    expect(salesBoundTransportHarness).toContain('"requirement-create-replay-graph"');
+    expect(salesBoundTransportHarness).toContain('"requirement-create-source-version-graph"');
+    expect(salesBoundTransportHarness).toContain('"requirement-create-rollback-graph-absent"');
+    expect(salesBoundTransportHarness).toContain('"commercial-receipt-readback"');
+    expect(salesBoundTransportHarness).toContain('"reviewer-response-readback"');
+    expect(salesBoundTransportHarness).toContain('"baseline-receipt-readback"');
+    expect(salesBoundTransportHarness).toContain('"requirement-create-concurrency-persisted-barrier"');
+    expect(salesBoundTransportHarness).toContain(".authoritativeTarget == true and .authenticatedCaller == true");
+    expect(salesBoundTransportHarness).toContain("Unknown, invalid, denied, or unsupported scope is BLOCKED.");
+  });
+
+  it("documents that a BLOCKED or invalid scoped preflight performs zero mutation-wrapper calls", () => {
+    expect(salesBoundTransportHarness).toContain('jq -r --arg capability "$capability" \'"BLOCKED " + $capability + ": " + .missingContract\'');
+    expect(salesBoundTransportHarness).toContain("exit 69");
+    expect(salesBoundTransportHarness).toContain("# Verify every planned persisted-state proof before the first create, editor,");
+  });
+
   it("keeps the pending Sales facade unavailable instead of falling back to legacy writes", () => {
     const facade = readFileSync("src/lib/sales-bound-requirement.functions.ts", "utf8");
     expect(facade).toContain("requireSupabaseAuth");
