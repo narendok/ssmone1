@@ -492,6 +492,9 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("revision.requirement_data #>> '{source,customer_id}' = v_requirement.customer_id::text");
     expect(salesBoundSql).toContain("specification.opportunity_id = v_requirement.opportunity_id");
     expect(salesBoundSql).toContain("specification.customer_id = v_requirement.customer_id");
+    expect(salesBoundSql).toContain("SELECT version.* INTO v_master_version");
+    expect(salesBoundSql).not.toContain("SELECT specification.*, version.* INTO v_specification, v_master_version");
+    expect(salesBoundSql).not.toContain("v_specification public.master_specifications%ROWTYPE");
     expect(salesBoundSql).toContain("v_master_version.specification_data -> 'workstreams'");
     expect(salesBoundSql).toContain("baseline.requirement_snapshot -> 'requirement_data' = v_revision.requirement_data");
     expect(salesBoundSql).toContain("baseline.requirement_snapshot -> 'applicable_workstreams' = v_master_version.specification_data -> 'workstreams'");
