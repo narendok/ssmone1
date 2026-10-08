@@ -33,7 +33,7 @@ function scopedClient(rows: Record<string, Record<string, unknown> | null>, erro
   };
 }
 
-function completeRows() {
+function completeRows(): Record<string, Record<string, unknown> | null> {
   return {
     project_lifecycle_document_drafts: { project_id: ids.project, request_key: ids.request, template_id: ids.template, template_document_revision_id: ids.source, generated_drive_node_id: ids.node, generated_revision_id: ids.revision, document_control_register_id: ids.register, audit_event_id: ids.audit, source_fingerprint: "f".repeat(64), storage_bucket: "project-drive", storage_path: "safe/path.pdf", sha256_checksum: "a".repeat(64), size_bytes: 12 },
     department_process_template_document_revisions: { id: ids.source, template_id: ids.template, content_sha256: "b".repeat(64) },
