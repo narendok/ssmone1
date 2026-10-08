@@ -22,6 +22,14 @@ const requiredReadiness = [
   "observabilityReadback",
 ];
 
+const requiredServerOperations = [
+  "authorize_lifecycle_document_draft",
+  "register_lifecycle_document_storage_attempt",
+  "find_lifecycle_document_draft_receipt",
+  "commit_lifecycle_document_draft",
+  "can_discard_lifecycle_document_object",
+];
+
 const requiredReceiptKeys = [
   "requestKey",
   "nodeId",
@@ -43,6 +51,23 @@ export function assertIsolatedTarget(backendRef) {
 export function assessReadiness(observation) {
   assertIsolatedTarget(observation?.backendRef);
   const missing = requiredReadiness.filter((key) => observation?.[key] !== true);
+  const deployed = observation?.deployed;
+  if (!deployed || typeof deployed !== "object") {
+    missing.push("deployedReadinessEvidence");
+  } else {
+    if (deployed.applicationTransport !== "authenticated-server-action") missing.push("deployedApplicationTransport");
+    if (deployed.actorGateway !== "execute_lifecycle_document_action") missing.push("deployedActorGateway");
+    if (!Array.isArray(deployed.serverOperations) ||
+        requiredServerOperations.some((operation) => !deployed.serverOperations.includes(operation))) {
+      missing.push("deployedRpcOperations");
+    }
+    if (deployed.storageBucket !== "project-drive" || deployed.storageUploadDownload !== true) {
+      missing.push("deployedProjectDriveStorage");
+    }
+    if (deployed.schemaReadback !== true || deployed.observabilityReadback !== true) {
+      missing.push("deployedSchemaAndObservabilityReadback");
+    }
+  }
   return {
     mode: "READ_ONLY",
     status: missing.length ? "UNEXECUTED" : "READY_FOR_OPT_IN_MUTATION",
