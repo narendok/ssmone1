@@ -73,7 +73,7 @@ describe('isolated lifecycle HTTP driver', () => {
 
   it('reads saved bytes and verifies their SHA256 before reporting a live save', async () => {
     const bytes = new TextEncoder().encode('immutable saved draft')
-    const hash = '4af7e7a28b2864b0182edb7f41bf4b876a134a41748d8916f745714142ea58aa'
+    const hash = '7377bf9df731b6622701e416798f336450faadb62312399d212df6f0b51f0b45'
     const driver = createIsolatedLifecycleHttpDriver({ backendRef: ISOLATED_BACKEND_REF, origin, fetchImpl: vi.fn() })
     const result = await driver.readSavedFileAndVerify({ signedDownloadUrl: 'https://download.example.test/file', expectedSha256: hash, fetchFile: vi.fn().mockResolvedValue(new Response(bytes)) })
     expect(result).toEqual({ byteLength: bytes.byteLength, sha256: hash })
