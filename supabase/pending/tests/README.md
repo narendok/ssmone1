@@ -27,12 +27,36 @@ The embedded runtime has a single connection; run the two-session acceptance
 script against a separately provisioned isolated PostgreSQL/Supabase environment.
 
 `lifecycle_document_draft_acceptance.sql` and
-`lifecycle_document_draft_concurrency.sh` remain isolated-environment acceptance
-scripts. They need approved manager/out-of-scope identities, project/template
-fixtures, the exact activated document revision and real staged storage objects.
-The SQL fixture persists upload-attempt provenance before rolling back its
-generated metadata, matching separate registration/commit RPC transactions.
-Use disposable fixtures; do not execute these scripts against production.
+`lifecycle_document_draft_concurrency.sh` are **structural SQL** acceptance
+scripts. They set `request.jwt.claim.*` directly, so passing them does not prove
+real browser/server JWT transport. They need approved manager/out-of-scope
+identities, project/template fixtures, the exact activated document revision and
+real staged storage objects. The SQL fixture persists upload-attempt provenance
+before rolling back its generated metadata, matching separate
+registration/commit RPC transactions. Use disposable fixtures; do not execute
+these scripts against production.
+
+For the missing end-to-end proof, use
+`lifecycle_document_draft_real_caller_acceptance.md`. It deliberately contains
+no credentials or user-creation instructions: it requires already-approved
+isolated callers and the existing authenticated application transport. It
+separates physical upload/download, server-side actor propagation, transaction
+rollback, exact replay/conflict, cleanup, and two-session concurrency.
+
+Before any authenticated case, run the read-only, fail-closed prerequisite
+checker with an operator-supplied local manifest:
+
+```sh
+ACCEPTANCE_MANIFEST=/secure/path/lifecycle-save-draft-isolated.env \
+  bash lifecycle_document_draft_real_caller_preflight.sh
+```
+
+It accepts only the isolated remix ref and requires explicit `yes` values for
+already-approved login-capable manager/outsider callers, normal authenticated
+application transport, storage policy/object verification, source pins and
+readback observability. It never reads credentials, calls a database, uploads
+an object, invokes SaveDraft, or changes any backend state. A pass confirms
+only that an operator declared prerequisites; it is not caller acceptance.
 
 The unapplied transport proposal is applied after the document proposal in an
 isolated environment. Extend HTTP acceptance to call the real web handlers as

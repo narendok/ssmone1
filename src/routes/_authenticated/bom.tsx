@@ -3,8 +3,8 @@ import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Upload, FileSpreadsheet, Download, Link2, Search, RotateCcw, Copy, Share2, ShoppingCart, Sparkles, FolderPlus, Save, Loader2, ClipboardCheck } from "lucide-react";
-import { saveProjectBom, loadProjectBom } from "@/lib/project-bom.functions";
+import { Upload, FileSpreadsheet, Download, Link2, Search, RotateCcw, Copy, Share2, ShoppingCart, Sparkles, FolderPlus, Save, Loader2, ClipboardCheck, ArrowLeft, Eye, Unlink } from "lucide-react";
+import { saveProjectBom, loadProjectBom, fetchProjectBomItems, fetchProjectBoms, type ProjectBomDetailHeader, type ProjectBomItemRow } from "@/lib/project-bom.functions";
 import { fetchProjectFilesByType } from "@/lib/drive";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ import { CreatePODialog, type PoDraftLine } from "@/components/procurement/Creat
 import { InvoiceImportDialog } from "@/components/inventory/InvoiceImportDialog";
 import { InventoryCsvReviewDialog } from "@/components/inventory/InventoryCsvReviewDialog";
 import { fetchProjects } from "@/lib/projects";
+import { SelectedProjectBomReview } from "@/components/projects/SelectedProjectBomReview";
 
 
 export const Route = createFileRoute("/_authenticated/bom")({
@@ -49,7 +50,8 @@ export const Route = createFileRoute("/_authenticated/bom")({
   validateSearch: (search: Record<string, unknown>) => {
     const v = typeof search?.loadBom === "string" ? search.loadBom : undefined;
     const projectId = typeof search?.projectId === "string" ? search.projectId : undefined;
-    return { ...(v ? { loadBom: v } : {}), ...(projectId ? { projectId } : {}) };
+    const readOnly = search?.readOnly === true;
+    return { ...(v ? { loadBom: v } : {}), ...(projectId ? { projectId } : {}), ...(readOnly ? { readOnly: true } : {}) };
   },
   head: () => ({
     meta: [
@@ -100,10 +102,14 @@ function BomPage() {
   const [saving, setSaving] = useState(false);
   const [savedLink, setSavedLink] = useState<{ bom_number: string; project_id: string } | null>(null);
 
-  const loadBomId = (useSearch({ strict: false }) as any)?.loadBom as string | undefined;
-  const projectFromSearch = (useSearch({ strict: false }) as any)?.projectId as string | undefined;
+  const routeSearch = useSearch({ strict: false }) as any;
+  const loadBomId = routeSearch?.loadBom as string | undefined;
+  const projectFromSearch = routeSearch?.projectId as string | undefined;
+  const readOnlyLoadedBom = Boolean(loadBomId && routeSearch?.readOnly === true);
   const loadFn = useServerFn(loadProjectBom);
   const saveFn = useServerFn(saveProjectBom);
+  const bomDetailFn = useServerFn(fetchProjectBomItems);
+  const projectBomsFn = useServerFn(fetchProjectBoms);
 
   useEffect(() => {
     if (!loadBomId) return;
@@ -131,14 +137,14 @@ function BomPage() {
         setMatches(null);
         setOverrides({});
         setProjectId(res.header.project_id);
-        toast.info(`Loaded ${res.header.bom_number}. Click “Match against stock” to refresh against current inventory.`);
+        toast.info(readOnlyLoadedBom ? `Loaded ${res.header.bom_number} as a read-only saved revision.` : `Loaded ${res.header.bom_number}. Click “Match against stock” to refresh against current inventory.`);
       } catch (e: any) {
         toast.error(e?.message ?? "Could not load that BOM");
       }
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadBomId]);
+  }, [loadBomId, readOnlyLoadedBom]);
 
   useEffect(() => {
     if (projectFromSearch && !loadBomId) setProjectId(projectFromSearch);
@@ -209,6 +215,11 @@ function BomPage() {
   });
 
   const { data: projects = [] } = useQuery({ queryKey: ["projects"], queryFn: fetchProjects });
+  const loadedBomDetail = useQuery({
+    queryKey: ["read-only-bom-detail", loadBomId, readOnlyLoadedBom],
+    queryFn: () => bomDetailFn({ data: { bomId: loadBomId ?? "" } }),
+    enabled: Boolean(readOnlyLoadedBom && loadBomId),
+  });
 
   const { data: categoryOptions = [] } = useQuery({
     queryKey: ["category_options"],
@@ -231,6 +242,7 @@ function BomPage() {
   });
 
   const activeProject = projects.find((p) => p.id === projectId) ?? null;
+  const selectedProjectBoms = useQuery({ queryKey: ["bom-selected-project-saved-boms", activeProject?.id], queryFn: () => projectBomsFn({ data: { projectId: activeProject?.id ?? "" } }), enabled: Boolean(activeProject?.id) });
 
   const { data: projectBomFiles = [] } = useQuery({
     queryKey: ["project_bom_source_files", activeProject?.id],
@@ -390,6 +402,10 @@ function BomPage() {
     }
   }
 
+  if (readOnlyLoadedBom) {
+    return <ReadOnlySavedBomDetail detail={loadedBomDetail.data} loading={loadedBomDetail.isLoading} error={loadedBomDetail.error} />;
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -434,6 +450,8 @@ function BomPage() {
             : "Pick a project to link matched parts to it, or keep it as a one-off stock check."}
         </p>
       </Card>
+
+      {activeProject && <SelectedProjectBomReview projectName={`${activeProject.code} · ${activeProject.name}`} boms={selectedProjectBoms.data ?? []} loading={selectedProjectBoms.isLoading} error={selectedProjectBoms.error} />}
 
 
       {!sheet && (
@@ -717,6 +735,14 @@ function BomPage() {
 
     </div>
   );
+}
+
+function ReadOnlySavedBomDetail({ detail, loading, error }: { detail: { header: ProjectBomDetailHeader; items: ProjectBomItemRow[] } | undefined; loading: boolean; error: unknown }) {
+  if (loading) return <Card className="p-5 text-sm text-muted-foreground">Loading authorised saved BOM…</Card>;
+  if (error) return <Card className="border-destructive/40 p-5 text-sm text-destructive">Saved BOM detail could not be read. No project, line, price, inventory, or Drive state is assumed.</Card>;
+  if (!detail) return <Card className="p-5 text-sm text-muted-foreground">Saved BOM detail is unavailable.</Card>;
+  const money = (value: number | null) => value == null ? "TBC" : value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return <div className="mx-auto max-w-7xl space-y-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex items-center gap-2"><Eye className="size-5 text-primary" /><h1 className="text-2xl font-bold tracking-tight">Saved BOM detail</h1></div><p className="mt-1 text-sm text-muted-foreground">Read-only saved revision from the existing BOM contract.</p></div><Button asChild variant="outline" size="sm"><Link to="/projects/$projectId" params={{ projectId: detail.header.project_id }}><ArrowLeft className="size-4" /> Back to project BOM review</Link></Button></div><Card className="p-4"><div className="grid gap-3 text-sm sm:grid-cols-4"><div><p className="text-xs text-muted-foreground">Saved BOM</p><p className="mt-1 font-mono font-medium">{detail.header.bom_number}</p></div><div><p className="text-xs text-muted-foreground">Revision</p><p className="mt-1 font-medium">{detail.header.revision ?? "TBC"}</p></div><div><p className="text-xs text-muted-foreground">Saved lines</p><p className="mt-1 font-medium">{detail.items.length}</p></div><div><p className="text-xs text-muted-foreground">Source Drive revision</p><p className="mt-1 flex items-center gap-1 font-medium"><Unlink className="size-3.5" /> {detail.header.source_drive_revision_id ? "linked" : "not linked / unsupported"}</p></div></div></Card><Card className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Refs</TableHead><TableHead>MPN</TableHead><TableHead>Description</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Unit cost</TableHead><TableHead className="text-right">Line total</TableHead><TableHead>Matched component</TableHead><TableHead>Match</TableHead></TableRow></TableHeader><TableBody>{detail.items.map((item) => <TableRow key={item.id}><TableCell className="text-xs">{item.refs ?? "TBC"}</TableCell><TableCell className="font-mono text-xs">{item.mpn ?? "TBC"}</TableCell><TableCell className="text-xs">{item.description ?? item.value ?? "TBC"}</TableCell><TableCell className="text-right">{item.quantity}</TableCell><TableCell className="text-right">{money(item.unit_cost)}</TableCell><TableCell className="text-right">{money(item.total_cost)}</TableCell><TableCell className="text-xs">{item.matched_part_number ?? "TBC"}</TableCell><TableCell className="text-xs">{item.match_status ?? "TBC"}</TableCell></TableRow>)}</TableBody></Table></Card><p className="text-xs text-muted-foreground">Unknown cost is TBC; a persisted zero remains zero. Inventory is not queried here. Drive lineage is shown only when the saved BOM contains both verified source identifiers.</p></div>;
 }
 
 function KindBadge({ kind }: { kind: BomMatch["kind"] }) {

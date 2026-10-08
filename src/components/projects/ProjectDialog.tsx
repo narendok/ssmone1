@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { generateProjectLifecycleDocumentDrafts } from "@/lib/lifecycle-actions.functions";
 import { isLifecycleTemplateActionAvailable } from "@/lib/lifecycle-template-settings";
@@ -15,6 +15,7 @@ import type { Project } from "@/lib/projects";
 const sb = supabase as any;
 
 export function ProjectDialog({ open, onOpenChange, editing, onSaved, defaultDepartmentId }: { open: boolean; onOpenChange: (open: boolean) => void; editing?: Project | null; onSaved: () => void; defaultDepartmentId?: string | null }) {
+  const queryClient = useQueryClient();
   const generateDrafts = useServerFn(generateProjectLifecycleDocumentDrafts);
   const [name, setName] = useState(""); const [code, setCode] = useState(""); const [color, setColor] = useState("#3b82f6"); const [status, setStatus] = useState<"active" | "archived">("active"); const [revision, setRevision] = useState(""); const [designLink, setDesignLink] = useState(""); const [projectType, setProjectType] = useState("CUSTOM_PROJECT"); const [projectStage, setProjectStage] = useState("INITIATION"); const [healthStatus, setHealthStatus] = useState("GREEN"); const [priority, setPriority] = useState("MEDIUM"); const [plannedStartDate, setPlannedStartDate] = useState(""); const [targetSopDate, setTargetSopDate] = useState(""); const [departmentId, setDepartmentId] = useState("none"); const [projectClass, setProjectClass] = useState<"INTERNAL" | "CLIENT">("INTERNAL"); const [saving, setSaving] = useState(false);
   const { data: departments = [] } = useQuery({ queryKey: ["active_project_departments"], queryFn: async () => { const { data, error } = await sb.from("departments").select("id,name,code").eq("is_active", true).order("sort_order"); if (error) throw error; return data as Array<{ id: string; name: string; code: string | null }>; }, enabled: open });
@@ -34,6 +35,12 @@ export function ProjectDialog({ open, onOpenChange, editing, onSaved, defaultDep
       const { data: savedProject, error } = await query.select("id").single();
       if (error || !savedProject) throw new Error(error?.message ?? "Project could not be saved.");
       projectSaved = true;
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["projects"] }),
+        queryClient.invalidateQueries({ queryKey: ["department_projects", departmentId] }),
+        queryClient.invalidateQueries({ queryKey: ["drive_children"] }),
+        queryClient.invalidateQueries({ queryKey: ["department_drive_roots", departmentId] }),
+      ]);
       toast.success(editing ? "Project updated" : "Project created with its folder structure");
       if (isLifecycleTemplateActionAvailable()) {
         try {

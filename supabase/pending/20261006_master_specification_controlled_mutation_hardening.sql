@@ -1,0 +1,173 @@
+-- SOURCE-ONLY CONTROLLED-WRITE REPLACEMENT. Do not apply until isolated
+-- caller-authenticated acceptance proves authorization, audit rollback,
+-- optimistic conflicts, concurrency, direct-write denial, and non-admin RLS.
+-- This proposal deliberately retains existing SELECT RLS policies.
+
+CREATE OR REPLACE FUNCTION public.save_master_specification_version(
+  p_specification_id uuid,
+  p_opportunity_id uuid,
+  p_customer_id uuid,
+  p_title text,
+  p_expected_version integer,
+  p_change_summary text,
+  p_specification_data jsonb
+)
+RETURNS TABLE(specification_id uuid, version_id uuid, version_number integer, specification_number text)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_actor_id uuid := auth.uid();
+  v_spec public.master_specifications%ROWTYPE;
+  v_version public.master_specification_versions%ROWTYPE;
+  v_authorized boolean := false;
+  v_expected_number integer;
+BEGIN
+  IF v_actor_id IS NULL THEN
+    RAISE EXCEPTION 'An authenticated actor is required';
+  END IF;
+
+  SELECT public.has_permission(v_actor_id, 'sales.manage')
+      OR public.has_role(v_actor_id, 'admin')
+  INTO v_authorized;
+  IF NOT COALESCE(v_authorized, false) THEN
+    RAISE EXCEPTION 'Sales management permission is required';
+  END IF;
+
+  IF p_opportunity_id IS NULL
+     OR p_customer_id IS NULL
+     OR p_expected_version IS NULL
+     OR p_title IS NULL
+     OR p_change_summary IS NULL
+     OR p_specification_data IS NULL
+     OR p_expected_version < 0
+     OR char_length(btrim(p_title)) NOT BETWEEN 3 AND 300
+     OR char_length(btrim(p_change_summary)) NOT BETWEEN 3 AND 1000
+     OR jsonb_typeof(p_specification_data) <> 'object'
+     OR COALESCE(NULLIF(btrim(p_specification_data->>'proposedName'), ''), '') = ''
+     OR COALESCE(NULLIF(btrim(p_specification_data->>'customerOrInternalOwner'), ''), '') = ''
+     OR COALESCE(NULLIF(btrim(p_specification_data->>'industryApplication'), ''), '') = ''
+     OR COALESCE(NULLIF(btrim(p_specification_data->>'productFamily'), ''), '') = ''
+     OR COALESCE(NULLIF(btrim(p_specification_data->>'developmentScope'), ''), '') = ''
+     OR COALESCE(NULLIF(btrim(p_specification_data->>'requirementSummary'), ''), '') = ''
+     OR jsonb_typeof(p_specification_data->'workstreams') <> 'array'
+     OR jsonb_array_length(p_specification_data->'workstreams') = 0
+     OR EXISTS (
+       SELECT 1
+       FROM jsonb_array_elements_text(p_specification_data->'workstreams') AS workstream(value)
+       WHERE workstream.value NOT IN ('HARDWARE', 'FIRMWARE', 'MECHANICAL', 'TEST', 'MANUFACTURING')
+     ) THEN
+    RAISE EXCEPTION 'Master Specification payload is incomplete or invalid';
+  END IF;
+
+  -- The source pair is verified from the authoritative Sales row, never from
+  -- a browser-owned customer field. Lock the opportunity to serialize a first
+  -- save for the same source pair.
+  PERFORM 1
+  FROM public.sales_opportunities
+  WHERE id = p_opportunity_id AND customer_id = p_customer_id
+  FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Opportunity/customer source mismatch';
+  END IF;
+
+  IF p_specification_id IS NULL THEN
+    IF p_expected_version <> 0 THEN
+      RAISE EXCEPTION 'Initial version must expect version 0';
+    END IF;
+
+    -- Replays of an initial save must not create a second header for the same
+    -- opportunity. A caller must reopen the existing record with its version.
+    SELECT * INTO v_spec
+    FROM public.master_specifications
+    WHERE opportunity_id = p_opportunity_id
+    FOR UPDATE;
+    IF FOUND THEN
+      RAISE EXCEPTION 'Master Specification already exists; reopen it before saving';
+    END IF;
+
+    INSERT INTO public.master_specifications (
+      specification_number, opportunity_id, customer_id, title, status,
+      current_version, created_by
+    ) VALUES (
+      public.next_business_number('master_specification', 'MS', NULL),
+      p_opportunity_id, p_customer_id, p_title, 'draft', 1, v_actor_id
+    ) RETURNING * INTO v_spec;
+  ELSE
+    SELECT * INTO v_spec
+    FROM public.master_specifications
+    WHERE id = p_specification_id
+    FOR UPDATE;
+    IF NOT FOUND
+       OR v_spec.opportunity_id <> p_opportunity_id
+       OR v_spec.customer_id <> p_customer_id THEN
+      RAISE EXCEPTION 'Master Specification source mismatch';
+    END IF;
+    IF v_spec.status IN ('approved', 'archived') THEN
+      RAISE EXCEPTION 'Approved or archived Master Specifications are immutable';
+    END IF;
+    IF v_spec.current_version <> p_expected_version THEN
+      RAISE EXCEPTION 'Master Specification was changed by another user; reopen before saving';
+    END IF;
+
+    UPDATE public.master_specifications
+    SET title = p_title,
+        current_version = current_version + 1,
+        updated_at = now()
+    WHERE id = v_spec.id
+    RETURNING * INTO v_spec;
+  END IF;
+
+  v_expected_number := v_spec.current_version;
+  INSERT INTO public.master_specification_versions (
+    specification_id, version_number, change_summary, specification_data,
+    status, created_by
+  ) VALUES (
+    v_spec.id, v_expected_number, p_change_summary, p_specification_data,
+    'working', v_actor_id
+  ) RETURNING * INTO v_version;
+
+  INSERT INTO public.activity_log (
+    actor_user_id, module_key, entity_type, entity_id, action, summary, after_data
+  ) VALUES (
+    v_actor_id, 'sales', 'master_specification', v_spec.id, 'version_saved',
+    p_change_summary,
+    jsonb_build_object(
+      'version_id', v_version.id,
+      'version_number', v_version.version_number,
+      'opportunity_id', v_spec.opportunity_id,
+      'customer_id', v_spec.customer_id
+    )
+  );
+
+  RETURN QUERY SELECT v_spec.id, v_version.id, v_version.version_number, v_spec.specification_number;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.save_master_specification_version(uuid, uuid, uuid, text, integer, text, jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.save_master_specification_version(uuid, uuid, uuid, text, integer, text, jsonb) TO authenticated, service_role;
+
+-- Direct Data API writes bypass the controlled transaction above. The revokes
+-- and policy removals below are coupled to the definer routine in this one
+-- proposal so the existing authenticated façade continues to work. No new
+-- unconditional write trigger is installed: PostgreSQL triggers also execute
+-- for SECURITY DEFINER functions and would block this legitimate routine.
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.master_specifications FROM authenticated;
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.master_specification_versions FROM authenticated;
+DROP POLICY IF EXISTS "Sales users manage master specifications" ON public.master_specifications;
+DROP POLICY IF EXISTS "Sales users append master specification versions" ON public.master_specification_versions;
+
+-- Explicitly revoke any legacy grants inherited from PUBLIC. The acceptance
+-- runner must inspect information_schema.role_table_grants and has_table_privilege
+-- for PUBLIC/authenticated before approval; neither API role may retain INSERT,
+-- UPDATE, or DELETE outside this function. Existing version UPDATE/DELETE
+-- immutability trigger remains unchanged.
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.master_specifications FROM PUBLIC;
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.master_specification_versions FROM PUBLIC;
+
+-- Table access is globally permission-scoped today: the read/write policies
+-- check sales/engineering/admin capability, not an ownership column. This
+-- proposal preserves the existing read RLS exactly; the function's caller
+-- authorization remains global sales.manage/admin until a separately reviewed
+-- row-scoping model exists.

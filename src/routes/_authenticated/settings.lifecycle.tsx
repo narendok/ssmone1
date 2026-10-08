@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SettingsNav } from "@/components/SettingsNav";
 import { LifecycleTemplateEditor } from "@/components/lifecycle/LifecycleTemplateEditor";
+import { StructuredTemplatePreview } from "@/components/lifecycle/StructuredTemplatePreview";
 import { fetchCanonicalDepartments } from "@/lib/tasks";
 import { retireLifecycleTemplate } from "@/lib/lifecycle-actions.functions";
 import { fetchLifecycleTemplateSettings, lifecycleTemplateMutationStatus, type LifecycleTemplateRead, type LifecycleTemplateStageRead } from "@/lib/lifecycle-template-settings";
@@ -71,6 +72,7 @@ function LifecycleTemplateSettings() {
         <p className="mt-1 text-xs text-muted-foreground">Draft bodies can be prepared locally. Saving, activation and retirement require protected backend acceptance.</p>
       </div></div>
     </Card>}
+    <StructuredTemplatePreview />
     <div className="flex flex-wrap gap-2">{departments.map((department) =>
       <Button key={department.id} size="sm" variant={department.id === selectedId ? "default" : "outline"} onClick={() => setDepartmentId(department.id)}>{department.name}</Button>
     )}</div>

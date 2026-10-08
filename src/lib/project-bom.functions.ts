@@ -46,6 +46,21 @@ export interface ProjectBomItemRow extends SavedBomItem {
   matched_name: string | null;
 }
 
+export interface ProjectBomDetailHeader {
+  id: string;
+  bom_number: string;
+  name: string;
+  source_filename: string | null;
+  revision: string | null;
+  notes: string | null;
+  line_count: number;
+  total_cost: number | null;
+  created_at: string;
+  project_id: string;
+  source_drive_node_id: string | null;
+  source_drive_revision_id: string | null;
+}
+
 const itemSchema = z.object({
   line_index: z.number().int(),
   mpn: z.string().nullable(),
@@ -231,16 +246,20 @@ export const fetchDriveProjectBoms = createServerFn({ method: "GET" })
 
 export const fetchProjectBomItems = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { bomId: string }) => z.object({ bomId: z.string().uuid() }).parse(data))
+  .inputValidator((data: { bomId: string; projectId?: string }) => z.object({ bomId: z.string().uuid(), projectId: z.string().uuid().optional() }).parse(data))
   .handler(async ({ data, context }) => {
     const sb = context.supabase as any;
     const { data: header, error: hErr } = await sb
       .from("project_boms")
-      .select("id, bom_number, name, source_filename, revision, notes, line_count, total_cost, created_at, project_id")
+      .select("id, bom_number, name, source_filename, revision, notes, line_count, total_cost, created_at, project_id, source_drive_node_id, source_drive_revision_id")
       .eq("id", data.bomId)
       .maybeSingle();
     if (hErr) throw new Error(hErr.message);
     if (!header) throw new Error("BOM not found");
+    // An optional project pin lets callers safely reject a foreign saved-BOM ID.
+    if (data.projectId && header.project_id !== data.projectId) {
+      throw new Error("This saved BOM does not belong to the selected project.");
+    }
     const { data: items, error: iErr } = await sb
       .from("project_bom_items")
       .select("id, bom_id, line_index, mpn, manufacturer, value, description, refs, footprint, quantity, remark, unit_cost, total_cost, matched_component_id, match_status, shortage, matched:components(part_number, name)")
@@ -267,7 +286,7 @@ export const fetchProjectBomItems = createServerFn({ method: "GET" })
       matched_part_number: it.matched?.part_number ?? null,
       matched_name: it.matched?.name ?? null,
     })) as ProjectBomItemRow[];
-    return { header, items: rows };
+    return { header: header as ProjectBomDetailHeader, items: rows };
   });
 
 export interface LoadedBomLine {

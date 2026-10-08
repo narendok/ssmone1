@@ -1,0 +1,150 @@
+-- ISOLATED MANAGED BACKEND ONLY. SOURCE-ONLY acceptance contract for
+-- 20261005_client_requirement_intake.sql. It does not create identities or modify production data.
+-- Required psql variables: scoped_external_jwt, expired_external_jwt, revoked_external_jwt,
+-- outsider_jwt, reviewer_jwt, opportunity_id, customer_id, wrong_customer_id,
+-- requirement_review_id. Run every mutation case in a separate transaction and ROLLBACK.
+--
+-- Cases to execute with separate authenticated sessions:
+-- 0. clean install: run the proposal where neither legacy overload exists; it completes without
+--    attempting REVOKE on either absent signature. Upgrade: install the former 3-argument scope
+--    helper and former 5-argument submit helper with no dependents, then run the proposal and
+--    prove both exact signatures no longer exist or have EXECUTE for any role.
+--    Receipt upgrade: start with a former receipt table lacking payload_canonical and one legacy
+--    receipt. The proposal adds the nullable object-shape constraint; legacy replay fails closed,
+--    while a fresh request key persists a non-null object-shaped canonical payload.
+-- 1. outsider: RPC fails before a row/audit record is visible; direct requirement/revision/audit reads and writes fail.
+-- 2. expired, revoked, and unscoped contact: each RPC call fails and creates no requirement/revision/audit.
+-- 3. wrong opportunity/customer pairing: fails before a row/audit record is visible.
+-- 4. correctly scoped caller: exactly one requirement + revision 1 + audit record commits with actor/contact/party provenance.
+-- 5. same scoped caller + same request key + identical payload replays the original requirement ID without a second header, revision, or audit.
+-- 6. same request key with a changed title, reference, description, opportunity, customer, or caller fails without a new row.
+-- 7. two scoped sessions using the same caller, request key, and payload concurrently converge to one receipt and one requirement.
+-- 8. forced audit failure: requirement and revision roll back together (no partial submission).
+-- 9. reviewer: protected assignment locks requirement, source revision, review, then pinned
+--    Master version. It derives that version only from revision.requirement_data.source.
+--    It must reject absent/invalid legacy source IDs plus missing/null/non-string/unknown
+--    workstreams. Execute and assert: (a) first assignment creates one pending review, (b) a
+--    same-revision reassignment returns that same review ID and updates only its open reviewer
+--    state, and (c) after a terminal response plus a new immutable requirement revision, an
+--    assignment for that new revision creates a distinct review while retaining the historical
+--    terminal row unchanged. These are database assertions, not SQL-text checks.
+--    A terminal review remains immutable history; after a new requirement revision, the same
+--    department receives a new revision-scoped review without modifying the historic verdict.
+--    record_requirement_feasibility_response succeeds exactly once; retry fails as immutable.
+-- 10. concurrency: two reviewer sessions race the same review; one commits and the other receives the immutable
+--    conflict, leaving exactly one terminal response and one response audit event.
+-- 11. direct review UPDATE: no authenticated caller has INSERT/UPDATE/DELETE table privilege,
+--    and the former Sales-all policy is absent. A marker-set direct UPDATE attempt (including
+--    set_config('app.requirement_feasibility_response_rpc', '1', true)) fails. Direct terminal
+--    reassignment, source requirement replacement, reviewer replacement, and deletion fail.
+--    Direct source_revision_id, Master-version, or applicability mutation also fails.
+--    assign_requirement_feasibility_review remains the only compatible pending assignment path.
+-- 12. successful protected response writes exactly one activity_log row whose after_data binds the
+--    review's requirement_id, requirement opportunity/customer, department, assigned reviewer, and terminal status.
+--    Force that audit insert to fail in the isolated backend and prove the response update rolls back.
+--
+-- Schema contract preflight (read-only; run against the explicitly approved isolated backend only).
+-- This is executable catalog validation, not a regex/source assertion. It must return TRUE
+-- for the deployed authoritative column and false for the retired/invented spelling:
+-- SELECT EXISTS (
+--   SELECT 1 FROM information_schema.columns
+--   WHERE table_schema = 'public' AND table_name = 'master_specification_versions'
+--     AND column_name = 'specification_id' AND data_type = 'uuid' AND is_nullable = 'NO'
+-- ) AS master_version_uses_specification_id;
+-- SELECT NOT EXISTS (
+--   SELECT 1 FROM information_schema.columns
+--   WHERE table_schema = 'public' AND table_name = 'master_specification_versions'
+--     AND column_name = 'master_specification_id'
+-- ) AS no_invented_master_specification_id;
+-- SELECT EXISTS (
+--   SELECT 1 FROM pg_constraint constraint
+--   WHERE constraint.conrelid = 'public.master_specification_versions'::regclass
+--     AND pg_get_constraintdef(constraint.oid) =
+--       'FOREIGN KEY (specification_id) REFERENCES master_specifications(id) ON DELETE RESTRICT'
+-- ) AS master_version_specification_fk_matches_authoritative_schema;
+
+-- Preflight in the scoped external session (must be false; no direct table access is introduced):
+-- SELECT has_table_privilege('authenticated', 'public.customer_requirements', 'INSERT') AS direct_requirement_insert;
+-- SELECT has_table_privilege('authenticated', 'public.customer_requirement_revisions', 'INSERT') AS direct_revision_insert;
+-- SELECT has_table_privilege('authenticated', 'public.activity_log', 'INSERT') AS direct_audit_insert;
+-- SELECT has_function_privilege('authenticated',
+--   'public.submit_external_customer_requirement(uuid, uuid, text, text, jsonb, uuid)', 'EXECUTE') AS scoped_rpc_execute;
+-- Feasibility privilege/policy preflight after the proposal:
+-- SELECT NOT has_table_privilege('authenticated', 'public.requirement_feasibility_reviews', 'INSERT') AS no_direct_review_insert;
+-- SELECT NOT has_table_privilege('authenticated', 'public.requirement_feasibility_reviews', 'UPDATE') AS no_direct_review_update;
+-- SELECT NOT has_table_privilege('authenticated', 'public.requirement_feasibility_reviews', 'DELETE') AS no_direct_review_delete;
+-- SELECT NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public'
+--   AND tablename = 'requirement_feasibility_reviews' AND policyname = 'Sales users manage feasibility reviews') AS sales_write_policy_removed;
+-- No five-argument overload may remain callable after this proposal:
+-- SELECT count(*) = 0 AS no_legacy_five_argument_overload
+-- FROM pg_proc procedure
+-- JOIN pg_namespace namespace ON namespace.oid = procedure.pronamespace
+-- WHERE namespace.nspname = 'public'
+--   AND procedure.proname = 'submit_external_customer_requirement'
+--   AND pg_get_function_identity_arguments(procedure.oid) = 'p_opportunity_id uuid, p_customer_id uuid, p_title text, p_customer_reference text, p_requirement_data jsonb';
+-- SELECT has_function_privilege('authenticated',
+--   'public.external_requirement_scope_allows(uuid, uuid)', 'EXECUTE') = false AS no_external_scope_oracle;
+-- SELECT to_regprocedure('public.external_requirement_scope_allows(uuid,uuid,uuid)') IS NULL AS no_legacy_scope_helper;
+--
+-- Example caller-authenticated session setup (supply a JWT through a secure runner; never commit a token):
+-- BEGIN;
+-- SELECT set_config('request.jwt.claim.sub', :'scoped_external_user_id', true);
+-- SELECT set_config('role', 'authenticated', true);
+-- SELECT public.submit_external_customer_requirement(
+--   :'opportunity_id'::uuid, :'customer_id'::uuid, 'Acceptance-only external requirement',
+--   'EXT-ACCEPTANCE', jsonb_build_object('description', 'Acceptance-only submission; transaction will roll back.'),
+--   :'request_key'::uuid
+-- );
+-- ROLLBACK;
+--
+-- Required assertions after the successful scoped call, before ROLLBACK:
+-- * header has submitted status, current_revision = 1, and created_by = scoped authenticated actor.
+-- * revision has revision_number = 1, submitted status, same created_by, and exact immutable payload.
+-- * audit after_data has the verified opportunity/customer/contact/party identifiers and revision_number = 1.
+-- * audit after_data has the request_key, matching the stored receipt.
+-- * scoped external caller still cannot SELECT the new header/revision/audit directly through RLS.
+
+-- Retry/replay assertion: repeat the same authenticated call with the same request_key and byte-equivalent
+-- request payload. It must return the same requirement ID. The receipt table must contain exactly one row
+-- for request_key, and the header/revision/audit counts for that ID must each remain one.
+--
+-- Key-reuse conflict assertion: using the same request_key with a changed title, customer reference,
+-- description, opportunity, customer, or authenticated caller must raise
+-- "Request key conflicts with a different caller or payload" and create no rows.
+--
+-- Same-key concurrency assertion: execute two authenticated sessions concurrently with the same caller,
+-- request_key, and exact payload. Both must return the same requirement ID; after commit, exactly one
+-- external_requirement_submission_requests row, one customer_requirements row, one revision 1 row,
+-- and one external_submitted audit row may exist for that receipt.
+-- The receipt's persisted canonical payload must exactly equal
+-- public.external_requirement_submission_canonical_payload(opportunity, customer, title, reference, data).
+-- Reuse of the key with a changed canonical payload must fail even if an MD5 collision were supplied.
+--
+-- Forced audit rollback case: run against a disposable acceptance configuration that rejects
+-- only this function's `external_submitted` audit insert, then prove no header or revision
+-- persists. Do not simulate this with a service-role or bypass-RLS executor.
+--
+-- Reviewer rollback and provenance case: run record_requirement_feasibility_response in a
+-- disposable configuration that rejects its `responded` audit insert. The review must remain
+-- pending/in_review with its original fields. On a successful call, compare activity_log.after_data
+-- to the locked review and source requirement; direct terminal field UPDATE must fail even when the
+-- caller's existing RLS policy otherwise permits UPDATE.
+--
+-- Reviewer assignment/terminal invariants: prove assignment routine rejects a non-member reviewer;
+-- prove it derives the Master version from source_revision.requirement_data.source rather than
+-- master_specifications.current_version; header advancement must not change a revision-bound
+-- source. Prove the immutable source tuple includes exact opportunity_id, customer_id, Master
+-- version UUID, and version number, and rejects a UUID from another opportunity/customer even
+-- when it exists. Prove absent/invalid legacy source IDs and missing/null/non-string/unknown workstreams
+-- fail closed. Prove revision-scoped uniqueness permits a new department review for a new
+-- requirement revision while preserving the old terminal row unchanged.
+-- prove it creates only pending reviews and may reset/reassign only pending/in_review reviews,
+-- including a repeat assignment to the same reviewer. Prove the exact retry returns the existing review;
+-- reassignment and response must not mutate the pinned provenance. A requirement revision or Master
+-- Specification version advance must not alter historic reviews; pinned terminal decisions then read
+-- as stale and cannot satisfy planning. Missing or unknown workstreams fail closed as TBC. Prove each assignment creates exactly one
+-- `assigned` activity entry with its locked requirement/department/reviewer identifiers. After a
+-- terminal response, attempts to change requirement_id, department_id, reviewer_user_id, status,
+-- findings, assumptions, risks, or reviewed_at must all fail, including when a caller manually
+-- sets the former app.requirement_feasibility_response_rpc GUC. Audit failure must roll back the
+-- terminal update and preserve the original requirement_id and department/reviewer assignment.

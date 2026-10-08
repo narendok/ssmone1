@@ -11,6 +11,7 @@
 - Reuse the R&D member dialog for R&D-specific contacts; project membership remains employee-based so no workflow creates duplicate identities.
 - Department workspaces are read-only RLS queues; approvals stay in established workflows and priorities remain department-scoped with admin oversight.
 - Department projects provision their controlled Drive hierarchy by trigger; regular users cannot invoke it.
+- Keep project-Drive provisioning serialized and canonical: select only non-trashed FOLDER roots, lock the project/root during provisioning, and persist the validated root pointer; this prevents race-created or stale roots from becoming authoritative.
 - Drive categories are department-owned templates: common categories belong under the department standards branch, project categories are provisioned only for new internal/client projects, and Platform Owners manage templates through the settings page.
 - Controlled-document decisions use the protected, replay-safe transition action and remain linked to the existing register and Drive revision history; no client-side status mutation or duplicate register is allowed.
 - Engineering BOM records may reference an authoritative project Drive file and its revision; preserve that source link instead of copying the authoritative file.
@@ -24,3 +25,4 @@
 - Immutable lifecycle document content is append-only on DRAFT template versions; service-only lead-authorized revision, activation, and retirement routines remain gated until isolated acceptance proves their RLS and transaction behavior.
 - Legacy Drive ownership review is read-only and requires an explicit administrator dry-run selection; no folder name, BOM, title, or descendant may infer historical department ownership.
 - App MCP tools always use a caller-token RLS client, remain read-only unless separately reviewed, and require OAuth consent; this keeps connected assistants within each user’s existing workspace access.
+- Master Specification revisions remain append-only via a permission-checked atomic routine; client intake is explicit-scope, expiry/revocation-bound, and feasibility is immutable without auto-conversion.
