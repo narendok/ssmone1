@@ -16,12 +16,23 @@ describe("lifecycle deployment observation boundary", () => {
       expect(deriveBackendRef("https://yyrvduosyyaluifqvwkr.supabase.co")).toBe("yyrvduosyyaluifqvwkr");
     });
 
-    it("returns null for invalid or non-Supabase URLs", () => {
+    it.each([
+      undefined,
+      "",
+      "not-a-url",
+      "https://example.com",
+      "https://supabase.co",
+      "https://egjotuxqguifnvdnflan.extra.supabase.co",
+      "https://egjotuxqguifnvdnflan.supabase.co.attacker.test",
+      "http://egjotuxqguifnvdnflan.supabase.co",
+      "https://user:password@egjotuxqguifnvdnflan.supabase.co",
+      "https://egjotuxqguifnvdnflan.supabase.co:8443",
+      "https://egjotuxqguifnvdnflan.supabase.co/path",
+      "https://egjotuxqguifnvdnflan.supabase.co?probe=true",
+      "https://egjotuxqguifnvdnflan.supabase.co#fragment",
+    ])("returns null for a non-canonical target: %s", (url) => {
       expect(deriveBackendRef(undefined)).toBeNull();
-      expect(deriveBackendRef("")).toBeNull();
-      expect(deriveBackendRef("not-a-url")).toBeNull();
-      expect(deriveBackendRef("https://example.com")).toBeNull();
-      expect(deriveBackendRef("https://supabase.co")).toBeNull();
+      expect(deriveBackendRef(url)).toBeNull();
     });
   });
 
