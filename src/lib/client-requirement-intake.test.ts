@@ -4,8 +4,8 @@ import { chmodSync, mkdtempSync, readFileSync as readTemporaryFileSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
-import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability, salesBaselineReadScopeSchema, salesBoundRequirementReadScopeSchema, salesCommercialReadScopeSchema } from "./client-requirement-intake";
-import { createSalesBaselineReadbackAdapter, createSalesBoundRequirementReadbackAdapter, createSalesCommercialReadbackAdapter, observeSalesBaselineReadback, observeSalesBoundRequirementReadback, observeSalesCommercialReadback, salesBaselineReadRequestSchema, salesBoundRequirementReadRequestSchema, salesCommercialReadRequestSchema } from "./sales-bound-requirement-readback";
+import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability, salesBaselineReadScopeSchema, salesBoundRequirementReadScopeSchema, salesCommercialReadScopeSchema, salesReviewerResponseReadScopeSchema } from "./client-requirement-intake";
+import { createSalesBaselineReadbackAdapter, createSalesBoundRequirementReadbackAdapter, createSalesCommercialReadbackAdapter, createSalesReviewerResponseReadbackAdapter, observeSalesBaselineReadback, observeSalesBoundRequirementReadback, observeSalesCommercialReadback, observeSalesReviewerResponseReadback, salesBaselineReadRequestSchema, salesBoundRequirementReadRequestSchema, salesCommercialReadRequestSchema, salesReviewerResponseReadRequestSchema } from "./sales-bound-requirement-readback";
 
 const pendingSql = readFileSync("supabase/pending/20261005_client_requirement_intake.sql", "utf8");
 const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_intake_acceptance.sql", "utf8");
@@ -42,8 +42,8 @@ describe("client requirement intake contract", () => {
   });
 
   it("requires a concrete immutable feasibility response and explicit verdict", () => {
-    expect(feasibilityResponseSchema.safeParse({ reviewId: "bad", verdict: "FEASIBLE", findings: "Looks good", assumptions: null, risks: null }).success).toBe(false);
-    expect(feasibilityResponseSchema.parse({ reviewId: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8", verdict: "feasible_with_conditions", findings: "CAN termination is required.", assumptions: null, risks: null }).verdict).toBe("feasible_with_conditions");
+    expect(feasibilityResponseSchema.safeParse({ reviewId: "bad", requestKey: "bad", verdict: "FEASIBLE", findings: "Looks good", assumptions: null, risks: null }).success).toBe(false);
+    expect(feasibilityResponseSchema.parse({ reviewId: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8", requestKey: "9ce5a383-9ebf-430e-9bba-2e550c20fe3e", verdict: "feasible_with_conditions", findings: "CAN termination is required.", assumptions: null, risks: null }).verdict).toBe("feasible_with_conditions");
   });
 
   it("requires active, unrevoked, explicitly scoped client access", () => {

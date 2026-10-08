@@ -19,6 +19,7 @@ export const feasibilityAssignmentSchema = z.object({
 
 export const feasibilityResponseSchema = z.object({
   reviewId: z.string().uuid(),
+  requestKey: z.string().uuid(),
   verdict: z.enum(["feasible", "feasible_with_conditions", "not_feasible"]),
   findings: boundedText(12_000),
   assumptions: z.string().trim().max(12_000).nullable(),
