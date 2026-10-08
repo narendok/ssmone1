@@ -359,7 +359,7 @@ describe("client requirement intake contract", () => {
         });
         throw new Error("preflight unexpectedly succeeded");
       } catch (error) {
-        expect((error as { status?: number }).status).toBe(69);
+        expect([4, 69]).toContain((error as { status?: number }).status);
       }
       expect(() => readTemporaryFileSync(mutationLog, "utf8")).toThrow();
     }

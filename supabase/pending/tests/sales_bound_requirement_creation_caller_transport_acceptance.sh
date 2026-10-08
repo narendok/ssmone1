@@ -2,7 +2,7 @@
 # REAL CALLER-TRANSPORT ACCEPTANCE HARNESS — intentionally refuses execution until an
 # approved isolated target, authenticated non-service wrappers, and read-only assertion
 # transport are supplied. It never sets request.jwt.claim.* and never connects with a
-# service-role credential. Each wrapper must expose one protected operation over its own
+# service-role credential; it never connects with a service-role credential. Each wrapper must expose one protected operation over its own
 # authenticated application/session transport and return JSON on stdout.
 set -euo pipefail
 
@@ -111,7 +111,12 @@ preflight_capability() {
 require_preflight_capability() {
   local capability="$1"
   local result
-  result="$(preflight_capability "$capability")"
+  # Preserve the adapter validation failure as a BLOCKED preflight outcome rather than
+  # allowing command substitution under `set -e` to terminate with jq's implementation code.
+  if ! result="$(preflight_capability "$capability")"; then
+    echo "BLOCKED $capability: invalid or unsupported scoped preflight response" >&2
+    exit 69
+  fi
   if [[ "$(jq -r '.status' <<<"$result")" != "OBSERVED" ]]; then
     jq -r --arg capability "$capability" '"BLOCKED " + $capability + ": " + .missingContract' <<<"$result" >&2
     exit 69
