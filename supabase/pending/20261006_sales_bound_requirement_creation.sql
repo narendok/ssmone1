@@ -317,7 +317,7 @@ BEGIN
     RAISE EXCEPTION 'Positive scoped receipt graph is unavailable or incomplete';
   END IF;
 
-  SELECT count(*), min(audit.id)
+  SELECT count(*), min(audit.id::text)::uuid
   INTO v_audit_count, v_audit_id
   FROM public.activity_log audit
   WHERE audit.entity_id = v_requirement.id
