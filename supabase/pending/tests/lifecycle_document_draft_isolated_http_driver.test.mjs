@@ -2,8 +2,10 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   BLOCKED_DEPLOYMENT_OBSERVATION,
   IsolatedDriverError,
-  LIFECYCLE_SAVE_DRAFT_PATH,
+  OBSERVER_FUNCTION_NAME,
+  SAVE_DRAFT_FUNCTION_NAME,
   createIsolatedLifecycleHttpDriver,
+  discoverServerFunctionEndpoint,
   redactSensitive,
 } from './lifecycle_document_draft_isolated_http_driver.mjs'
 import { ISOLATED_BACKEND_REF } from './lifecycle_document_draft_isolated_acceptance_runner.mjs'
@@ -19,18 +21,52 @@ const payload = {
   requestKey: '00000000-0000-0000-0000-000000000005',
 }
 
+const observerInput = {
+  projectId: payload.projectId,
+  requestKey: payload.requestKey,
+  expectedSource: {
+    templateId: payload.templateId,
+    templateDocumentRevisionId: payload.templateDocumentRevisionId,
+    sourceFingerprint: 'a'.repeat(64),
+  },
+}
+
+const manifest = (entries = [
+  ['a'.repeat(64), OBSERVER_FUNCTION_NAME],
+  ['b'.repeat(64), SAVE_DRAFT_FUNCTION_NAME],
+]) => `var manifest = {${entries.map(([id, name]) => `"${id}": { functionName: "${name}", importer: () => import("./fake.mjs") }`).join(',')}};`
+
+function driver(options = {}) {
+  return createIsolatedLifecycleHttpDriver({
+    backendRef: ISOLATED_BACKEND_REF,
+    origin,
+    approvedOrigin: origin,
+    fetchImpl: vi.fn(),
+    manifestSource: manifest(),
+    ...options,
+  })
+}
+
 function response(body = '{}', status = 200) {
   return new Response(body, { status, headers: { 'content-type': 'application/json' } })
 }
 
 describe('isolated lifecycle HTTP driver', () => {
-  it('uses only the authenticated protected SaveDraft server-function transport', async () => {
+  it('discovers the reviewed observer and SaveDraft endpoint IDs only from generated manifest metadata', () => {
+    expect(discoverServerFunctionEndpoint(manifest())).toEqual({
+      id: 'a'.repeat(64), path: `/_serverFn/${'a'.repeat(64)}`, functionName: OBSERVER_FUNCTION_NAME,
+    })
+    expect(discoverServerFunctionEndpoint(manifest(), SAVE_DRAFT_FUNCTION_NAME).id).toBe('b'.repeat(64))
+  })
+
+  it('uses only the manifest-resolved authenticated SaveDraft server-function transport', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(response())
-    const driver = createIsolatedLifecycleHttpDriver({ backendRef: ISOLATED_BACKEND_REF, origin, fetchImpl })
-    await driver.invokeSaveDraft({ session, data: payload })
-    expect(fetchImpl).toHaveBeenCalledWith(`${origin}${LIFECYCLE_SAVE_DRAFT_PATH}`, expect.objectContaining({
+    const subject = driver({ fetchImpl })
+    await subject.invokeSaveDraft({ session, data: payload })
+    expect(fetchImpl).toHaveBeenCalledWith(`${origin}/_serverFn/${'b'.repeat(64)}`, expect.objectContaining({
       method: 'POST',
-      headers: expect.objectContaining({ authorization: `Bearer ${session}`, 'x-tsr-serverFn': 'true' }),
+      redirect: 'error',
+      headers: expect.objectContaining({ authorization: `Bearer ${session}`, 'x-tsr-serverFn': 'true', accept: 'application/json' }),
       body: JSON.stringify({ data: payload }),
     }))
     const request = fetchImpl.mock.calls[0][1]
@@ -38,46 +74,79 @@ describe('isolated lifecycle HTTP driver', () => {
     expect(request.body).not.toContain('service')
   })
 
-  it('fails closed with exact blocked deployment contracts when no safe observation adapter exists', async () => {
-    const driver = createIsolatedLifecycleHttpDriver({ backendRef: ISOLATED_BACKEND_REF, origin, fetchImpl: vi.fn() })
-    const readiness = await driver.inspectReadiness()
+  it('fails closed when a manifest cannot resolve the observer endpoint', async () => {
+    const subject = driver({ manifestSource: manifest([['b'.repeat(64), SAVE_DRAFT_FUNCTION_NAME]]) })
+    const readiness = await subject.inspectReadiness({ session, ...observerInput })
     expect(readiness.deployed.actorGateway).toBeUndefined()
-    expect(readiness.capabilities.rpcSchema).toEqual({ status: 'BLOCKED', missingContract: BLOCKED_DEPLOYMENT_OBSERVATION })
+    expect(readiness.capabilities.deploymentObservation).toEqual({ status: 'BLOCKED', missingContract: 'generated_observer_endpoint_unresolved' })
+  })
+
+  it('uses the real observer wire format and propagates partial BLOCKED capabilities', async () => {
+    const reported = {
+      status: 'BLOCKED', backendRef: ISOLATED_BACKEND_REF, missingContract: 'physical_storage_and_audit_readback_contract',
+      capabilities: {
+        actorGateway: { status: 'BLOCKED', reason: 'no_read_only_actor_gateway_contract' },
+        rpcSchema: { status: 'BLOCKED', reason: 'no_read_only_rpc_catalog_contract' },
+        projectDriveStorage: { status: 'BLOCKED', reason: 'physical_upload_download_not_observable' },
+        observabilityReadback: { status: 'OBSERVED' },
+      },
+    }
+    const fetchImpl = vi.fn().mockResolvedValue(response(JSON.stringify(reported)))
+    const subject = driver({ fetchImpl })
+    const readiness = await subject.inspectReadiness({ session, ...observerInput })
+    expect(fetchImpl).toHaveBeenCalledWith(`${origin}/_serverFn/${'a'.repeat(64)}`, expect.objectContaining({
+      method: 'POST', redirect: 'error', body: JSON.stringify({ data: { backendRef: ISOLATED_BACKEND_REF, ...observerInput } }),
+    }))
+    expect(readiness.authorizeLifecycleDocumentDraft).toBe(false)
+    expect(readiness.observabilityReadback).toBe(false)
+    expect(readiness.capabilities.observabilityReadback).toEqual({ status: 'OBSERVED' })
     expect(readiness.capabilities.projectDriveStorage.status).toBe('BLOCKED')
   })
 
-  it('does not accept declaration flags from an unverified observation adapter', async () => {
-    const driver = createIsolatedLifecycleHttpDriver({ backendRef: ISOLATED_BACKEND_REF, origin, fetchImpl: vi.fn(), observationAdapter: {
-      inspect: vi.fn().mockResolvedValue({ backendRef: ISOLATED_BACKEND_REF, verified: false, actorGateway: 'execute_lifecycle_document_action' }),
-    } })
-    const readiness = await driver.inspectReadiness()
-    expect(readiness.authorizeLifecycleDocumentDraft).toBe(false)
-    expect(readiness.capabilities.deploymentObservation).toEqual({ status: 'BLOCKED', missingContract: BLOCKED_DEPLOYMENT_OBSERVATION })
+  it('marks source exactness unverified without template, revision, and fingerprint evidence', async () => {
+    const subject = driver()
+    const readiness = await subject.inspectReadiness({ session, projectId: payload.projectId, requestKey: payload.requestKey })
+    expect(readiness.capabilities.observabilityReadback).toEqual({ status: 'BLOCKED', missingContract: 'source_exactness_unverified' })
   })
 
   it('redacts sessions from application transport failures and denials', async () => {
     const fetchImpl = vi.fn().mockRejectedValue(new Error(`network failed Authorization: Bearer ${session}`))
-    const driver = createIsolatedLifecycleHttpDriver({ backendRef: ISOLATED_BACKEND_REF, origin, fetchImpl })
-    await expect(driver.invokeSaveDraft({ session, data: payload })).rejects.toMatchObject({ code: 'TRANSPORT_FAILURE' })
-    try { await driver.invokeSaveDraft({ session, data: payload }) } catch (error) {
+    const subject = driver({ fetchImpl })
+    await expect(subject.invokeSaveDraft({ session, data: payload })).rejects.toMatchObject({ code: 'TRANSPORT_FAILURE' })
+    try { await subject.invokeSaveDraft({ session, data: payload }) } catch (error) {
       expect(error.message).not.toContain(session)
       expect(error.cause).not.toContain(session)
     }
   })
 
+  it.each([
+    ['origin mismatch', { approvedOrigin: 'https://another.example.test' }, 'ORIGIN_MISMATCH'],
+    ['redirected response', {}, 'REDIRECT_OR_OFF_ORIGIN'],
+  ])('rejects %s without forwarding authenticated transport', async (name, options, code) => {
+    const fetchImpl = name === 'redirected response'
+      ? vi.fn().mockResolvedValue({ ok: true, redirected: true, url: 'https://attacker.example.test', json: async () => ({}) })
+      : vi.fn()
+    if (name === 'origin mismatch') {
+      expect(() => driver({ fetchImpl, ...options })).toThrow(expect.objectContaining({ code }))
+    } else {
+      await expect(driver({ fetchImpl }).inspectReadiness({ session, ...observerInput })).resolves.toMatchObject({ capabilities: { deploymentObservation: { status: 'BLOCKED' } } })
+      expect(fetchImpl.mock.calls[0][1].headers.authorization).toBe(`Bearer ${session}`)
+    }
+  })
+
   it('treats direct composite RPC transport as unsupported rather than bypassing through actor input', async () => {
-    const driver = createIsolatedLifecycleHttpDriver({ backendRef: ISOLATED_BACKEND_REF, origin, fetchImpl: vi.fn() })
-    expect(driver.executeLifecycleDocumentAction).toBeUndefined()
-    await expect(driver.runMutationCases()).rejects.toMatchObject({ code: 'MUTATION_CASES_BLOCKED' })
+    const subject = driver()
+    expect(subject.executeLifecycleDocumentAction).toBeUndefined()
+    await expect(subject.runMutationCases()).rejects.toMatchObject({ code: 'MUTATION_CASES_BLOCKED' })
   })
 
   it('reads saved bytes and verifies their SHA256 before reporting a live save', async () => {
     const bytes = new TextEncoder().encode('immutable saved draft')
     const hash = '7377bf9df731b6622701e416798f336450faadb62312399d212df6f0b51f0b45'
-    const driver = createIsolatedLifecycleHttpDriver({ backendRef: ISOLATED_BACKEND_REF, origin, fetchImpl: vi.fn() })
-    const result = await driver.readSavedFileAndVerify({ signedDownloadUrl: 'https://download.example.test/file', expectedSha256: hash, fetchFile: vi.fn().mockResolvedValue(new Response(bytes)) })
+    const subject = driver()
+    const result = await subject.readSavedFileAndVerify({ signedDownloadUrl: 'https://download.example.test/file', expectedSha256: hash, fetchFile: vi.fn().mockResolvedValue(new Response(bytes)) })
     expect(result).toEqual({ byteLength: bytes.byteLength, sha256: hash })
-    await expect(driver.readSavedFileAndVerify({ signedDownloadUrl: 'https://download.example.test/file', expectedSha256: '0'.repeat(64), fetchFile: vi.fn().mockResolvedValue(new Response(bytes)) })).rejects.toMatchObject({ code: 'HASH_MISMATCH' })
+    await expect(subject.readSavedFileAndVerify({ signedDownloadUrl: 'https://download.example.test/file', expectedSha256: '0'.repeat(64), fetchFile: vi.fn().mockResolvedValue(new Response(bytes)) })).rejects.toMatchObject({ code: 'HASH_MISMATCH' })
   })
 })
 

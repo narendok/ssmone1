@@ -9,12 +9,13 @@
  * deployment-observation adapter is supplied by the operator.
  */
 import { createHash } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import { ISOLATED_BACKEND_REF, ORIGINAL_BACKEND_REF, assertIsolatedTarget } from './lifecycle_document_draft_isolated_acceptance_runner.mjs'
 
-export const LIFECYCLE_SAVE_DRAFT_SERVER_FN_ID = '4c3d00a3303a08561cf24c7b6d461f1cc91c951677abe6c37a93e6a59b99d072'
-export const LIFECYCLE_SAVE_DRAFT_PATH = `/_serverFn/${LIFECYCLE_SAVE_DRAFT_SERVER_FN_ID}`
 export const PROJECT_DRIVE_BUCKET = 'project-drive'
 export const BLOCKED_DEPLOYMENT_OBSERVATION = 'reviewed_read_only_deployment_observation_adapter'
+export const OBSERVER_FUNCTION_NAME = 'getLifecycleDeploymentObservation_createServerFn_handler'
+export const SAVE_DRAFT_FUNCTION_NAME = 'generateLifecycleDocumentDraft_createServerFn_handler'
 
 const TOKEN_PATTERN = /(?:bearer\s+)?(?:eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+|sb_(?:publishable|secret)_[a-zA-Z0-9_-]+)/gi
 const SENSITIVE_URL_PATTERN = /([?&](?:access_token|token|apikey|api_key|authorization)=)[^&#\s]+/gi
@@ -38,11 +39,45 @@ function blocked(contract) {
   return { status: 'BLOCKED', missingContract: contract }
 }
 
-function requireIsolatedOrigin(origin) {
+function strictAppOrigin(origin) {
   const parsed = new URL(origin)
-  if (parsed.protocol !== 'https:') throw new IsolatedDriverError('INVALID_ORIGIN', 'The acceptance origin must use HTTPS.')
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port || parsed.pathname !== '/' || parsed.search || parsed.hash) {
+    throw new IsolatedDriverError('INVALID_ORIGIN', 'The acceptance origin must be an exact HTTPS application origin.')
+  }
   if (parsed.hostname.includes(ORIGINAL_BACKEND_REF)) throw new IsolatedDriverError('ORIGINAL_TARGET', 'Refusing an origin for the original backend.')
   return parsed.origin
+}
+
+function requireApprovedAppOrigin(origin, allowedOrigin) {
+  const safeOrigin = strictAppOrigin(origin)
+  if (typeof allowedOrigin !== 'string' || strictAppOrigin(allowedOrigin) !== safeOrigin) {
+    throw new IsolatedDriverError('ORIGIN_MISMATCH', 'The acceptance origin is not the operator-approved isolated application origin.')
+  }
+  return safeOrigin
+}
+
+export function discoverServerFunctionEndpoint(manifestSource, functionName = OBSERVER_FUNCTION_NAME) {
+  if (typeof manifestSource !== 'string' || !manifestSource.trim()) {
+    throw new IsolatedDriverError('MANIFEST_MISSING', 'A generated server-function manifest is required for endpoint discovery.')
+  }
+  const entries = [...manifestSource.matchAll(/"([a-f0-9]{64})":\s*\{\s*functionName:\s*"([^"]+)"/g)]
+  const match = entries.find((entry) => entry[2] === functionName)
+  if (!match) {
+    throw new IsolatedDriverError('OBSERVER_ENDPOINT_UNRESOLVED', 'The reviewed deployment-observation server function is absent from the generated manifest.')
+  }
+  return { id: match[1], path: `/_serverFn/${match[1]}`, functionName: match[2] }
+}
+
+export async function discoverServerFunctionEndpointFromFile(manifestPath, readFileImpl = readFile, functionName = OBSERVER_FUNCTION_NAME) {
+  if (typeof manifestPath !== 'string' || !manifestPath.trim()) {
+    throw new IsolatedDriverError('MANIFEST_MISSING', 'A generated server-function manifest path is required.')
+  }
+  try {
+    return discoverServerFunctionEndpoint(await readFileImpl(manifestPath, 'utf8'), functionName)
+  } catch (error) {
+    if (error instanceof IsolatedDriverError) throw error
+    throw new IsolatedDriverError('MANIFEST_READ_FAILED', 'The generated server-function manifest could not be read.', error)
+  }
 }
 
 function requireBearer(session, label) {
@@ -57,22 +92,41 @@ function readResponseBody(response) {
 }
 
 function serialiseServerFnPayload(data) {
-  // The action input is a JSON-only zod shape. The TanStack request contract is
-  // { data }, with x-tsr-serverFn=true and application/json.
+  // TanStack Start serializes JSON-only POST function input as { data }.
   return JSON.stringify({ data })
 }
 
-export function createIsolatedLifecycleHttpDriver({ backendRef, origin, fetchImpl = fetch, observationAdapter } = {}) {
+function sourceExpectation(input) {
+  const expected = input?.expectedSource
+  if (!expected || typeof expected.templateId !== 'string' || typeof expected.templateDocumentRevisionId !== 'string' || !/^[a-f0-9]{64}$/i.test(expected.sourceFingerprint ?? '')) {
+    return undefined
+  }
+  return expected
+}
+
+function observerCapability(report, name) {
+  const value = report?.capabilities?.[name]
+  return value && typeof value === 'object' && typeof value.status === 'string'
+    ? value
+    : blocked('observer_response_missing_capability')
+}
+
+export function createIsolatedLifecycleHttpDriver({ backendRef, origin, approvedOrigin, fetchImpl = fetch, manifestSource, manifestPath, readFileImpl, observationAdapter } = {}) {
   assertIsolatedTarget(backendRef)
-  const safeOrigin = requireIsolatedOrigin(origin)
+  const safeOrigin = requireApprovedAppOrigin(origin, approvedOrigin)
   if (typeof fetchImpl !== 'function') throw new IsolatedDriverError('MISSING_TRANSPORT', 'A fetch implementation is required.')
 
-  async function invokeSaveDraft({ session, data }) {
+  const discoverEndpoint = (functionName) => manifestSource !== undefined
+    ? Promise.resolve().then(() => discoverServerFunctionEndpoint(manifestSource, functionName))
+    : discoverServerFunctionEndpointFromFile(manifestPath, readFileImpl, functionName)
+
+  async function invokeServerFunction(endpoint, session, data) {
     const bearer = requireBearer(session, 'Manager')
     let response
     try {
-      response = await fetchImpl(`${safeOrigin}${LIFECYCLE_SAVE_DRAFT_PATH}`, {
+      response = await fetchImpl(`${safeOrigin}${endpoint.path}`, {
         method: 'POST',
+        redirect: 'error',
         headers: {
           accept: 'application/json',
           'content-type': 'application/json',
@@ -84,6 +138,9 @@ export function createIsolatedLifecycleHttpDriver({ backendRef, origin, fetchImp
     } catch (error) {
       throw new IsolatedDriverError('TRANSPORT_FAILURE', 'Authenticated application transport failed.', error)
     }
+    if (response.redirected || (response.url && new URL(response.url).origin !== safeOrigin)) {
+      throw new IsolatedDriverError('REDIRECT_OR_OFF_ORIGIN', 'Refusing redirected or off-origin authenticated application transport.')
+    }
     if (!response.ok) {
       const body = await readResponseBody(response)
       throw new IsolatedDriverError('APPLICATION_DENIED', `Authenticated application transport returned ${response.status}: ${body}`)
@@ -91,10 +148,18 @@ export function createIsolatedLifecycleHttpDriver({ backendRef, origin, fetchImp
     return response
   }
 
-  async function inspectReadiness() {
+  async function invokeSaveDraft({ session, data }) {
+    let endpoint
+    try { endpoint = await discoverEndpoint(SAVE_DRAFT_FUNCTION_NAME) } catch (error) {
+      throw new IsolatedDriverError('SAVE_DRAFT_ENDPOINT_UNRESOLVED', 'The generated manifest does not resolve the reviewed SaveDraft endpoint.', error)
+    }
+    return invokeServerFunction(endpoint, session, data)
+  }
+
+  async function inspectReadiness({ session, projectId, requestKey, expectedSource } = {}) {
     const observation = {
       backendRef,
-      authenticatedApplicationTransport: true,
+      authenticatedApplicationTransport: false,
       authorizeLifecycleDocumentDraft: false,
       registerLifecycleDocumentStorageAttempt: false,
       findLifecycleDocumentDraftReceipt: false,
@@ -103,7 +168,7 @@ export function createIsolatedLifecycleHttpDriver({ backendRef, origin, fetchImp
       projectDriveUploadDownload: false,
       observabilityReadback: false,
       deployed: {
-        applicationTransport: 'authenticated-server-action',
+        applicationTransport: undefined,
         actorGateway: undefined,
         serverOperations: [],
         storageBucket: undefined,
@@ -112,70 +177,53 @@ export function createIsolatedLifecycleHttpDriver({ backendRef, origin, fetchImp
         observabilityReadback: false,
       },
       capabilities: {
-        applicationTransport: { status: 'OBSERVED', endpoint: LIFECYCLE_SAVE_DRAFT_PATH },
+        applicationTransport: blocked('generated_observer_endpoint_unresolved'),
         actorGateway: blocked(BLOCKED_DEPLOYMENT_OBSERVATION),
         rpcSchema: blocked(BLOCKED_DEPLOYMENT_OBSERVATION),
         projectDriveStorage: blocked(BLOCKED_DEPLOYMENT_OBSERVATION),
         observabilityReadback: blocked(BLOCKED_DEPLOYMENT_OBSERVATION),
       },
     }
-    if (!observationAdapter || typeof observationAdapter.inspect !== 'function') return observation
-
+    const source = sourceExpectation({ expectedSource })
+    if (!source) {
+      observation.capabilities.observabilityReadback = blocked('source_exactness_unverified')
+      return observation
+    }
+    let endpoint
+    try {
+      endpoint = await discoverEndpoint(OBSERVER_FUNCTION_NAME)
+    } catch (error) {
+      observation.capabilities.deploymentObservation = blocked('generated_observer_endpoint_unresolved')
+      return observation
+    }
+    observation.capabilities.applicationTransport = { status: 'OBSERVED', endpoint: endpoint.path }
+    observation.authenticatedApplicationTransport = true
+    observation.deployed.applicationTransport = 'authenticated-server-action'
+    if (!session || !projectId || !requestKey) {
+      observation.capabilities.deploymentObservation = blocked('observer_request_scope_or_session_missing')
+      return observation
+    }
     let reported
     try {
-      reported = await observationAdapter.inspect({ backendRef, origin: safeOrigin })
+      if (observationAdapter?.inspect) {
+        reported = await observationAdapter.inspect({ backendRef, origin: safeOrigin, projectId, requestKey, expectedSource: source })
+      } else {
+        const response = await invokeServerFunction(endpoint, session, { backendRef, projectId, requestKey, expectedSource: source })
+        reported = await response.json()
+      }
     } catch (error) {
-      observation.capabilities.deploymentObservation = blocked(BLOCKED_DEPLOYMENT_OBSERVATION)
-      observation.capabilities.deploymentObservation.error = redactSensitive(error instanceof Error ? error.message : error)
+      observation.capabilities.deploymentObservation = blocked('observer_transport_or_denial')
       return observation
     }
-    if (!reported || reported.backendRef !== backendRef || reported.verified !== true) {
-      observation.capabilities.deploymentObservation = blocked(BLOCKED_DEPLOYMENT_OBSERVATION)
+    if (!reported || reported.backendRef !== backendRef || reported.status !== 'BLOCKED') {
+      observation.capabilities.deploymentObservation = blocked('observer_response_unverified')
       return observation
     }
-    // The adapter must provide independently-observed evidence, not booleans.
-    const operations = Array.isArray(reported.serverOperations) ? reported.serverOperations : []
-    const storage = reported.storage
-    const observability = reported.observability
-    const required = [
-      'authorize_lifecycle_document_draft',
-      'register_lifecycle_document_storage_attempt',
-      'find_lifecycle_document_draft_receipt',
-      'commit_lifecycle_document_draft',
-      'can_discard_lifecycle_document_object',
-    ]
-    const hasOperations = required.every((operation) => operations.includes(operation))
-    const hasStorage = storage?.bucket === PROJECT_DRIVE_BUCKET && storage.uploadDownloadObserved === true
-    const hasObservability = observability?.readbackObserved === true
-    if (!hasOperations || !hasStorage || !hasObservability || reported.actorGateway !== 'execute_lifecycle_document_action') {
-      observation.capabilities.deploymentObservation = blocked(BLOCKED_DEPLOYMENT_OBSERVATION)
-      return observation
-    }
-    Object.assign(observation, {
-      authorizeLifecycleDocumentDraft: true,
-      registerLifecycleDocumentStorageAttempt: true,
-      findLifecycleDocumentDraftReceipt: true,
-      commitLifecycleDocumentDraft: true,
-      canDiscardLifecycleDocumentObject: true,
-      projectDriveUploadDownload: true,
-      observabilityReadback: true,
-      deployed: {
-        applicationTransport: 'authenticated-server-action',
-        actorGateway: 'execute_lifecycle_document_action',
-        serverOperations: operations,
-        storageBucket: PROJECT_DRIVE_BUCKET,
-        storageUploadDownload: true,
-        schemaReadback: true,
-        observabilityReadback: true,
-      },
-      capabilities: {
-        ...observation.capabilities,
-        actorGateway: { status: 'OBSERVED' },
-        rpcSchema: { status: 'OBSERVED' },
-        projectDriveStorage: { status: 'OBSERVED' },
-        observabilityReadback: { status: 'OBSERVED' },
-      },
-    })
+    observation.capabilities.actorGateway = observerCapability(reported, 'actorGateway')
+    observation.capabilities.rpcSchema = observerCapability(reported, 'rpcSchema')
+    observation.capabilities.projectDriveStorage = observerCapability(reported, 'projectDriveStorage')
+    observation.capabilities.observabilityReadback = observerCapability(reported, 'observabilityReadback')
+    observation.capabilities.deploymentObservation = blocked(reported.missingContract || BLOCKED_DEPLOYMENT_OBSERVATION)
     return observation
   }
 
@@ -214,5 +262,5 @@ export function createIsolatedLifecycleHttpDriver({ backendRef, origin, fetchImp
  * unless that runner later receives an explicit mutation opt-in and approved
  * runtime fixture adapter. */
 export function createDriver({ backendRef, origin }) {
-  return createIsolatedLifecycleHttpDriver({ backendRef, origin })
+  return createIsolatedLifecycleHttpDriver({ backendRef, origin, approvedOrigin: origin })
 }
