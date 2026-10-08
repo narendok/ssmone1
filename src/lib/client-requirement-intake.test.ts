@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { mkdtempSync, readFileSync as readTemporaryFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability } from "./client-requirement-intake";
 
 const pendingSql = readFileSync("supabase/pending/20261005_client_requirement_intake.sql", "utf8");
@@ -11,7 +11,11 @@ const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_in
 const salesBoundSql = readFileSync("supabase/pending/20261006_sales_bound_requirement_creation.sql", "utf8");
 const salesBoundAcceptanceSql = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_acceptance.sql", "utf8");
 const salesBoundConcurrencyHarness = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_concurrency_acceptance.sh", "utf8");
-const salesBoundTransportHarness = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_caller_transport_acceptance.sh", "utf8");
+const salesBoundTransportHarness = readFileSync("supabase/pending/tests/sales_bound_requirement_creation_caller_transport_acceptance.sh", "utf8").replace(/\r\n/g, "\n");
+const shellRuntimeAvailable = [
+  spawnSync("bash", ["--version"], { encoding: "utf8" }),
+  spawnSync("jq", ["--version"], { encoding: "utf8" }),
+].every((result) => !result.error && result.status === 0);
 
 describe("client requirement intake contract", () => {
   it("requires bounded immutable submission content", () => {
@@ -304,7 +308,7 @@ describe("client requirement intake contract", () => {
     expect(salesBoundTransportHarness).toContain("# Verify every planned persisted-state proof before the first create, editor,");
   });
 
-  it("stops before all mutation wrappers when mocked preflight is BLOCKED or malformed", () => {
+  it.skipIf(!shellRuntimeAvailable)("stops before all mutation wrappers when mocked preflight is BLOCKED or malformed", () => {
     const temporaryDirectory = mkdtempSync(join(tmpdir(), "sales-preflight-"));
     const mutationLog = join(temporaryDirectory, "mutations.log");
     const blockedAdapter = join(temporaryDirectory, "blocked-adapter.sh");
