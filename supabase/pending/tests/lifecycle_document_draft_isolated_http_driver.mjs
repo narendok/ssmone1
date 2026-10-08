@@ -15,6 +15,7 @@ import { ISOLATED_BACKEND_REF, ORIGINAL_BACKEND_REF, assertIsolatedTarget } from
 export const PROJECT_DRIVE_BUCKET = 'project-drive'
 export const BLOCKED_DEPLOYMENT_OBSERVATION = 'reviewed_read_only_deployment_observation_adapter'
 export const OBSERVER_FUNCTION_NAME = 'getLifecycleDeploymentObservation_createServerFn_handler'
+export const SAVE_DRAFT_FUNCTION_NAME = 'generateLifecycleDocumentDraft_createServerFn_handler'
 
 const TOKEN_PATTERN = /(?:bearer\s+)?(?:eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9._-]+\.[a-zA-Z0-9_-]+|sb_(?:publishable|secret)_[a-zA-Z0-9_-]+)/gi
 const SENSITIVE_URL_PATTERN = /([?&](?:access_token|token|apikey|api_key|authorization)=)[^&#\s]+/gi
@@ -67,12 +68,12 @@ export function discoverServerFunctionEndpoint(manifestSource, functionName = OB
   return { id: match[1], path: `/_serverFn/${match[1]}`, functionName: match[2] }
 }
 
-export async function discoverServerFunctionEndpointFromFile(manifestPath, readFileImpl = readFile) {
+export async function discoverServerFunctionEndpointFromFile(manifestPath, readFileImpl = readFile, functionName = OBSERVER_FUNCTION_NAME) {
   if (typeof manifestPath !== 'string' || !manifestPath.trim()) {
     throw new IsolatedDriverError('MANIFEST_MISSING', 'A generated server-function manifest path is required.')
   }
   try {
-    return discoverServerFunctionEndpoint(await readFileImpl(manifestPath, 'utf8'))
+    return discoverServerFunctionEndpoint(await readFileImpl(manifestPath, 'utf8'), functionName)
   } catch (error) {
     if (error instanceof IsolatedDriverError) throw error
     throw new IsolatedDriverError('MANIFEST_READ_FAILED', 'The generated server-function manifest could not be read.', error)
@@ -115,9 +116,9 @@ export function createIsolatedLifecycleHttpDriver({ backendRef, origin, approved
   const safeOrigin = requireApprovedAppOrigin(origin, approvedOrigin)
   if (typeof fetchImpl !== 'function') throw new IsolatedDriverError('MISSING_TRANSPORT', 'A fetch implementation is required.')
 
-  const endpointPromise = manifestSource !== undefined
-    ? Promise.resolve().then(() => discoverServerFunctionEndpoint(manifestSource))
-    : discoverServerFunctionEndpointFromFile(manifestPath, readFileImpl)
+  const discoverEndpoint = (functionName) => manifestSource !== undefined
+    ? Promise.resolve().then(() => discoverServerFunctionEndpoint(manifestSource, functionName))
+    : discoverServerFunctionEndpointFromFile(manifestPath, readFileImpl, functionName)
 
   async function invokeServerFunction(endpoint, session, data) {
     const bearer = requireBearer(session, 'Manager')
@@ -148,9 +149,9 @@ export function createIsolatedLifecycleHttpDriver({ backendRef, origin, approved
   }
 
   async function invokeSaveDraft({ session, data }) {
-    const endpoint = await endpointPromise
-    if (endpoint.functionName !== 'generateLifecycleDocumentDraft_createServerFn_handler') {
-      throw new IsolatedDriverError('SAVE_DRAFT_ENDPOINT_UNRESOLVED', 'The generated manifest does not resolve the reviewed SaveDraft endpoint.')
+    let endpoint
+    try { endpoint = await discoverEndpoint(SAVE_DRAFT_FUNCTION_NAME) } catch (error) {
+      throw new IsolatedDriverError('SAVE_DRAFT_ENDPOINT_UNRESOLVED', 'The generated manifest does not resolve the reviewed SaveDraft endpoint.', error)
     }
     return invokeServerFunction(endpoint, session, data)
   }
@@ -190,7 +191,7 @@ export function createIsolatedLifecycleHttpDriver({ backendRef, origin, approved
     }
     let endpoint
     try {
-      endpoint = await endpointPromise
+      endpoint = await discoverEndpoint(OBSERVER_FUNCTION_NAME)
     } catch (error) {
       observation.capabilities.deploymentObservation = blocked('generated_observer_endpoint_unresolved')
       return observation
