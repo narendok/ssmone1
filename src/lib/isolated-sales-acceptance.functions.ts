@@ -8,5 +8,5 @@ export const getIsolatedSalesAcceptancePreflight = createServerFn({ method: "POS
   .inputValidator((data) => isolatedSalesAcceptancePreflightSchema.parse(data))
   .handler(({ data, context }) => {
     if (!context.userId) throw new Error("Unauthorized");
-    return isolatedSalesAcceptancePreflight(data.projectRef);
+    return isolatedSalesAcceptancePreflight(data.projectRef, process.env["SUPABASE_URL"]);
   });
