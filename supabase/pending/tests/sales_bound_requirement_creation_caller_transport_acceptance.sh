@@ -131,8 +131,8 @@ require_preflight() {
   require_preflight_capability "authoritative-isolated-target"
   require_preflight_capability "authenticated-caller-availability"
   require_preflight_capability "requirement-create-replay-graph"
-  require_preflight_capability "requirement-create-source-version-graph"
-  require_preflight_capability "requirement-create-rollback-graph-absent"
+  # Positive receipt readback cannot prove history or absence. Those assertions remain
+  # explicitly BLOCKED until independently scoped contracts are reviewed and deployed.
   require_preflight_capability "commercial-receipt-readback"
   require_preflight_capability "reviewer-response-readback"
   require_preflight_capability "baseline-receipt-readback"
@@ -191,10 +191,10 @@ rollback_payload="$(create_payload "$ROLLBACK_REQUEST_KEY" "$MASTER_VERSION_ID" 
 if jq --arg failureInjection "$FAILURE_INJECTION_TOKEN" '. + {failureInjection:$failureInjection}' <<<"$rollback_payload" | call_sales >/dev/null 2>&1; then
   echo "Forced requirement audit rollback unexpectedly succeeded" >&2; exit 1
 fi
-# No request_key exists on the requirement or revision rows. Rollback proof requires the same
-# receipt-bound graph to be absent, including activity_log.after_data.request_key. If the scoped
-# read adapter cannot perform that documented join under the caller's RLS, it must say BLOCKED.
-assert_observed "requirement-create-rollback-graph-absent"
+# Absence is not proof. The positive receipt RPC intentionally cannot certify rollback
+# absence, so this assertion remains BLOCKED pending an independently scoped contract.
+echo "BLOCKED requirement-create-rollback-graph-absent: positive-only receipt readback cannot prove absence" >&2
+exit 69
 
 # Commercial contract assertions are deliberately executable only through the supplied
 # authenticated wrapper. The wrapper must return a JSON object containing `id` and

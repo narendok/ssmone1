@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
 import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability, salesBoundRequirementReadScopeSchema } from "./client-requirement-intake";
-import { observeSalesBoundRequirementReadback, salesBoundRequirementReadRequestSchema } from "./sales-bound-requirement-readback";
+import { createSalesBoundRequirementReadbackAdapter, observeSalesBoundRequirementReadback, salesBoundRequirementReadRequestSchema } from "./sales-bound-requirement-readback";
 
 const pendingSql = readFileSync("supabase/pending/20261005_client_requirement_intake.sql", "utf8");
 const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_intake_acceptance.sql", "utf8");
@@ -257,14 +257,14 @@ describe("client requirement intake contract", () => {
     expect(salesBoundTransportHarness).toContain('kind:"sales-bound-requirement-read"');
     expect(salesBoundTransportHarness).toContain('scope:{opportunityId:$opportunityId,customerId:$customerId,masterSpecificationVersionId:$masterSpecificationVersionId,requestKey:$requestKey,rollbackRequestKey:$rollbackRequestKey}');
     expect(salesBoundTransportHarness).toContain('assert_observed "requirement-create-replay-graph"');
-    expect(salesBoundTransportHarness).toContain('assert_observed "requirement-create-rollback-graph-absent"');
+    expect(salesBoundTransportHarness).toContain('BLOCKED requirement-create-rollback-graph-absent: positive-only receipt readback cannot prove absence');
     expect(salesBoundTransportHarness).toContain('assert_observed "commercial-receipt-readback"');
     expect(salesBoundTransportHarness).toContain('assert_observed "reviewer-response-readback"');
     expect(salesBoundTransportHarness).toContain('assert_observed "baseline-receipt-readback"');
     expect(salesBoundTransportHarness).toContain('assert_observed "requirement-create-concurrency-persisted-barrier"');
     expect(salesBoundTransportHarness).not.toContain("assert_blocked()");
     expect(salesBoundTransportHarness).toContain("receipt.request_key -> receipt.requirement_id -> requirement.id -> revision.requirement_id");
-    expect(salesBoundTransportHarness).toContain("activity_log.after_data.request_key");
+    expect(salesBoundTransportHarness).toContain("audit is linked by entity_id and its after_data.request_key");
     expect(salesBoundTransportHarness).not.toContain('"customer_requirements" 1 "request_key=$REQUEST_KEY"');
     expect(salesBoundTransportHarness).not.toContain('"customer_requirement_revisions" 0 "request_key=$ROLLBACK_REQUEST_KEY"');
     expect(salesBoundTransportHarness).toContain('"Different actor replay unexpectedly succeeded"');
@@ -312,6 +312,46 @@ describe("client requirement intake contract", () => {
     });
   });
 
+  it("binds only the reviewed positive RPC and blocks malformed, duplicate, mismatched, absent, and unsupported evidence", async () => {
+    const scope = {
+      opportunityId: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8",
+      customerId: "dfd5f3f8-0caf-46cb-bf16-436a1c063650",
+      masterSpecificationVersionId: "9ce5a383-9ebf-430e-9bba-2e550c20fe3e",
+      requestKey: "0741a6a9-8f32-4e68-bdd4-d1a56250e603",
+      rollbackRequestKey: "2639f63b-dc03-44a8-8cbd-b3c56f06f447",
+    };
+    const request = { kind: "sales-bound-requirement-read" as const, assertion: "requirement-create-replay-graph" as const, scope };
+    const row = {
+      request_key: scope.requestKey,
+      requirement_id: "e5ca7061-aa3d-4d60-a2f4-6e4b1e0a3bae",
+      revision_id: "a8a2f2b9-3b20-47f4-a9ca-0bf82fb4a1cd",
+      revision_number: 1,
+      audit_id: "ecfd0f8a-3cb2-497f-8d5b-c6c72003ef36",
+      opportunity_id: scope.opportunityId,
+      customer_id: scope.customerId,
+      master_specification_version_id: scope.masterSpecificationVersionId,
+      master_specification_version_number: 1,
+    };
+    const observedAdapter = createSalesBoundRequirementReadbackAdapter({
+      enabled: true,
+      callerRlsRpc: { rpc: async (name, args) => {
+        expect(name).toBe("read_sales_bound_requirement_creation_receipt");
+        expect(args).toEqual({ p_opportunity_id: scope.opportunityId, p_customer_id: scope.customerId, p_master_specification_version_id: scope.masterSpecificationVersionId, p_request_key: scope.requestKey });
+        return { data: [row], error: null };
+      } },
+    });
+    await expect(observedAdapter.observe(request)).resolves.toEqual({ status: "OBSERVED", assertion: "requirement-create-replay-graph", ok: true });
+
+    for (const data of [[], [{ ...row, customer_id: "2e0f1f6d-bb6a-4bb4-b862-9ab0e8e5c6c3" }], [row, row], [{ ...row, revision_number: 2 }]]) {
+      const adapter = createSalesBoundRequirementReadbackAdapter({ enabled: true, callerRlsRpc: { rpc: async () => ({ data, error: null }) } });
+      await expect(adapter.observe(request)).resolves.toMatchObject({ status: "BLOCKED" });
+    }
+    const deniedAdapter = createSalesBoundRequirementReadbackAdapter({ enabled: true, callerRlsRpc: { rpc: async () => ({ data: null, error: { message: "denied" } }) } });
+    await expect(deniedAdapter.observe(request)).resolves.toMatchObject({ status: "BLOCKED" });
+    await expect(observedAdapter.observe({ ...request, assertion: "requirement-create-source-version-graph" })).resolves.toMatchObject({ status: "BLOCKED", missingContract: expect.stringContaining("positive-only") });
+    await expect(observedAdapter.observe({ ...request, assertion: "requirement-create-rollback-graph-absent" })).resolves.toMatchObject({ status: "BLOCKED", missingContract: expect.stringContaining("positive-only") });
+  });
+
   it("keeps the pending receipt readback narrowly actor-bound and graph-complete without granting receipt SELECT", () => {
     expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.read_sales_bound_requirement_creation_receipt");
     expect(salesBoundSql).toContain("v_actor_id uuid := auth.uid()");
@@ -320,9 +360,13 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("opportunity.id = p_opportunity_id");
     expect(salesBoundSql).toContain("opportunity.customer_id = p_customer_id");
     expect(salesBoundSql).toContain("version.id = p_master_specification_version_id");
+    expect(salesBoundSql).toContain("revision.requirement_data #>> '{source,opportunity_id}'");
+    expect(salesBoundSql).toContain("revision.requirement_data #>> '{source,customer_id}'");
     expect(salesBoundSql).toContain("revision.requirement_data #>> '{source,master_specification_version_id}'");
-    expect(salesBoundSql).toContain("audit.after_data #>> '{request_key}'");
-    expect(salesBoundSql).toContain("audit.after_data #>> '{revision_number}' = '1'");
+    expect(salesBoundSql).toContain("revision.requirement_data #>> '{source,master_specification_version_number}'");
+    expect(salesBoundSql).toContain("IF v_audit_count <> 1 THEN");
+    expect(salesBoundSql).toContain("Positive scoped receipt graph is unavailable or incomplete");
+    expect(salesBoundSql).toContain("rollback absence and source-version history require separately reviewed scoped");
     expect(salesBoundSql).toContain("REVOKE ALL ON FUNCTION public.read_sales_bound_requirement_creation_receipt(uuid, uuid, uuid, uuid) FROM PUBLIC, anon;");
     expect(salesBoundSql).toContain("GRANT EXECUTE ON FUNCTION public.read_sales_bound_requirement_creation_receipt(uuid, uuid, uuid, uuid) TO authenticated, service_role;");
     expect(salesBoundSql).toContain("REVOKE ALL ON TABLE public.sales_requirement_creation_requests FROM PUBLIC, anon, authenticated;");
@@ -337,8 +381,8 @@ describe("client requirement intake contract", () => {
     expect(salesBoundTransportHarness).toContain('"authoritative-isolated-target"');
     expect(salesBoundTransportHarness).toContain('"authenticated-caller-availability"');
     expect(salesBoundTransportHarness).toContain('"requirement-create-replay-graph"');
-    expect(salesBoundTransportHarness).toContain('"requirement-create-source-version-graph"');
-    expect(salesBoundTransportHarness).toContain('"requirement-create-rollback-graph-absent"');
+    expect(salesBoundTransportHarness).not.toContain('require_preflight_capability "requirement-create-source-version-graph"');
+    expect(salesBoundTransportHarness).not.toContain('require_preflight_capability "requirement-create-rollback-graph-absent"');
     expect(salesBoundTransportHarness).toContain('"commercial-receipt-readback"');
     expect(salesBoundTransportHarness).toContain('"reviewer-response-readback"');
     expect(salesBoundTransportHarness).toContain('"baseline-receipt-readback"');
