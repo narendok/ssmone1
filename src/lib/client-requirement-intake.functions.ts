@@ -31,6 +31,7 @@ export const recordAssignedFeasibility = createServerFn({ method: "POST" })
     await requireEngineeringManage(sb, context.userId);
     const { data: review, error } = await sb.rpc("record_requirement_feasibility_response", {
       p_review_id: data.reviewId,
+      p_request_key: data.requestKey,
       p_status: data.verdict,
       p_findings: data.findings,
       p_assumptions: data.assumptions,
