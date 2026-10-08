@@ -3,23 +3,27 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   blockedLifecycleDeploymentObservation,
+  observeScopedLifecycleReadback,
+  type ScopedLifecycleReadClient,
   validateLifecycleTarget,
 } from "./lifecycle-deployment-observation";
 
-const requestSchema = z.object({ backendRef: z.string().trim().min(1) });
+const requestSchema = z.object({
+  backendRef: z.string().trim().min(1),
+  projectId: z.string().uuid(),
+  requestKey: z.string().uuid(),
+});
 
 /**
  * Authenticated, read-only acceptance-observer boundary. It is intentionally
- * BLOCKED until a reviewed deployment adapter can independently inspect the
- * deployed RPC catalog, storage capability, and persisted readback evidence.
- * 
- * Strict configured-target validation ensures we never accidentally expose
- * production data or treat the original backend as an isolated acceptance target.
+ * It only reads a caller-RLS-scoped project/request receipt and its linked
+ * governed records. RPC catalog, physical storage, and audit evidence remain
+ * BLOCKED because no safe read-only contract exists for those capabilities.
  */
 export const getLifecycleDeploymentObservation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data) => requestSchema.parse(data))
-  .handler(({ data, context }) => {
+  .handler(async ({ data, context }) => {
     if (!context.userId) throw new Error("Unauthorized");
 
     // Strictly validate the target before any database or further logic.
@@ -33,5 +37,26 @@ export const getLifecycleDeploymentObservation = createServerFn({ method: "POST"
       throw new Error(validation.reason);
     }
 
-    return blockedLifecycleDeploymentObservation(data.backendRef);
+    const report = blockedLifecycleDeploymentObservation(data.backendRef);
+    const readback = await observeScopedLifecycleReadback(
+      context.supabase as unknown as ScopedLifecycleReadClient,
+      data,
+    );
+    const complete = readback.receipt.status === "OBSERVED"
+      && readback.source.status === "OBSERVED"
+      && readback.generatedNode.status === "OBSERVED"
+      && readback.generatedRevision.status === "OBSERVED"
+      && readback.controlledRegister.status === "OBSERVED"
+      && readback.storageMetadata.status === "OBSERVED";
+    return {
+      ...report,
+      missingContract: "physical_storage_and_audit_readback_contract",
+      capabilities: {
+        ...report.capabilities,
+        observabilityReadback: complete
+          ? { status: "OBSERVED" as const }
+          : { status: "BLOCKED" as const, reason: "scoped_governed_readback_incomplete" },
+      },
+      readback,
+    };
   });
