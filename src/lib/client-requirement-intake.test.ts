@@ -364,6 +364,8 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("revision.requirement_data #>> '{source,customer_id}'");
     expect(salesBoundSql).toContain("revision.requirement_data #>> '{source,master_specification_version_id}'");
     expect(salesBoundSql).toContain("revision.requirement_data #>> '{source,master_specification_version_number}'");
+    expect(salesBoundSql).toContain("SELECT count(*), min(audit.id::text)::uuid");
+    expect(salesBoundSql).not.toContain("SELECT count(*), min(audit.id)\n");
     expect(salesBoundSql).toContain("IF v_audit_count <> 1 THEN");
     expect(salesBoundSql).toContain("Positive scoped receipt graph is unavailable or incomplete");
     expect(salesBoundSql).toContain("rollback absence and source-version history require separately reviewed scoped");
