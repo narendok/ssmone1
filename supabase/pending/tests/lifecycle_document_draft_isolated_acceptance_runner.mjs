@@ -161,7 +161,13 @@ async function main() {
     throw new Error("Refusing mutation mode without LIFECYCLE_ACCEPTANCE_MUTATE=YES.");
   }
   const driverPath = process.env.LIFECYCLE_ACCEPTANCE_DRIVER;
-  const driver = driverPath ? await import(pathToFileURL(driverPath).href) : undefined;
+  const driverModule = driverPath ? await import(pathToFileURL(driverPath).href) : undefined;
+  const driver = driverModule?.createDriver
+    ? driverModule.createDriver({
+        backendRef: process.env.ACCEPTANCE_BACKEND_REF,
+        origin: process.env.ACCEPTANCE_APPLICATION_ORIGIN,
+      })
+    : driverModule;
   const result = await runWithDriver({ mode, driver });
   // Results contain statuses/counts only. They never contain session values.
   console.log(JSON.stringify(result));
