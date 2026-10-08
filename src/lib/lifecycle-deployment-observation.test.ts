@@ -21,13 +21,24 @@ const ids = {
   audit: "00000000-0000-0000-0000-000000000008",
 };
 
-function scopedClient(rows: Record<string, Record<string, unknown> | null>, errors: Record<string, string> = {}) {
+function scopedClient(
+  rows: Record<string, Record<string, unknown> | null>,
+  errors: Record<string, string> = {},
+  thrownTables: string[] = [],
+) {
+  const calls: Array<{ table: string; columns?: string; filters: Array<[string, string]> }> = [];
   return {
+    calls,
     from(table: string) {
+      const call = { table, filters: [] as Array<[string, string]> };
+      calls.push(call);
       return {
-        select() { return this; },
-        eq() { return this; },
-        maybeSingle: async () => ({ data: rows[table] ?? null, error: errors[table] ? { message: errors[table] } : null }),
+        select(columns: string) { call.columns = columns; return this; },
+        eq(column: string, value: string) { call.filters.push([column, value]); return this; },
+        maybeSingle: async () => {
+          if (thrownTables.includes(table)) throw new Error("Bearer eyJsecret.should-never-leak");
+          return { data: rows[table] ?? null, error: errors[table] ? { message: errors[table] } : null };
+        },
       };
     },
   };
@@ -123,7 +134,8 @@ describe("lifecycle deployment observation boundary", () => {
   });
 
   it("observes only a complete caller-RLS-scoped receipt lineage", async () => {
-    const readback = await observeScopedLifecycleReadback(scopedClient(completeRows()), { projectId: ids.project, requestKey: ids.request });
+    const client = scopedClient(completeRows());
+    const readback = await observeScopedLifecycleReadback(client, { projectId: ids.project, requestKey: ids.request, expectedSource: { templateId: ids.template, templateDocumentRevisionId: ids.source, sourceFingerprint: "f".repeat(64) } });
     expect(readback.receipt.status).toBe("OBSERVED");
     expect(readback.source.status).toBe("OBSERVED");
     expect(readback.generatedNode.status).toBe("OBSERVED");
@@ -131,6 +143,13 @@ describe("lifecycle deployment observation boundary", () => {
     expect(readback.controlledRegister.status).toBe("OBSERVED");
     expect(readback.storageMetadata.status).toBe("OBSERVED");
     expect(readback.audit).toEqual({ status: "BLOCKED", reason: "activity_log_has_no_scoped_authenticated_read_contract" });
+    expect(client.calls).toEqual(expect.arrayContaining([
+      expect.objectContaining({ table: "project_lifecycle_document_drafts", filters: [["project_id", ids.project], ["request_key", ids.request]] }),
+      expect.objectContaining({ table: "department_process_template_document_revisions", filters: [["id", ids.source]] }),
+      expect.objectContaining({ table: "drive_nodes", filters: [["id", ids.node]] }),
+      expect.objectContaining({ table: "drive_node_revisions", filters: [["id", ids.revision]] }),
+      expect.objectContaining({ table: "document_control_registers", filters: [["id", ids.register]] }),
+    ]));
   });
 
   it("fails closed for an RLS-hidden receipt without scanning another record", async () => {
@@ -140,8 +159,9 @@ describe("lifecycle deployment observation boundary", () => {
   });
 
   it("reports receipt query denial without exposing data", async () => {
-    const readback = await observeScopedLifecycleReadback(scopedClient({}, { project_lifecycle_document_drafts: "permission denied" }), { projectId: ids.project, requestKey: ids.request });
-    expect(readback.receipt).toEqual({ status: "BLOCKED", reason: "receipt_read_denied_or_failed: permission denied" });
+    const readback = await observeScopedLifecycleReadback(scopedClient({}, { project_lifecycle_document_drafts: "permission denied Bearer eyJsecret.should-never-leak" }), { projectId: ids.project, requestKey: ids.request });
+    expect(readback.receipt).toEqual({ status: "BLOCKED", reason: "receipt_read_denied_or_failed" });
+    expect(JSON.stringify(readback)).not.toContain("eyJsecret");
   });
 
   it("blocks missing source and mismatched storage metadata", async () => {
@@ -151,6 +171,33 @@ describe("lifecycle deployment observation boundary", () => {
     const readback = await observeScopedLifecycleReadback(scopedClient(rows), { projectId: ids.project, requestKey: ids.request });
     expect(readback.source).toEqual({ status: "BLOCKED", reason: "immutable_source_not_found_or_hidden_by_rls" });
     expect(readback.storageMetadata).toEqual({ status: "BLOCKED", reason: "storage_metadata_link_or_checksum_mismatch" });
+  });
+
+  it("blocks malformed byte evidence and does not equate missing sizes", async () => {
+    const rows = completeRows();
+    (rows.project_lifecycle_document_drafts as Record<string, unknown>).size_bytes = undefined;
+    const readback = await observeScopedLifecycleReadback(scopedClient(rows), { projectId: ids.project, requestKey: ids.request });
+    expect(readback.receipt).toEqual({ status: "BLOCKED", reason: "receipt_has_invalid_storage_or_source_evidence" });
+  });
+
+  it("requires an exact expected immutable source when supplied", async () => {
+    const readback = await observeScopedLifecycleReadback(scopedClient(completeRows()), { projectId: ids.project, requestKey: ids.request, expectedSource: { templateId: ids.template, templateDocumentRevisionId: ids.source, sourceFingerprint: "a".repeat(64) } });
+    expect(readback.receipt).toEqual({ status: "BLOCKED", reason: "receipt_source_evidence_mismatch" });
+  });
+
+  it("does not issue queries for invalid scoped input", async () => {
+    const client = scopedClient(completeRows());
+    const readback = await observeScopedLifecycleReadback(client, { projectId: "not-a-uuid", requestKey: ids.request });
+    expect(readback.receipt).toEqual({ status: "BLOCKED", reason: "invalid_scoped_observation_input" });
+    expect(client.calls).toEqual([]);
+  });
+
+  it("turns thrown receipt and linked reads into fixed blocked codes", async () => {
+    const receiptTransport = await observeScopedLifecycleReadback(scopedClient({}, {}, ["project_lifecycle_document_drafts"]), { projectId: ids.project, requestKey: ids.request });
+    expect(receiptTransport.receipt).toEqual({ status: "BLOCKED", reason: "receipt_read_transport_failed" });
+    expect(JSON.stringify(receiptTransport)).not.toContain("eyJsecret");
+    const linkedTransport = await observeScopedLifecycleReadback(scopedClient(completeRows(), {}, ["drive_nodes"]), { projectId: ids.project, requestKey: ids.request });
+    expect(linkedTransport.generatedNode).toEqual({ status: "BLOCKED", reason: "linked_read_transport_failed" });
   });
 
   it("preserves the exact pending actor-operation contract without treating it as deployed", () => {
