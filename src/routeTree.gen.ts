@@ -39,6 +39,7 @@ import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin.index'
 import { Route as AuthenticatedAdminDriveOwnershipRouteImport } from './routes/_authenticated/admin.drive-ownership'
+import { Route as AuthenticatedAdminLifecycleObservationRouteImport } from './routes/_authenticated/admin.lifecycle-observation'
 import { Route as AuthenticatedAssetsIndexRouteImport } from './routes/_authenticated/assets.index'
 import { Route as AuthenticatedCalibrationIndexRouteImport } from './routes/_authenticated/calibration.index'
 import { Route as AuthenticatedCategorySlugRouteImport } from './routes/_authenticated/category.$slug'
@@ -104,7 +105,6 @@ import { Route as AuthenticatedSecurityIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsCategoriesRouteImport } from './routes/_authenticated/settings.categories'
 import { Route as AuthenticatedSettingsDriveRouteImport } from './routes/_authenticated/settings.drive'
 import { Route as AuthenticatedSettingsLifecycleRouteImport } from './routes/_authenticated/settings.lifecycle'
-import { Route as AuthenticatedSettingsLifecycleAcceptanceRouteImport } from './routes/_authenticated/settings.lifecycle-acceptance'
 import { Route as AuthenticatedSettingsProjectsRouteImport } from './routes/_authenticated/settings.projects'
 import { Route as AuthenticatedStoresInventoryRouteImport } from './routes/_authenticated/stores.inventory'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks.index'
@@ -266,6 +266,12 @@ const AuthenticatedAdminDriveOwnershipRoute =
   AuthenticatedAdminDriveOwnershipRouteImport.update({
     id: '/drive-ownership',
     path: '/drive-ownership',
+    getParentRoute: () => AuthenticatedAdminRoute,
+  } as any)
+const AuthenticatedAdminLifecycleObservationRoute =
+  AuthenticatedAdminLifecycleObservationRouteImport.update({
+    id: '/lifecycle-observation',
+    path: '/lifecycle-observation',
     getParentRoute: () => AuthenticatedAdminRoute,
   } as any)
 const AuthenticatedAssetsIndexRoute =
@@ -647,12 +653,6 @@ const AuthenticatedSettingsLifecycleRoute =
     path: '/settings/lifecycle',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedSettingsLifecycleAcceptanceRoute =
-  AuthenticatedSettingsLifecycleAcceptanceRouteImport.update({
-    id: '/settings/lifecycle-acceptance',
-    path: '/settings/lifecycle-acceptance',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedSettingsProjectsRoute =
   AuthenticatedSettingsProjectsRouteImport.update({
     id: '/settings/projects',
@@ -735,6 +735,7 @@ export interface FileRoutesByFullPath {
   '/share/$token': typeof ShareTokenRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/admin/drive-ownership': typeof AuthenticatedAdminDriveOwnershipRoute
+  '/admin/lifecycle-observation': typeof AuthenticatedAdminLifecycleObservationRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/customer-service/complaints': typeof AuthenticatedCustomerServiceComplaintsRoute
   '/customer-service/field-failures': typeof AuthenticatedCustomerServiceFieldFailuresRoute
@@ -788,7 +789,6 @@ export interface FileRoutesByFullPath {
   '/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
   '/settings/drive': typeof AuthenticatedSettingsDriveRoute
   '/settings/lifecycle': typeof AuthenticatedSettingsLifecycleRoute
-  '/settings/lifecycle-acceptance': typeof AuthenticatedSettingsLifecycleAcceptanceRoute
   '/settings/projects': typeof AuthenticatedSettingsProjectsRoute
   '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
@@ -838,6 +838,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/admin/drive-ownership': typeof AuthenticatedAdminDriveOwnershipRoute
+  '/admin/lifecycle-observation': typeof AuthenticatedAdminLifecycleObservationRoute
   '/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/customer-service/complaints': typeof AuthenticatedCustomerServiceComplaintsRoute
   '/customer-service/field-failures': typeof AuthenticatedCustomerServiceFieldFailuresRoute
@@ -891,7 +892,6 @@ export interface FileRoutesByTo {
   '/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
   '/settings/drive': typeof AuthenticatedSettingsDriveRoute
   '/settings/lifecycle': typeof AuthenticatedSettingsLifecycleRoute
-  '/settings/lifecycle-acceptance': typeof AuthenticatedSettingsLifecycleAcceptanceRoute
   '/settings/projects': typeof AuthenticatedSettingsProjectsRoute
   '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
@@ -946,6 +946,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/_authenticated/admin/drive-ownership': typeof AuthenticatedAdminDriveOwnershipRoute
+  '/_authenticated/admin/lifecycle-observation': typeof AuthenticatedAdminLifecycleObservationRoute
   '/_authenticated/category/$slug': typeof AuthenticatedCategorySlugRoute
   '/_authenticated/customer-service/complaints': typeof AuthenticatedCustomerServiceComplaintsRoute
   '/_authenticated/customer-service/field-failures': typeof AuthenticatedCustomerServiceFieldFailuresRoute
@@ -999,7 +1000,6 @@ export interface FileRoutesById {
   '/_authenticated/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
   '/_authenticated/settings/drive': typeof AuthenticatedSettingsDriveRoute
   '/_authenticated/settings/lifecycle': typeof AuthenticatedSettingsLifecycleRoute
-  '/_authenticated/settings/lifecycle-acceptance': typeof AuthenticatedSettingsLifecycleAcceptanceRoute
   '/_authenticated/settings/projects': typeof AuthenticatedSettingsProjectsRoute
   '/_authenticated/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/_authenticated/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
@@ -1054,6 +1054,7 @@ export interface FileRouteTypes {
     | '/share/$token'
     | '/.lovable/oauth/consent'
     | '/admin/drive-ownership'
+    | '/admin/lifecycle-observation'
     | '/category/$slug'
     | '/customer-service/complaints'
     | '/customer-service/field-failures'
@@ -1107,7 +1108,6 @@ export interface FileRouteTypes {
     | '/settings/categories'
     | '/settings/drive'
     | '/settings/lifecycle'
-    | '/settings/lifecycle-acceptance'
     | '/settings/projects'
     | '/stores/inventory'
     | '/tasks/departments'
@@ -1157,6 +1157,7 @@ export interface FileRouteTypes {
     | '/'
     | '/.lovable/oauth/consent'
     | '/admin/drive-ownership'
+    | '/admin/lifecycle-observation'
     | '/category/$slug'
     | '/customer-service/complaints'
     | '/customer-service/field-failures'
@@ -1210,7 +1211,6 @@ export interface FileRouteTypes {
     | '/settings/categories'
     | '/settings/drive'
     | '/settings/lifecycle'
-    | '/settings/lifecycle-acceptance'
     | '/settings/projects'
     | '/stores/inventory'
     | '/tasks/departments'
@@ -1264,6 +1264,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/.lovable/oauth/consent'
     | '/_authenticated/admin/drive-ownership'
+    | '/_authenticated/admin/lifecycle-observation'
     | '/_authenticated/category/$slug'
     | '/_authenticated/customer-service/complaints'
     | '/_authenticated/customer-service/field-failures'
@@ -1317,7 +1318,6 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/categories'
     | '/_authenticated/settings/drive'
     | '/_authenticated/settings/lifecycle'
-    | '/_authenticated/settings/lifecycle-acceptance'
     | '/_authenticated/settings/projects'
     | '/_authenticated/stores/inventory'
     | '/_authenticated/tasks/departments'
@@ -1569,6 +1569,13 @@ declare module '@tanstack/react-router' {
       path: '/drive-ownership'
       fullPath: '/admin/drive-ownership'
       preLoaderRoute: typeof AuthenticatedAdminDriveOwnershipRouteImport
+      parentRoute: typeof AuthenticatedAdminRoute
+    }
+    '/_authenticated/admin/lifecycle-observation': {
+      id: '/_authenticated/admin/lifecycle-observation'
+      path: '/lifecycle-observation'
+      fullPath: '/admin/lifecycle-observation'
+      preLoaderRoute: typeof AuthenticatedAdminLifecycleObservationRouteImport
       parentRoute: typeof AuthenticatedAdminRoute
     }
     '/_authenticated/assets/': {
@@ -2026,13 +2033,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsLifecycleRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/settings/lifecycle-acceptance': {
-      id: '/_authenticated/settings/lifecycle-acceptance'
-      path: '/settings/lifecycle-acceptance'
-      fullPath: '/settings/lifecycle-acceptance'
-      preLoaderRoute: typeof AuthenticatedSettingsLifecycleAcceptanceRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/settings/projects': {
       id: '/_authenticated/settings/projects'
       path: '/settings/projects'
@@ -2101,11 +2101,14 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedAdminRouteChildren {
   AuthenticatedAdminDriveOwnershipRoute: typeof AuthenticatedAdminDriveOwnershipRoute
+  AuthenticatedAdminLifecycleObservationRoute: typeof AuthenticatedAdminLifecycleObservationRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
 }
 
 const AuthenticatedAdminRouteChildren: AuthenticatedAdminRouteChildren = {
   AuthenticatedAdminDriveOwnershipRoute: AuthenticatedAdminDriveOwnershipRoute,
+  AuthenticatedAdminLifecycleObservationRoute:
+    AuthenticatedAdminLifecycleObservationRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
 }
 
@@ -2218,7 +2221,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsCategoriesRoute: typeof AuthenticatedSettingsCategoriesRoute
   AuthenticatedSettingsDriveRoute: typeof AuthenticatedSettingsDriveRoute
   AuthenticatedSettingsLifecycleRoute: typeof AuthenticatedSettingsLifecycleRoute
-  AuthenticatedSettingsLifecycleAcceptanceRoute: typeof AuthenticatedSettingsLifecycleAcceptanceRoute
   AuthenticatedSettingsProjectsRoute: typeof AuthenticatedSettingsProjectsRoute
   AuthenticatedStoresInventoryRoute: typeof AuthenticatedStoresInventoryRoute
   AuthenticatedTasksDepartmentsRoute: typeof AuthenticatedTasksDepartmentsRoute
@@ -2313,8 +2315,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsCategoriesRoute: AuthenticatedSettingsCategoriesRoute,
   AuthenticatedSettingsDriveRoute: AuthenticatedSettingsDriveRoute,
   AuthenticatedSettingsLifecycleRoute: AuthenticatedSettingsLifecycleRoute,
-  AuthenticatedSettingsLifecycleAcceptanceRoute:
-    AuthenticatedSettingsLifecycleAcceptanceRoute,
   AuthenticatedSettingsProjectsRoute: AuthenticatedSettingsProjectsRoute,
   AuthenticatedStoresInventoryRoute: AuthenticatedStoresInventoryRoute,
   AuthenticatedTasksDepartmentsRoute: AuthenticatedTasksDepartmentsRoute,
