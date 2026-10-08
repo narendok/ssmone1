@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   BLOCKED_DEPLOYMENT_OBSERVATION,
-  ISOLATED_BACKEND_REF,
   IsolatedDriverError,
   LIFECYCLE_SAVE_DRAFT_PATH,
   createIsolatedLifecycleHttpDriver,
   redactSensitive,
 } from './lifecycle_document_draft_isolated_http_driver.mjs'
+import { ISOLATED_BACKEND_REF } from './lifecycle_document_draft_isolated_acceptance_runner.mjs'
 
 const origin = 'https://isolated.example.test'
 const session = 'eyJheader.verySecretPayload.signature'
