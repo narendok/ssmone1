@@ -56,8 +56,8 @@ describe("lifecycle deployment observation boundary", () => {
       }
     });
 
-    it("refuses unknown backends even if they match the environment", () => {
-      const unknownRef = "unknown-backend-ref";
+    it("refuses a canonical unknown backend even if it matches the environment", () => {
+      const unknownRef = "unknownbackendref00000";
       const unknownUrl = `https://${unknownRef}.supabase.co`;
       const result = validateLifecycleTarget(unknownRef, unknownUrl);
       expect(result.valid).toBe(false);
