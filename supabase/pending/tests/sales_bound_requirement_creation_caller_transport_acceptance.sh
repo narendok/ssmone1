@@ -19,6 +19,7 @@ set -euo pipefail
 : "${OPPORTUNITY_ID:?}" "${CUSTOMER_ID:?}" "${MASTER_VERSION_ID:?}" "${SPECIFICATION_ID:?}"
 : "${MISMATCHED_CUSTOMER_ID:?A real customer UUID that does not match OPPORTUNITY_ID}"
 : "${REQUEST_KEY:?}" "${REQUEST_KEY_B:?}" "${EXPECTED_VERSION:?}"
+: "${ROLLBACK_REQUEST_KEY:?}"
 
 if [[ "$ISOLATED_TARGET_NAME" != "$APPROVED_ISOLATED_TARGET_NAME" ]]; then
   echo "Refusing unapproved isolated target" >&2
@@ -178,7 +179,7 @@ fi
 
 # The runner supplies a deliberately rejected operation with an approved isolated
 # failure-injection key. Every mutation must roll back, including its receipt/audit.
-: "${ROLLBACK_REQUEST_KEY:?}" "${FAILURE_INJECTION_TOKEN:?}"
+: "${FAILURE_INJECTION_TOKEN:?}"
 rollback_payload="$(create_payload "$ROLLBACK_REQUEST_KEY" "$MASTER_VERSION_ID" "Forced rollback")"
 if jq --arg failureInjection "$FAILURE_INJECTION_TOKEN" '. + {failureInjection:$failureInjection}' <<<"$rollback_payload" | call_sales >/dev/null 2>&1; then
   echo "Forced requirement audit rollback unexpectedly succeeded" >&2; exit 1
