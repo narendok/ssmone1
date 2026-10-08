@@ -1,7 +1,9 @@
 import { z } from "zod";
 import {
+  salesBaselineReadScopeSchema,
   salesCommercialReadScopeSchema,
   salesBoundRequirementReadScopeSchema,
+  type SalesBaselineReadScope,
   type SalesCommercialReadScope,
   type SalesBoundRequirementReadScope,
 } from "./client-requirement-intake";
@@ -196,4 +198,89 @@ export async function observeSalesCommercialReadback(
 
 export function salesCommercialReadScope(scope: SalesCommercialReadScope): SalesCommercialReadScope {
   return salesCommercialReadScopeSchema.parse(scope);
+}
+
+export const salesBaselineReadRequestSchema = z.object({
+  kind: z.literal("sales-baseline-read"),
+  assertion: z.literal("baseline-receipt-readback"),
+  scope: salesBaselineReadScopeSchema,
+});
+
+export type SalesBaselineReadRequest = z.infer<typeof salesBaselineReadRequestSchema>;
+
+export type SalesBaselineReadback = {
+  status: "OBSERVED" | "BLOCKED";
+  assertion: "baseline-receipt-readback";
+  ok?: true;
+  missingContract?: string;
+};
+
+const baselinePendingReason = "The scoped caller-RLS Sales baseline receipt readback contract is pending isolated acceptance and deployment.";
+
+const baselineReceiptGraphRowSchema = z.object({
+  request_key: z.string().uuid(),
+  requirement_id: z.string().uuid(),
+  expected_revision_number: z.number().int().positive(),
+  source_revision_id: z.string().uuid(),
+  master_specification_version_id: z.string().uuid(),
+  master_specification_version_number: z.number().int().positive(),
+  baseline_id: z.string().uuid(),
+  audit_id: z.string().uuid(),
+}).strict();
+
+type BaselineReceiptGraphRow = z.infer<typeof baselineReceiptGraphRowSchema>;
+
+function blockedBaseline(missingContract: string): SalesBaselineReadback {
+  return { status: "BLOCKED", assertion: "baseline-receipt-readback", missingContract };
+}
+
+function validateBaselineReceiptGraph(row: BaselineReceiptGraphRow, scope: SalesBaselineReadScope): boolean {
+  return row.request_key === scope.requestKey
+    && row.requirement_id === scope.requirementId
+    && row.expected_revision_number === scope.expectedRevisionNumber
+    && row.source_revision_id === scope.sourceRevisionId
+    && row.master_specification_version_id === scope.masterSpecificationVersionId;
+}
+
+/**
+ * Concrete caller-RLS binding for the reviewed, positive-only baseline RPC. It stays opt-in
+ * until isolated acceptance and deployment separately approve it; it never uses an admin client
+ * and cannot prove rollback absence, reviewer history, or concurrent persistence.
+ */
+export function createSalesBaselineReadbackAdapter(input: {
+  callerRlsRpc: CallerRlsRpc;
+  enabled: boolean;
+}): { observe: (request: SalesBaselineReadRequest) => Promise<SalesBaselineReadback> } {
+  return {
+    async observe(request) {
+      const validated = salesBaselineReadRequestSchema.parse(request);
+      if (!input.enabled) return blockedBaseline(baselinePendingReason);
+
+      const response = await input.callerRlsRpc.rpc("read_sales_requirement_baseline_approval_receipt", {
+        p_requirement_id: validated.scope.requirementId,
+        p_expected_revision_number: String(validated.scope.expectedRevisionNumber),
+        p_source_revision_id: validated.scope.sourceRevisionId,
+        p_master_specification_version_id: validated.scope.masterSpecificationVersionId,
+        p_request_key: validated.scope.requestKey,
+      });
+      if (response.error) return blockedBaseline("The scoped positive baseline receipt RPC returned unavailable or denied evidence.");
+      const rows = z.array(baselineReceiptGraphRowSchema).safeParse(response.data);
+      if (!rows.success || rows.data.length !== 1 || !validateBaselineReceiptGraph(rows.data[0], validated.scope)) {
+        return blockedBaseline("The scoped positive baseline receipt RPC returned malformed, duplicate, mismatched, or incomplete graph evidence.");
+      }
+      return { status: "OBSERVED", assertion: "baseline-receipt-readback", ok: true };
+    },
+  };
+}
+
+/** Production remains disabled until the pending RPC is deployed and isolated acceptance approves this binding. */
+export async function observeSalesBaselineReadback(
+  request: SalesBaselineReadRequest,
+): Promise<SalesBaselineReadback> {
+  salesBaselineReadRequestSchema.parse(request);
+  return blockedBaseline(baselinePendingReason);
+}
+
+export function salesBaselineReadScope(scope: SalesBaselineReadScope): SalesBaselineReadScope {
+  return salesBaselineReadScopeSchema.parse(scope);
 }

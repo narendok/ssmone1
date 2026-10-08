@@ -54,6 +54,22 @@ assert_count() {
 
 assert_read() {
   local assertion="$1"
+  if [[ "$assertion" == "baseline-receipt-readback" ]]; then
+    jq -cn \
+      --arg requirementId "$REQUIREMENT_ID" \
+      --arg requestKey "$BASELINE_REQUEST_KEY" \
+      --arg sourceRevisionId "$SOURCE_REVISION_ID" \
+      --arg masterSpecificationVersionId "$MASTER_VERSION_ID" \
+      --argjson expectedRevisionNumber "$EXPECTED_VERSION" \
+      '{kind:"sales-baseline-read",assertion:"baseline-receipt-readback",scope:{requirementId:$requirementId,expectedRevisionNumber:$expectedRevisionNumber,sourceRevisionId:$sourceRevisionId,masterSpecificationVersionId:$masterSpecificationVersionId,requestKey:$requestKey}}' \
+      | read_assert \
+      | jq -e '
+          if .status == "OBSERVED" and .assertion == "baseline-receipt-readback" and .ok == true then .
+          elif .status == "BLOCKED" and (.missingContract | type == "string") and (.missingContract | length > 0) then .
+          else error("invalid read assertion response") end
+        '
+    return
+  fi
   if [[ "$assertion" == "commercial-receipt-readback" ]]; then
     jq -cn \
       --arg requirementId "$REQUIREMENT_ID" \

@@ -45,6 +45,17 @@ export const salesCommercialReadScopeSchema = z.object({
 
 export type SalesCommercialReadScope = z.infer<typeof salesCommercialReadScopeSchema>;
 
+/** Immutable identifiers required to inspect one protected baseline-approval receipt graph. */
+export const salesBaselineReadScopeSchema = z.object({
+  requirementId: z.string().uuid(),
+  expectedRevisionNumber: z.number().int().positive(),
+  sourceRevisionId: z.string().uuid(),
+  masterSpecificationVersionId: z.string().uuid(),
+  requestKey: z.string().uuid(),
+});
+
+export type SalesBaselineReadScope = z.infer<typeof salesBaselineReadScopeSchema>;
+
 export type ClientRequirementIntake = z.infer<typeof clientRequirementIntakeSchema>;
 export type FeasibilityResponse = z.infer<typeof feasibilityResponseSchema>;
 
