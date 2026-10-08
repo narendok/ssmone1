@@ -104,6 +104,7 @@ import { Route as AuthenticatedSecurityIndexRouteImport } from './routes/_authen
 import { Route as AuthenticatedSettingsCategoriesRouteImport } from './routes/_authenticated/settings.categories'
 import { Route as AuthenticatedSettingsDriveRouteImport } from './routes/_authenticated/settings.drive'
 import { Route as AuthenticatedSettingsLifecycleRouteImport } from './routes/_authenticated/settings.lifecycle'
+import { Route as AuthenticatedSettingsLifecycleAcceptanceRouteImport } from './routes/_authenticated/settings.lifecycle-acceptance'
 import { Route as AuthenticatedSettingsProjectsRouteImport } from './routes/_authenticated/settings.projects'
 import { Route as AuthenticatedStoresInventoryRouteImport } from './routes/_authenticated/stores.inventory'
 import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks.index'
@@ -646,6 +647,12 @@ const AuthenticatedSettingsLifecycleRoute =
     path: '/settings/lifecycle',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSettingsLifecycleAcceptanceRoute =
+  AuthenticatedSettingsLifecycleAcceptanceRouteImport.update({
+    id: '/settings/lifecycle-acceptance',
+    path: '/settings/lifecycle-acceptance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSettingsProjectsRoute =
   AuthenticatedSettingsProjectsRouteImport.update({
     id: '/settings/projects',
@@ -781,6 +788,7 @@ export interface FileRoutesByFullPath {
   '/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
   '/settings/drive': typeof AuthenticatedSettingsDriveRoute
   '/settings/lifecycle': typeof AuthenticatedSettingsLifecycleRoute
+  '/settings/lifecycle-acceptance': typeof AuthenticatedSettingsLifecycleAcceptanceRoute
   '/settings/projects': typeof AuthenticatedSettingsProjectsRoute
   '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
@@ -883,6 +891,7 @@ export interface FileRoutesByTo {
   '/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
   '/settings/drive': typeof AuthenticatedSettingsDriveRoute
   '/settings/lifecycle': typeof AuthenticatedSettingsLifecycleRoute
+  '/settings/lifecycle-acceptance': typeof AuthenticatedSettingsLifecycleAcceptanceRoute
   '/settings/projects': typeof AuthenticatedSettingsProjectsRoute
   '/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
@@ -990,6 +999,7 @@ export interface FileRoutesById {
   '/_authenticated/settings/categories': typeof AuthenticatedSettingsCategoriesRoute
   '/_authenticated/settings/drive': typeof AuthenticatedSettingsDriveRoute
   '/_authenticated/settings/lifecycle': typeof AuthenticatedSettingsLifecycleRoute
+  '/_authenticated/settings/lifecycle-acceptance': typeof AuthenticatedSettingsLifecycleAcceptanceRoute
   '/_authenticated/settings/projects': typeof AuthenticatedSettingsProjectsRoute
   '/_authenticated/stores/inventory': typeof AuthenticatedStoresInventoryRoute
   '/_authenticated/tasks/departments': typeof AuthenticatedTasksDepartmentsRoute
@@ -1097,6 +1107,7 @@ export interface FileRouteTypes {
     | '/settings/categories'
     | '/settings/drive'
     | '/settings/lifecycle'
+    | '/settings/lifecycle-acceptance'
     | '/settings/projects'
     | '/stores/inventory'
     | '/tasks/departments'
@@ -1199,6 +1210,7 @@ export interface FileRouteTypes {
     | '/settings/categories'
     | '/settings/drive'
     | '/settings/lifecycle'
+    | '/settings/lifecycle-acceptance'
     | '/settings/projects'
     | '/stores/inventory'
     | '/tasks/departments'
@@ -1305,6 +1317,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings/categories'
     | '/_authenticated/settings/drive'
     | '/_authenticated/settings/lifecycle'
+    | '/_authenticated/settings/lifecycle-acceptance'
     | '/_authenticated/settings/projects'
     | '/_authenticated/stores/inventory'
     | '/_authenticated/tasks/departments'
@@ -2013,6 +2026,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsLifecycleRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/settings/lifecycle-acceptance': {
+      id: '/_authenticated/settings/lifecycle-acceptance'
+      path: '/settings/lifecycle-acceptance'
+      fullPath: '/settings/lifecycle-acceptance'
+      preLoaderRoute: typeof AuthenticatedSettingsLifecycleAcceptanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/settings/projects': {
       id: '/_authenticated/settings/projects'
       path: '/settings/projects'
@@ -2198,6 +2218,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedSettingsCategoriesRoute: typeof AuthenticatedSettingsCategoriesRoute
   AuthenticatedSettingsDriveRoute: typeof AuthenticatedSettingsDriveRoute
   AuthenticatedSettingsLifecycleRoute: typeof AuthenticatedSettingsLifecycleRoute
+  AuthenticatedSettingsLifecycleAcceptanceRoute: typeof AuthenticatedSettingsLifecycleAcceptanceRoute
   AuthenticatedSettingsProjectsRoute: typeof AuthenticatedSettingsProjectsRoute
   AuthenticatedStoresInventoryRoute: typeof AuthenticatedStoresInventoryRoute
   AuthenticatedTasksDepartmentsRoute: typeof AuthenticatedTasksDepartmentsRoute
@@ -2292,6 +2313,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsCategoriesRoute: AuthenticatedSettingsCategoriesRoute,
   AuthenticatedSettingsDriveRoute: AuthenticatedSettingsDriveRoute,
   AuthenticatedSettingsLifecycleRoute: AuthenticatedSettingsLifecycleRoute,
+  AuthenticatedSettingsLifecycleAcceptanceRoute:
+    AuthenticatedSettingsLifecycleAcceptanceRoute,
   AuthenticatedSettingsProjectsRoute: AuthenticatedSettingsProjectsRoute,
   AuthenticatedStoresInventoryRoute: AuthenticatedStoresInventoryRoute,
   AuthenticatedTasksDepartmentsRoute: AuthenticatedTasksDepartmentsRoute,
