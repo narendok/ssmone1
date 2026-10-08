@@ -66,20 +66,15 @@ assert_read() {
 assert_observed() {
   local assertion="$1"
   local result
-  result="$(assert_read "$assertion")"
+  # An invalid adapter response is unavailable evidence, not a shell implementation
+  # failure that could be mistaken for a successful acceptance run.
+  if ! result="$(assert_read "$assertion")"; then
+    echo "BLOCKED $assertion: invalid or unsupported scoped read assertion response" >&2
+    exit 69
+  fi
   if [[ "$(jq -r '.status' <<<"$result")" != "OBSERVED" ]]; then
     jq -r --arg assertion "$assertion" '"BLOCKED " + $assertion + ": " + .missingContract' <<<"$result" >&2
     exit 69
-  fi
-}
-
-assert_blocked() {
-  local assertion="$1"
-  local result
-  result="$(assert_read "$assertion")"
-  if [[ "$(jq -r '.status' <<<"$result")" != "BLOCKED" ]]; then
-    echo "Expected $assertion to be BLOCKED without a supported scoped read contract" >&2
-    exit 1
   fi
 }
 
@@ -214,7 +209,7 @@ test "$commercial_revision" = "$(jq -er '.revisionNumber' <<<"$commercial_retry"
 assert_count "sales_commercial_records" 1 "requirement_id=$REQUIREMENT_ID"
 assert_count "sales_commercial_record_revisions" 1 "commercial_record_id=$commercial_id;revision_number=$commercial_revision"
 assert_count "activity_log" 1 "entity_id=$commercial_id;action=saved"
-assert_blocked "commercial-receipt-readback"
+assert_observed "commercial-receipt-readback"
 if commercial_payload "$REQUEST_KEY_COMMERCIAL" "$COMMERCIAL_EXPECTED_REVISION" 101 | call_commercial >/dev/null 2>&1; then
   echo "Changed commercial replay unexpectedly succeeded" >&2; exit 1
 fi
@@ -229,6 +224,7 @@ review_payload="$(jq -cn --arg reviewId "$REVIEW_ID" --arg requestKey "$REVIEWER
 review_result="$(printf '%s' "$review_payload" | call_reviewer)"
 test "$REVIEW_ID" = "$(jq -er '.id' <<<"$review_result")"
 assert_count "activity_log" 1 "entity_id=$REVIEW_ID;action=responded"
+assert_observed "reviewer-response-readback"
 if jq '.reviewId = "00000000-0000-0000-0000-000000000000"' <<<"$review_payload" | call_reviewer >/dev/null 2>&1; then
   echo "Wrong review/version decision unexpectedly succeeded" >&2; exit 1
 fi
@@ -240,7 +236,7 @@ baseline_retry="$(printf '%s' "$baseline_payload" | call_baseline)"
 test "$baseline_id" = "$(jq -er '.id' <<<"$baseline_retry")"
 assert_count "requirement_baselines" 1 "id=$baseline_id"
 assert_count "activity_log" 1 "entity_id=$baseline_id;action=approved"
-assert_blocked "baseline-receipt-readback"
+assert_observed "baseline-receipt-readback"
 
 # A real two-session barrier is mandatory: wrappers must accept the test barrier field,
 # wait until both requests are present, and return only after the protected transaction.
@@ -255,6 +251,5 @@ concurrent_b="$(jq -er '.id' "${TMPDIR:-/tmp}/sales-create-b.json")"
 if [[ "$concurrent_a" == "$concurrent_b" ]]; then
   echo "Distinct concurrent request keys unexpectedly returned one requirement" >&2; exit 1
 fi
-# barrier is transport-only test coordination and is not persisted by the pending contract.
-# A concrete adapter mapping was never defined, so this remains explicit BLOCKED evidence.
-assert_blocked "requirement-create-concurrency-persisted-barrier"
+# The barrier requires a scoped persisted-state assertion; unsupported evidence is BLOCKED.
+assert_observed "requirement-create-concurrency-persisted-barrier"
