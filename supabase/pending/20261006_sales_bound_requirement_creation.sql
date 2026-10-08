@@ -804,8 +804,7 @@ REVOKE ALL ON FUNCTION public.sales_baseline_approval_payload_hash(uuid, integer
 -- PENDING POSITIVE-ONLY BASELINE READBACK CONTRACT — SOURCE-ONLY. This returns no
 -- receipt payload, baseline snapshot, count, or arbitrary filter API. It validates one
 -- actor-bound approval receipt graph from immutable receipt, revision, Master-version,
--- commercial-revision, and baseline snapshots only. Empty results cannot prove rollback
--- absence, reviewer history, or concurrency, so those assertions remain BLOCKED pending
+-- commercial-revision, and baseline snapshots only. Empty results cannot prove rollback absence, reviewer history, or concurrency, so those assertions remain BLOCKED pending
 -- separately scoped contracts. The requirement/source lookup mirrors the deployed global
 -- sales.manage caller-RLS scope; no nullable department or ownership field is inferred here.
 CREATE OR REPLACE FUNCTION public.read_sales_requirement_baseline_approval_receipt(
