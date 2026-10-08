@@ -273,7 +273,7 @@ describe("client requirement intake contract", () => {
     expect(clientRequirementIntakeSchema.safeParse({ ...valid, description: valid.summary }).success).toBe(true);
     expect(clientRequirementIntakeSchema.safeParse({ ...valid, customerId: "not-a-customer", description: valid.summary }).success).toBe(false);
     expect(salesBoundTransportHarness).toContain('masterSpecificationVersionId:$masterSpecificationVersionId');
-    expect(salesBoundTransportHarness).toContain('requestKey:$key');
+    expect(salesBoundTransportHarness).toContain('requestKey:$requestKey');
     expect(salesBoundTransportHarness).toContain('.customerId = $customerId');
   });
 
@@ -351,7 +351,7 @@ describe("client requirement intake contract", () => {
     expect(transportHarness).toContain("Refusing original target");
     expect(transportHarness).toContain("request.jwt.claim.* and never connects");
     expect(transportHarness).toContain("never connects with a service-role credential");
-    expect(transportHarness).toContain("Fresh stale-version creation unexpectedly succeeded");
+    expect(transportHarness).toContain("Fresh stale version creation unexpectedly succeeded");
     expect(transportHarness).toContain("protected-create/source-update overlap");
   });
 
