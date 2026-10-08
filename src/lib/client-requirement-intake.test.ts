@@ -4,7 +4,8 @@ import { chmodSync, mkdtempSync, readFileSync as readTemporaryFileSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
-import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability } from "./client-requirement-intake";
+import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability, salesBoundRequirementReadScopeSchema } from "./client-requirement-intake";
+import { observeSalesBoundRequirementReadback, salesBoundRequirementReadRequestSchema } from "./sales-bound-requirement-readback";
 
 const pendingSql = readFileSync("supabase/pending/20261005_client_requirement_intake.sql", "utf8");
 const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_intake_acceptance.sql", "utf8");
@@ -254,6 +255,7 @@ describe("client requirement intake contract", () => {
 
   it("uses only receipt-bound scoped read assertions and separates caller from source-pair denial", () => {
     expect(salesBoundTransportHarness).toContain('kind:"sales-bound-requirement-read"');
+    expect(salesBoundTransportHarness).toContain('scope:{opportunityId:$opportunityId,customerId:$customerId,masterSpecificationVersionId:$masterSpecificationVersionId,requestKey:$requestKey,rollbackRequestKey:$rollbackRequestKey}');
     expect(salesBoundTransportHarness).toContain('assert_observed "requirement-create-replay-graph"');
     expect(salesBoundTransportHarness).toContain('assert_observed "requirement-create-rollback-graph-absent"');
     expect(salesBoundTransportHarness).toContain('assert_observed "commercial-receipt-readback"');
@@ -284,7 +286,47 @@ describe("client requirement intake contract", () => {
     expect(clientRequirementIntakeSchema.safeParse({ ...valid, customerId: "not-a-customer", description: valid.summary }).success).toBe(false);
     expect(salesBoundTransportHarness).toContain('masterSpecificationVersionId:$masterSpecificationVersionId');
     expect(salesBoundTransportHarness).toContain('requestKey:$requestKey');
+    expect(salesBoundTransportHarness).toContain('rollbackRequestKey:$rollbackRequestKey');
     expect(salesBoundTransportHarness).toContain('.customerId = $customerId');
+  });
+
+  it("defines a narrow typed request scope and keeps its concrete adapter fail-closed before deployment", async () => {
+    const scope = {
+      opportunityId: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8",
+      customerId: "dfd5f3f8-0caf-46cb-bf16-436a1c063650",
+      masterSpecificationVersionId: "9ce5a383-9ebf-430e-9bba-2e550c20fe3e",
+      requestKey: "0741a6a9-8f32-4e68-bdd4-d1a56250e603",
+      rollbackRequestKey: "2639f63b-dc03-44a8-8cbd-b3c56f06f447",
+    };
+    expect(salesBoundRequirementReadScopeSchema.safeParse(scope).success).toBe(true);
+    expect(salesBoundRequirementReadScopeSchema.safeParse({ ...scope, requestKey: "invalid" }).success).toBe(false);
+    const request = salesBoundRequirementReadRequestSchema.parse({
+      kind: "sales-bound-requirement-read",
+      assertion: "requirement-create-replay-graph",
+      scope,
+    });
+    await expect(observeSalesBoundRequirementReadback(request)).resolves.toMatchObject({
+      status: "BLOCKED",
+      assertion: "requirement-create-replay-graph",
+      missingContract: expect.stringContaining("pending isolated acceptance"),
+    });
+  });
+
+  it("keeps the pending receipt readback narrowly actor-bound and graph-complete without granting receipt SELECT", () => {
+    expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.read_sales_bound_requirement_creation_receipt");
+    expect(salesBoundSql).toContain("v_actor_id uuid := auth.uid()");
+    expect(salesBoundSql).toContain("public.has_permission(v_actor_id, 'sales.manage')");
+    expect(salesBoundSql).toContain("receipt.requested_by = v_actor_id");
+    expect(salesBoundSql).toContain("opportunity.id = p_opportunity_id");
+    expect(salesBoundSql).toContain("opportunity.customer_id = p_customer_id");
+    expect(salesBoundSql).toContain("version.id = p_master_specification_version_id");
+    expect(salesBoundSql).toContain("revision.requirement_data #>> '{source,master_specification_version_id}'");
+    expect(salesBoundSql).toContain("audit.after_data #>> '{request_key}'");
+    expect(salesBoundSql).toContain("audit.after_data #>> '{revision_number}' = '1'");
+    expect(salesBoundSql).toContain("REVOKE ALL ON FUNCTION public.read_sales_bound_requirement_creation_receipt(uuid, uuid, uuid, uuid) FROM PUBLIC, anon;");
+    expect(salesBoundSql).toContain("GRANT EXECUTE ON FUNCTION public.read_sales_bound_requirement_creation_receipt(uuid, uuid, uuid, uuid) TO authenticated, service_role;");
+    expect(salesBoundSql).toContain("REVOKE ALL ON TABLE public.sales_requirement_creation_requests FROM PUBLIC, anon, authenticated;");
+    expect(salesBoundSql).not.toContain("GRANT SELECT ON TABLE public.sales_requirement_creation_requests TO authenticated");
   });
 
   it("requires authoritative scoped preflight before any caller transport mutation wrapper", () => {

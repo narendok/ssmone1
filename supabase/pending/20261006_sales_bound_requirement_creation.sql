@@ -221,6 +221,91 @@ GRANT EXECUTE ON FUNCTION public.create_sales_bound_customer_requirement(uuid, u
 REVOKE ALL ON FUNCTION public.sales_requirement_creation_canonical_payload(uuid, uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sales_requirement_creation_payload_hash(uuid, uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 
+-- PENDING READBACK CONTRACT — SOURCE-ONLY. This deliberately exposes no receipt table,
+-- payload, number, title, or arbitrary filter API. It exists only to let the original
+-- authenticated Sales caller prove one exact receipt graph during isolated acceptance.
+-- Deploy only after a separate caller-RLS acceptance verifies every denial and linkage case.
+CREATE OR REPLACE FUNCTION public.read_sales_bound_requirement_creation_receipt(
+  p_opportunity_id uuid,
+  p_customer_id uuid,
+  p_master_specification_version_id uuid,
+  p_request_key uuid
+) RETURNS TABLE(
+  request_key uuid,
+  requirement_id uuid,
+  revision_id uuid,
+  revision_number integer,
+  audit_id uuid,
+  master_specification_version_id uuid
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_actor_id uuid := auth.uid();
+BEGIN
+  -- Authorize before receipt lookup so a wrong actor or scope cannot learn whether it exists.
+  IF v_actor_id IS NULL OR NOT public.has_permission(v_actor_id, 'sales.manage') THEN
+    RAISE EXCEPTION 'Sales management permission is required';
+  END IF;
+  IF p_opportunity_id IS NULL OR p_customer_id IS NULL
+     OR p_master_specification_version_id IS NULL OR p_request_key IS NULL THEN
+    RAISE EXCEPTION 'Immutable receipt-readback scope is required';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.sales_opportunities opportunity
+    JOIN public.master_specifications specification
+      ON specification.opportunity_id = opportunity.id
+     AND specification.customer_id = opportunity.customer_id
+    JOIN public.master_specification_versions version
+      ON version.specification_id = specification.id
+    WHERE opportunity.id = p_opportunity_id
+      AND opportunity.customer_id = p_customer_id
+      AND version.id = p_master_specification_version_id
+  ) THEN
+    RAISE EXCEPTION 'Scoped Sales source is unavailable';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    receipt.request_key,
+    receipt.requirement_id,
+    revision.id,
+    revision.revision_number,
+    audit.id,
+    receipt.master_specification_version_id
+  FROM public.sales_requirement_creation_requests receipt
+  JOIN public.customer_requirements requirement
+    ON requirement.id = receipt.requirement_id
+   AND requirement.opportunity_id = receipt.opportunity_id
+   AND requirement.customer_id = receipt.customer_id
+  JOIN public.customer_requirement_revisions revision
+    ON revision.requirement_id = requirement.id
+   AND revision.revision_number = 1
+   AND revision.requirement_data #>> '{source,master_specification_version_id}' = receipt.master_specification_version_id::text
+  JOIN public.activity_log audit
+    ON audit.entity_id = requirement.id
+   AND audit.module_key = 'sales'
+   AND audit.entity_type = 'customer_requirement'
+   AND audit.action = 'source_bound_created'
+   AND audit.actor_user_id = receipt.requested_by
+   AND audit.after_data #>> '{request_key}' = receipt.request_key::text
+   AND audit.after_data #>> '{opportunity_id}' = receipt.opportunity_id::text
+   AND audit.after_data #>> '{customer_id}' = receipt.customer_id::text
+   AND audit.after_data #>> '{master_specification_version_id}' = receipt.master_specification_version_id::text
+   AND audit.after_data #>> '{revision_number}' = '1'
+  WHERE receipt.request_key = p_request_key
+    AND receipt.requested_by = v_actor_id
+    AND receipt.opportunity_id = p_opportunity_id
+    AND receipt.customer_id = p_customer_id
+    AND receipt.master_specification_version_id = p_master_specification_version_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.read_sales_bound_requirement_creation_receipt(uuid, uuid, uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.read_sales_bound_requirement_creation_receipt(uuid, uuid, uuid, uuid) TO authenticated, service_role;
+
 -- BASELINE APPROVAL AND COMMERCIAL COORDINATION GROUP — SOURCE-ONLY. This requires the pending
 -- revision-bound feasibility proposal in 20261005_client_requirement_intake.sql.
 -- No legacy row is backfilled: a review with NULL provenance remains unavailable.
