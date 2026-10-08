@@ -8,6 +8,7 @@ export function SettingsNav() {
     { to: "/settings/projects", label: "Projects" },
     { to: "/settings/drive", label: "Drive structure" },
     { to: "/settings/lifecycle", label: "Lifecycle templates" },
+    { to: "/settings/lifecycle-acceptance", label: "Acceptance diagnostics" },
   ] as const;
   return (
     <nav className="flex items-center gap-1 border-b mb-4">

@@ -34,7 +34,7 @@ const observerInput = {
 const manifest = (entries = [
   ['a'.repeat(64), OBSERVER_FUNCTION_NAME],
   ['b'.repeat(64), SAVE_DRAFT_FUNCTION_NAME],
-]) => `var manifest = {${entries.map(([id, name]) => `"${id}": { functionName: "${name}", importer: () => import("./fake.mjs") }`).join(',')}};`
+]) => `const manifest = {\n${entries.map(([id, name]) => `  "${id}": {\n    functionName: "${name}",\n    importer: () => import("./fake.mjs")\n  }`).join(',\n')}\n};`
 
 function driver(options = {}) {
   return createIsolatedLifecycleHttpDriver({
