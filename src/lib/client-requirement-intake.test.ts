@@ -420,8 +420,16 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("receipt.expected_revision_number = p_expected_revision_number");
     expect(salesBoundSql).toContain("commercial.revision_number = v_receipt.expected_revision_number + 1");
     expect(salesBoundSql).toContain("revision.snapshot #>> '{commercial_record_id}'");
+    expect(salesBoundSql).toContain("Reconstruct from the immutable revision snapshot, never the mutable commercial row");
+    expect(salesBoundSql).toContain("v_revision_payload_canonical := public.sales_commercial_save_canonical_payload(");
+    expect(salesBoundSql).toContain("v_revision.snapshot #>> '{quotation_reference}'");
+    expect(salesBoundSql).toContain("(v_revision.snapshot #>> '{quoted_amount}')::numeric");
+    expect(salesBoundSql).toContain("v_receipt.payload_canonical IS DISTINCT FROM v_revision_payload_canonical");
+    expect(salesBoundSql).toContain("v_receipt.payload_hash IS DISTINCT FROM v_revision_payload_hash");
     expect(salesBoundSql).toContain("audit.entity_type = 'sales_commercial_record'");
     expect(salesBoundSql).toContain("audit.after_data #>> '{request_key}'");
+    expect(salesBoundSql).toContain("audit.after_data #>> '{status}' = v_revision.snapshot #>> '{status}'");
+    expect(salesBoundSql).toContain("audit.after_data -> 'authorization_reference' IS NOT DISTINCT FROM v_revision.snapshot -> 'authorization_reference'");
     expect(salesBoundSql).toContain("SELECT count(*), min(audit.id::text)::uuid");
     expect(salesBoundSql).toContain("Positive scoped commercial receipt graph is unavailable or incomplete");
     expect(salesBoundSql).toContain("REVOKE ALL ON FUNCTION public.read_sales_commercial_save_receipt(uuid, integer, uuid) FROM PUBLIC, anon;");

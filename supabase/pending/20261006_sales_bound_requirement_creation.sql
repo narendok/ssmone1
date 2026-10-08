@@ -607,6 +607,8 @@ DECLARE
   v_revision public.sales_commercial_record_revisions%ROWTYPE;
   v_audit_id uuid;
   v_audit_count integer;
+  v_revision_payload_canonical jsonb;
+  v_revision_payload_hash text;
 BEGIN
   -- Authorize before every receipt lookup so a wrong actor or scope cannot learn existence.
   IF v_actor_id IS NULL OR NOT public.has_permission(v_actor_id, 'sales.manage') THEN
@@ -657,6 +659,34 @@ BEGIN
     RAISE EXCEPTION 'Positive scoped commercial receipt graph is unavailable or incomplete';
   END IF;
 
+  -- Reconstruct from the immutable revision snapshot, never the mutable commercial row.
+  -- JSON extraction/casting is deliberately strict: malformed or missing historical content
+  -- aborts this positive-only proof rather than falling back to a current record value.
+  v_revision_payload_canonical := public.sales_commercial_save_canonical_payload(
+    v_receipt.requirement_id,
+    v_receipt.expected_revision_number,
+    v_revision.snapshot #>> '{quotation_reference}',
+    v_revision.snapshot #>> '{currency}',
+    (v_revision.snapshot #>> '{quoted_amount}')::numeric,
+    v_revision.snapshot #>> '{status}',
+    v_revision.snapshot #>> '{authorization_reference}',
+    v_revision.snapshot #>> '{notes}'
+  );
+  v_revision_payload_hash := public.sales_commercial_save_payload_hash(
+    v_receipt.requirement_id,
+    v_receipt.expected_revision_number,
+    v_revision.snapshot #>> '{quotation_reference}',
+    v_revision.snapshot #>> '{currency}',
+    (v_revision.snapshot #>> '{quoted_amount}')::numeric,
+    v_revision.snapshot #>> '{status}',
+    v_revision.snapshot #>> '{authorization_reference}',
+    v_revision.snapshot #>> '{notes}'
+  );
+  IF v_receipt.payload_canonical IS DISTINCT FROM v_revision_payload_canonical
+     OR v_receipt.payload_hash IS DISTINCT FROM v_revision_payload_hash THEN
+    RAISE EXCEPTION 'Positive scoped commercial receipt graph is unavailable or incomplete';
+  END IF;
+
   SELECT count(*), min(audit.id::text)::uuid
   INTO v_audit_count, v_audit_id
   FROM public.activity_log audit
@@ -666,7 +696,9 @@ BEGIN
     AND audit.action = 'saved'
     AND audit.actor_user_id = v_receipt.requested_by
     AND audit.after_data #>> '{requirement_id}' = v_receipt.requirement_id::text
-    AND audit.after_data #>> '{request_key}' = v_receipt.request_key::text;
+    AND audit.after_data #>> '{request_key}' = v_receipt.request_key::text
+    AND audit.after_data #>> '{status}' = v_revision.snapshot #>> '{status}'
+    AND audit.after_data -> 'authorization_reference' IS NOT DISTINCT FROM v_revision.snapshot -> 'authorization_reference';
   IF v_audit_count <> 1 THEN
     RAISE EXCEPTION 'Positive scoped commercial receipt graph is unavailable or incomplete';
   END IF;
