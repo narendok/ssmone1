@@ -2,7 +2,7 @@
 # REAL CALLER-TRANSPORT ACCEPTANCE HARNESS — intentionally refuses execution until an
 # approved isolated target, authenticated non-service wrappers, and read-only assertion
 # transport are supplied. It never sets request.jwt.claim.* and never connects with a
-# service-role credential. Each wrapper must expose one protected operation over its own
+# service-role credential. It never connects with a service-role credential. Each wrapper must expose one protected operation over its own
 # authenticated application/session transport and return JSON on stdout.
 set -euo pipefail
 
