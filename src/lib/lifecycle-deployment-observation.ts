@@ -150,6 +150,14 @@ export async function observeScopedLifecycleReadback(
     || receipt.source_fingerprint !== input.expectedSource.sourceFingerprint)) {
     return { ...empty, receipt: blocked("receipt_source_evidence_mismatch") };
   }
+  const sourceRevisionId = receipt.template_document_revision_id;
+  const generatedNodeId = receipt.generated_drive_node_id;
+  const generatedRevisionId = receipt.generated_revision_id;
+  const registerId = receipt.document_control_register_id;
+  if (!isNonEmptyString(sourceRevisionId) || !isNonEmptyString(generatedNodeId)
+    || !isNonEmptyString(generatedRevisionId) || !isNonEmptyString(registerId)) {
+    return { ...empty, receipt: blocked("receipt_has_incomplete_linkage") };
+  }
   const linked = (table: string, id: string, columns: string) => client.from(table).select(columns).eq("id", id).maybeSingle();
   let sourceResult: QueryResult;
   let nodeResult: QueryResult;
@@ -157,10 +165,10 @@ export async function observeScopedLifecycleReadback(
   let registerResult: QueryResult;
   try {
     [sourceResult, nodeResult, revisionResult, registerResult] = await Promise.all([
-      linked("department_process_template_document_revisions", receipt.template_document_revision_id, "id,template_id,revision_number,content_sha256"),
-      linked("drive_nodes", receipt.generated_drive_node_id, "id,project_id,node_type,is_trashed,storage_bucket,storage_path,sha256_checksum,file_size_bytes"),
-      linked("drive_node_revisions", receipt.generated_revision_id, "id,node_id,storage_path,sha256_checksum,file_size_bytes"),
-      linked("document_control_registers", receipt.document_control_register_id, "id,project_id,drive_node_id,source_revision_id,document_status"),
+      linked("department_process_template_document_revisions", sourceRevisionId, "id,template_id,revision_number,content_sha256"),
+      linked("drive_nodes", generatedNodeId, "id,project_id,node_type,is_trashed,storage_bucket,storage_path,sha256_checksum,file_size_bytes"),
+      linked("drive_node_revisions", generatedRevisionId, "id,node_id,storage_path,sha256_checksum,file_size_bytes"),
+      linked("document_control_registers", registerId, "id,project_id,drive_node_id,source_revision_id,document_status"),
     ]);
   } catch {
     return { ...empty, receipt: observed(), source: blocked("linked_read_transport_failed"), generatedNode: blocked("linked_read_transport_failed"), generatedRevision: blocked("linked_read_transport_failed"), controlledRegister: blocked("linked_read_transport_failed") };
