@@ -80,6 +80,23 @@ export async function discoverServerFunctionEndpointFromFile(manifestPath, readF
   }
 }
 
+export async function discoverServerFunctionEndpointFromGeneratedBuild({ manifestDirectory = 'dist/server', readDirImpl, readFileImpl = readFile, functionName = OBSERVER_FUNCTION_NAME } = {}) {
+  if (typeof readDirImpl !== 'function') {
+    throw new IsolatedDriverError('MANIFEST_DIRECTORY_UNAVAILABLE', 'Generated manifest discovery requires a directory reader.')
+  }
+  let paths
+  try {
+    paths = await readDirImpl(manifestDirectory)
+  } catch (error) {
+    throw new IsolatedDriverError('MANIFEST_DIRECTORY_UNREADABLE', 'The generated server-function manifest directory could not be read.', error)
+  }
+  const resolver = paths.find((path) => typeof path === 'string' && /^__23tanstack-start-server-fn-resolver-[A-Za-z0-9_-]+\.mjs$/.test(path))
+  if (!resolver) {
+    throw new IsolatedDriverError('MANIFEST_RESOLVER_MISSING', 'No generated server-function resolver manifest was found.')
+  }
+  return discoverServerFunctionEndpointFromFile(`${manifestDirectory}/${resolver}`, readFileImpl, functionName)
+}
+
 function requireBearer(session, label) {
   if (typeof session !== 'string' || !session.trim()) {
     throw new IsolatedDriverError('MISSING_SESSION', `${label} session is required only when mutation mode is explicitly invoked.`)

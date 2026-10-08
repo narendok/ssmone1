@@ -6,6 +6,7 @@ import {
   SAVE_DRAFT_FUNCTION_NAME,
   createIsolatedLifecycleHttpDriver,
   discoverServerFunctionEndpoint,
+  discoverServerFunctionEndpointFromGeneratedBuild,
   redactSensitive,
 } from './lifecycle_document_draft_isolated_http_driver.mjs'
 import { ISOLATED_BACKEND_REF } from './lifecycle_document_draft_isolated_acceptance_runner.mjs'
@@ -57,6 +58,28 @@ describe('isolated lifecycle HTTP driver', () => {
       id: 'a'.repeat(64), path: `/_serverFn/${'a'.repeat(64)}`, functionName: OBSERVER_FUNCTION_NAME,
     })
     expect(discoverServerFunctionEndpoint(manifest(), SAVE_DRAFT_FUNCTION_NAME).id).toBe('b'.repeat(64))
+  })
+
+  it('discovers the observer from a byte-accurate generated resolver manifest sample', async () => {
+    const sample = `const manifest = {
+  "5efade5faa12cd0aec505599c83bdee2c44729c7e4483ed0f3bda06664ff70de": {
+    functionName: "getLifecycleDeploymentObservation_createServerFn_handler",
+    importer: () => import("./_ssr/lifecycle-deployment-observation.functions-BiXKczWy.mjs")
+  },
+  "${'b'.repeat(64)}": {
+    functionName: "generateLifecycleDocumentDraft_createServerFn_handler",
+    importer: () => import("./_ssr/lifecycle-actions.functions-example.mjs")
+  }
+};`
+    const endpoint = await discoverServerFunctionEndpointFromGeneratedBuild({
+      manifestDirectory: 'dist/server',
+      readDirImpl: async () => ['__23tanstack-start-server-fn-resolver-BYw-djmU.mjs'],
+      readFileImpl: async (path) => {
+        expect(path).toBe('dist/server/__23tanstack-start-server-fn-resolver-BYw-djmU.mjs')
+        return sample
+      },
+    })
+    expect(endpoint).toEqual({ id: '5efade5faa12cd0aec505599c83bdee2c44729c7e4483ed0f3bda06664ff70de', path: '/_serverFn/5efade5faa12cd0aec505599c83bdee2c44729c7e4483ed0f3bda06664ff70de', functionName: OBSERVER_FUNCTION_NAME })
   })
 
   it('uses only the manifest-resolved authenticated SaveDraft server-function transport', async () => {
