@@ -221,10 +221,17 @@ GRANT EXECUTE ON FUNCTION public.create_sales_bound_customer_requirement(uuid, u
 REVOKE ALL ON FUNCTION public.sales_requirement_creation_canonical_payload(uuid, uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sales_requirement_creation_payload_hash(uuid, uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
 
--- PENDING READBACK CONTRACT — SOURCE-ONLY. This deliberately exposes no receipt table,
--- payload, number, title, or arbitrary filter API. It exists only to let the original
--- authenticated Sales caller prove one exact receipt graph during isolated acceptance.
--- Deploy only after a separate caller-RLS acceptance verifies every denial and linkage case.
+-- PENDING POSITIVE-ONLY READBACK CONTRACT — SOURCE-ONLY. This deliberately exposes no
+-- receipt table, payload, number, title, count, or arbitrary filter API. It is limited to
+-- one exact, actor-bound *positive* receipt graph during isolated acceptance. Absence is not
+-- evidence: rollback absence and source-version history require separately reviewed scoped
+-- contracts and remain BLOCKED.
+--
+-- The current source-table RLS policies allow every sales.manage actor to read Sales
+-- opportunities, Master Specifications/versions, and customer requirements/revisions. This
+-- function checks the same permission before its SECURITY DEFINER access. activity_log has no
+-- equivalent Sales caller SELECT policy, so only this fixed audit predicate may expose its ID.
+-- Deploy only after separate caller-RLS acceptance verifies every denial and linkage case.
 CREATE OR REPLACE FUNCTION public.read_sales_bound_requirement_creation_receipt(
   p_opportunity_id uuid,
   p_customer_id uuid,
@@ -236,7 +243,10 @@ CREATE OR REPLACE FUNCTION public.read_sales_bound_requirement_creation_receipt(
   revision_id uuid,
   revision_number integer,
   audit_id uuid,
-  master_specification_version_id uuid
+  opportunity_id uuid,
+  customer_id uuid,
+  master_specification_version_id uuid,
+  master_specification_version_number integer
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -244,6 +254,12 @@ SET search_path = public, pg_temp
 AS $$
 DECLARE
   v_actor_id uuid := auth.uid();
+  v_receipt public.sales_requirement_creation_requests%ROWTYPE;
+  v_requirement public.customer_requirements%ROWTYPE;
+  v_revision public.customer_requirement_revisions%ROWTYPE;
+  v_audit_id uuid;
+  v_audit_count integer;
+  v_source_version_number integer;
 BEGIN
   -- Authorize before receipt lookup so a wrong actor or scope cannot learn whether it exists.
   IF v_actor_id IS NULL OR NOT public.has_permission(v_actor_id, 'sales.manage') THEN
@@ -253,54 +269,82 @@ BEGIN
      OR p_master_specification_version_id IS NULL OR p_request_key IS NULL THEN
     RAISE EXCEPTION 'Immutable receipt-readback scope is required';
   END IF;
-  IF NOT EXISTS (
-    SELECT 1
-    FROM public.sales_opportunities opportunity
-    JOIN public.master_specifications specification
-      ON specification.opportunity_id = opportunity.id
-     AND specification.customer_id = opportunity.customer_id
-    JOIN public.master_specification_versions version
-      ON version.specification_id = specification.id
-    WHERE opportunity.id = p_opportunity_id
-      AND opportunity.customer_id = p_customer_id
-      AND version.id = p_master_specification_version_id
-  ) THEN
+  -- This is the same global Sales scope enforced by the current RLS policies for the
+  -- source records; never infer access from a nullable department or ownership field.
+  SELECT version.version_number INTO v_source_version_number
+  FROM public.sales_opportunities opportunity
+  JOIN public.master_specifications specification
+    ON specification.opportunity_id = opportunity.id
+   AND specification.customer_id = opportunity.customer_id
+  JOIN public.master_specification_versions version
+    ON version.specification_id = specification.id
+  WHERE opportunity.id = p_opportunity_id
+    AND opportunity.customer_id = p_customer_id
+    AND version.id = p_master_specification_version_id;
+  IF NOT FOUND THEN
     RAISE EXCEPTION 'Scoped Sales source is unavailable';
   END IF;
 
-  RETURN QUERY
-  SELECT
-    receipt.request_key,
-    receipt.requirement_id,
-    revision.id,
-    revision.revision_number,
-    audit.id,
-    receipt.master_specification_version_id
+  SELECT * INTO v_receipt
   FROM public.sales_requirement_creation_requests receipt
-  JOIN public.customer_requirements requirement
-    ON requirement.id = receipt.requirement_id
-   AND requirement.opportunity_id = receipt.opportunity_id
-   AND requirement.customer_id = receipt.customer_id
-  JOIN public.customer_requirement_revisions revision
-    ON revision.requirement_id = requirement.id
-   AND revision.revision_number = 1
-   AND revision.requirement_data #>> '{source,master_specification_version_id}' = receipt.master_specification_version_id::text
-  JOIN public.activity_log audit
-    ON audit.entity_id = requirement.id
-   AND audit.module_key = 'sales'
-   AND audit.entity_type = 'customer_requirement'
-   AND audit.action = 'source_bound_created'
-   AND audit.actor_user_id = receipt.requested_by
-   AND audit.after_data #>> '{request_key}' = receipt.request_key::text
-   AND audit.after_data #>> '{opportunity_id}' = receipt.opportunity_id::text
-   AND audit.after_data #>> '{customer_id}' = receipt.customer_id::text
-   AND audit.after_data #>> '{master_specification_version_id}' = receipt.master_specification_version_id::text
-   AND audit.after_data #>> '{revision_number}' = '1'
   WHERE receipt.request_key = p_request_key
     AND receipt.requested_by = v_actor_id
     AND receipt.opportunity_id = p_opportunity_id
     AND receipt.customer_id = p_customer_id
     AND receipt.master_specification_version_id = p_master_specification_version_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Positive scoped receipt graph is unavailable or incomplete';
+  END IF;
+
+  SELECT * INTO v_requirement
+  FROM public.customer_requirements requirement
+  WHERE requirement.id = v_receipt.requirement_id
+    AND requirement.opportunity_id = v_receipt.opportunity_id
+    AND requirement.customer_id = v_receipt.customer_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Positive scoped receipt graph is unavailable or incomplete';
+  END IF;
+
+  SELECT * INTO v_revision
+  FROM public.customer_requirement_revisions revision
+  WHERE revision.requirement_id = v_requirement.id
+    AND revision.revision_number = 1
+    AND revision.requirement_data #>> '{source,opportunity_id}' = v_receipt.opportunity_id::text
+    AND revision.requirement_data #>> '{source,customer_id}' = v_receipt.customer_id::text
+    AND revision.requirement_data #>> '{source,master_specification_version_id}' = v_receipt.master_specification_version_id::text
+    AND revision.requirement_data #>> '{source,master_specification_version_number}' = v_source_version_number::text;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Positive scoped receipt graph is unavailable or incomplete';
+  END IF;
+
+  SELECT count(*), min(audit.id)
+  INTO v_audit_count, v_audit_id
+  FROM public.activity_log audit
+  WHERE audit.entity_id = v_requirement.id
+    AND audit.module_key = 'sales'
+    AND audit.entity_type = 'customer_requirement'
+    AND audit.action = 'source_bound_created'
+    AND audit.actor_user_id = v_receipt.requested_by
+    AND audit.after_data #>> '{request_key}' = v_receipt.request_key::text
+    AND audit.after_data #>> '{opportunity_id}' = v_receipt.opportunity_id::text
+    AND audit.after_data #>> '{customer_id}' = v_receipt.customer_id::text
+    AND audit.after_data #>> '{master_specification_version_id}' = v_receipt.master_specification_version_id::text
+    AND audit.after_data #>> '{master_specification_version_number}' = v_source_version_number::text
+    AND audit.after_data #>> '{revision_number}' = '1';
+  IF v_audit_count <> 1 THEN
+    RAISE EXCEPTION 'Positive scoped receipt graph is unavailable or incomplete';
+  END IF;
+
+  RETURN QUERY SELECT
+    v_receipt.request_key,
+    v_receipt.requirement_id,
+    v_revision.id,
+    v_revision.revision_number,
+    v_audit_id,
+    v_receipt.opportunity_id,
+    v_receipt.customer_id,
+    v_receipt.master_specification_version_id,
+    v_source_version_number;
 END;
 $$;
 REVOKE ALL ON FUNCTION public.read_sales_bound_requirement_creation_receipt(uuid, uuid, uuid, uuid) FROM PUBLIC, anon;
