@@ -3,10 +3,12 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   blockedLifecycleDeploymentObservation,
+  deriveBackendRef,
   observeScopedLifecycleReadback,
   type ScopedLifecycleReadClient,
   validateLifecycleTarget,
 } from "./lifecycle-deployment-observation";
+import { classifyConfiguredLifecycleBackend } from "./lifecycle-acceptance-diagnostics-state";
 
 const requestSchema = z.object({
   backendRef: z.string().trim().min(1),
@@ -18,6 +20,17 @@ const requestSchema = z.object({
     sourceFingerprint: z.string().regex(/^[a-f0-9]{64}$/i),
   }).optional(),
 });
+
+/**
+ * Returns only the server-derived diagnostics availability. The browser never
+ * supplies or selects a backend target, and no database or storage read occurs.
+ */
+export const getLifecycleDeploymentConfiguration = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    if (!context.userId) throw new Error("Unauthorized");
+    return classifyConfiguredLifecycleBackend(deriveBackendRef(process.env.SUPABASE_URL));
+  });
 
 /**
  * Authenticated, read-only acceptance-observer boundary. It is intentionally
