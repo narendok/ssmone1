@@ -264,7 +264,7 @@ describe("client requirement intake contract", () => {
     expect(salesBoundTransportHarness).toContain('assert_observed "requirement-create-concurrency-persisted-barrier"');
     expect(salesBoundTransportHarness).not.toContain("assert_blocked()");
     expect(salesBoundTransportHarness).toContain("receipt.request_key -> receipt.requirement_id -> requirement.id -> revision.requirement_id");
-    expect(salesBoundTransportHarness).toContain("activity_log.after_data.request_key");
+    expect(salesBoundTransportHarness).toContain("audit is linked by entity_id and its after_data.request_key");
     expect(salesBoundTransportHarness).not.toContain('"customer_requirements" 1 "request_key=$REQUEST_KEY"');
     expect(salesBoundTransportHarness).not.toContain('"customer_requirement_revisions" 0 "request_key=$ROLLBACK_REQUEST_KEY"');
     expect(salesBoundTransportHarness).toContain('"Different actor replay unexpectedly succeeded"');
