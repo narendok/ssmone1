@@ -4,8 +4,8 @@ import { chmodSync, mkdtempSync, readFileSync as readTemporaryFileSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
-import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability, salesBoundRequirementReadScopeSchema } from "./client-requirement-intake";
-import { createSalesBoundRequirementReadbackAdapter, observeSalesBoundRequirementReadback, salesBoundRequirementReadRequestSchema } from "./sales-bound-requirement-readback";
+import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability, salesBoundRequirementReadScopeSchema, salesCommercialReadScopeSchema } from "./client-requirement-intake";
+import { createSalesBoundRequirementReadbackAdapter, createSalesCommercialReadbackAdapter, observeSalesBoundRequirementReadback, observeSalesCommercialReadback, salesBoundRequirementReadRequestSchema, salesCommercialReadRequestSchema } from "./sales-bound-requirement-readback";
 
 const pendingSql = readFileSync("supabase/pending/20261005_client_requirement_intake.sql", "utf8");
 const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_intake_acceptance.sql", "utf8");
@@ -352,6 +352,43 @@ describe("client requirement intake contract", () => {
     await expect(observedAdapter.observe({ ...request, assertion: "requirement-create-rollback-graph-absent" })).resolves.toMatchObject({ status: "BLOCKED", missingContract: expect.stringContaining("positive-only") });
   });
 
+  it("binds only the reviewed positive commercial RPC and blocks malformed, duplicate, mismatched, absent, and denied evidence", async () => {
+    const scope = {
+      requirementId: "e5ca7061-aa3d-4d60-a2f4-6e4b1e0a3bae",
+      expectedRevisionNumber: 1,
+      requestKey: "38f3ba86-06ec-4270-a1ba-876673f02901",
+    };
+    expect(salesCommercialReadScopeSchema.safeParse(scope).success).toBe(true);
+    expect(salesCommercialReadScopeSchema.safeParse({ ...scope, expectedRevisionNumber: -1 }).success).toBe(false);
+    const request = salesCommercialReadRequestSchema.parse({ kind: "sales-commercial-read", assertion: "commercial-receipt-readback", scope });
+    const row = {
+      request_key: scope.requestKey,
+      requirement_id: scope.requirementId,
+      expected_revision_number: scope.expectedRevisionNumber,
+      commercial_record_id: "d5ed71c0-4e61-4f00-a3c4-314db2801bed",
+      commercial_revision_id: "82b89192-93a7-4ca4-a236-d6e1e2ff07ed",
+      commercial_revision_number: 2,
+      audit_id: "ecfd0f8a-3cb2-497f-8d5b-c6c72003ef36",
+    };
+    const observedAdapter = createSalesCommercialReadbackAdapter({
+      enabled: true,
+      callerRlsRpc: { rpc: async (name, args) => {
+        expect(name).toBe("read_sales_commercial_save_receipt");
+        expect(args).toEqual({ p_requirement_id: scope.requirementId, p_expected_revision_number: "1", p_request_key: scope.requestKey });
+        return { data: [row], error: null };
+      } },
+    });
+    await expect(observedAdapter.observe(request)).resolves.toEqual({ status: "OBSERVED", assertion: "commercial-receipt-readback", ok: true });
+
+    for (const data of [[], [row, row], [{ ...row, requirement_id: "2e0f1f6d-bb6a-4bb4-b862-9ab0e8e5c6c3" }], [{ ...row, commercial_revision_number: 1 }], [{ ...row, extra: true }]]) {
+      const adapter = createSalesCommercialReadbackAdapter({ enabled: true, callerRlsRpc: { rpc: async () => ({ data, error: null }) } });
+      await expect(adapter.observe(request)).resolves.toMatchObject({ status: "BLOCKED" });
+    }
+    const deniedAdapter = createSalesCommercialReadbackAdapter({ enabled: true, callerRlsRpc: { rpc: async () => ({ data: null, error: { message: "denied" } }) } });
+    await expect(deniedAdapter.observe(request)).resolves.toMatchObject({ status: "BLOCKED" });
+    await expect(observeSalesCommercialReadback(request)).resolves.toMatchObject({ status: "BLOCKED", missingContract: expect.stringContaining("pending isolated acceptance") });
+  });
+
   it("keeps the pending receipt readback narrowly actor-bound and graph-complete without granting receipt SELECT", () => {
     expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.read_sales_bound_requirement_creation_receipt");
     expect(salesBoundSql).toContain("v_actor_id uuid := auth.uid()");
@@ -373,6 +410,26 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("GRANT EXECUTE ON FUNCTION public.read_sales_bound_requirement_creation_receipt(uuid, uuid, uuid, uuid) TO authenticated, service_role;");
     expect(salesBoundSql).toContain("REVOKE ALL ON TABLE public.sales_requirement_creation_requests FROM PUBLIC, anon, authenticated;");
     expect(salesBoundSql).not.toContain("GRANT SELECT ON TABLE public.sales_requirement_creation_requests TO authenticated");
+  });
+
+  it("keeps pending commercial receipt readback actor-bound, positive-only, and direct receipt access denied", () => {
+    expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.read_sales_commercial_save_receipt");
+    expect(salesBoundSql).toContain("Immutable commercial receipt-readback scope is required");
+    expect(salesBoundSql).toContain("receipt.requested_by = v_actor_id");
+    expect(salesBoundSql).toContain("receipt.requirement_id = p_requirement_id");
+    expect(salesBoundSql).toContain("receipt.expected_revision_number = p_expected_revision_number");
+    expect(salesBoundSql).toContain("commercial.revision_number = v_receipt.expected_revision_number + 1");
+    expect(salesBoundSql).toContain("revision.snapshot #>> '{commercial_record_id}'");
+    expect(salesBoundSql).toContain("audit.entity_type = 'sales_commercial_record'");
+    expect(salesBoundSql).toContain("audit.after_data #>> '{request_key}'");
+    expect(salesBoundSql).toContain("SELECT count(*), min(audit.id::text)::uuid");
+    expect(salesBoundSql).toContain("Positive scoped commercial receipt graph is unavailable or incomplete");
+    expect(salesBoundSql).toContain("REVOKE ALL ON FUNCTION public.read_sales_commercial_save_receipt(uuid, integer, uuid) FROM PUBLIC, anon;");
+    expect(salesBoundSql).toContain("GRANT EXECUTE ON FUNCTION public.read_sales_commercial_save_receipt(uuid, integer, uuid) TO authenticated, service_role;");
+    expect(salesBoundSql).toContain("REVOKE ALL ON TABLE public.sales_commercial_save_requests FROM PUBLIC, anon, authenticated;");
+    expect(salesBoundSql).not.toContain("GRANT SELECT ON TABLE public.sales_commercial_save_requests TO authenticated");
+    expect(salesBoundSql).toContain("Empty results cannot prove rollback absence, history,");
+    expect(salesBoundTransportHarness).toContain('kind:"sales-commercial-read"');
   });
 
   it("requires authoritative scoped preflight before any caller transport mutation wrapper", () => {

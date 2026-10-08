@@ -36,6 +36,15 @@ export const salesBoundRequirementReadScopeSchema = z.object({
 
 export type SalesBoundRequirementReadScope = z.infer<typeof salesBoundRequirementReadScopeSchema>;
 
+/** Immutable identifiers required to inspect one protected commercial-save receipt graph. */
+export const salesCommercialReadScopeSchema = z.object({
+  requirementId: z.string().uuid(),
+  expectedRevisionNumber: z.number().int().nonnegative(),
+  requestKey: z.string().uuid(),
+});
+
+export type SalesCommercialReadScope = z.infer<typeof salesCommercialReadScopeSchema>;
+
 export type ClientRequirementIntake = z.infer<typeof clientRequirementIntakeSchema>;
 export type FeasibilityResponse = z.infer<typeof feasibilityResponseSchema>;
 

@@ -54,6 +54,20 @@ assert_count() {
 
 assert_read() {
   local assertion="$1"
+  if [[ "$assertion" == "commercial-receipt-readback" ]]; then
+    jq -cn \
+      --arg requirementId "$REQUIREMENT_ID" \
+      --arg requestKey "$REQUEST_KEY_COMMERCIAL" \
+      --argjson expectedRevisionNumber "$COMMERCIAL_EXPECTED_REVISION" \
+      '{kind:"sales-commercial-read",assertion:"commercial-receipt-readback",scope:{requirementId:$requirementId,expectedRevisionNumber:$expectedRevisionNumber,requestKey:$requestKey}}' \
+      | read_assert \
+      | jq -e '
+          if .status == "OBSERVED" and .assertion == "commercial-receipt-readback" and .ok == true then .
+          elif .status == "BLOCKED" and (.missingContract | type == "string") and (.missingContract | length > 0) then .
+          else error("invalid read assertion response") end
+        '
+    return
+  fi
   jq -cn \
     --arg assertion "$assertion" \
     --arg opportunityId "$OPPORTUNITY_ID" \

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
+  salesCommercialReadScopeSchema,
   salesBoundRequirementReadScopeSchema,
+  type SalesCommercialReadScope,
   type SalesBoundRequirementReadScope,
 } from "./client-requirement-intake";
 
@@ -110,4 +112,88 @@ export function salesBoundRequirementReadScope(
   scope: SalesBoundRequirementReadScope,
 ): SalesBoundRequirementReadScope {
   return salesBoundRequirementReadScopeSchema.parse(scope);
+}
+
+export const salesCommercialReadRequestSchema = z.object({
+  kind: z.literal("sales-commercial-read"),
+  assertion: z.literal("commercial-receipt-readback"),
+  scope: salesCommercialReadScopeSchema,
+});
+
+export type SalesCommercialReadRequest = z.infer<typeof salesCommercialReadRequestSchema>;
+
+export type SalesCommercialReadback = {
+  status: "OBSERVED" | "BLOCKED";
+  assertion: "commercial-receipt-readback";
+  ok?: true;
+  missingContract?: string;
+};
+
+const commercialPendingReason = "The scoped caller-RLS Sales commercial receipt readback contract is pending isolated acceptance and deployment.";
+
+const commercialReceiptGraphRowSchema = z.object({
+  request_key: z.string().uuid(),
+  requirement_id: z.string().uuid(),
+  expected_revision_number: z.number().int().nonnegative(),
+  commercial_record_id: z.string().uuid(),
+  commercial_revision_id: z.string().uuid(),
+  commercial_revision_number: z.number().int().positive(),
+  audit_id: z.string().uuid(),
+}).strict();
+
+type CommercialReceiptGraphRow = z.infer<typeof commercialReceiptGraphRowSchema>;
+
+function blockedCommercial(missingContract: string): SalesCommercialReadback {
+  return { status: "BLOCKED", assertion: "commercial-receipt-readback", missingContract };
+}
+
+function validateCommercialReceiptGraph(
+  row: CommercialReceiptGraphRow,
+  scope: SalesCommercialReadScope,
+): boolean {
+  return row.request_key === scope.requestKey
+    && row.requirement_id === scope.requirementId
+    && row.expected_revision_number === scope.expectedRevisionNumber
+    && row.commercial_revision_number === scope.expectedRevisionNumber + 1;
+}
+
+/**
+ * Concrete caller-RLS binding for the reviewed, positive-only commercial receipt RPC.
+ * It stays opt-in until isolated acceptance and deployment separately approve it; it never
+ * uses an admin client and cannot prove rollback absence, prior history, or concurrency.
+ */
+export function createSalesCommercialReadbackAdapter(input: {
+  callerRlsRpc: CallerRlsRpc;
+  enabled: boolean;
+}): { observe: (request: SalesCommercialReadRequest) => Promise<SalesCommercialReadback> } {
+  return {
+    async observe(request) {
+      const validated = salesCommercialReadRequestSchema.parse(request);
+      if (!input.enabled) return blockedCommercial(commercialPendingReason);
+
+      const response = await input.callerRlsRpc.rpc("read_sales_commercial_save_receipt", {
+        p_requirement_id: validated.scope.requirementId,
+        p_expected_revision_number: String(validated.scope.expectedRevisionNumber),
+        p_request_key: validated.scope.requestKey,
+      });
+      if (response.error) return blockedCommercial("The scoped positive commercial receipt RPC returned unavailable or denied evidence.");
+      const rows = z.array(commercialReceiptGraphRowSchema).safeParse(response.data);
+      if (!rows.success || rows.data.length !== 1 || !validateCommercialReceiptGraph(rows.data[0], validated.scope)) {
+        return blockedCommercial("The scoped positive commercial receipt RPC returned malformed, duplicate, mismatched, or incomplete graph evidence.");
+      }
+      return { status: "OBSERVED", assertion: "commercial-receipt-readback", ok: true };
+    },
+  };
+}
+
+/** Production remains disabled until the pending RPC is deployed and isolated acceptance approves this binding. */
+export async function observeSalesCommercialReadback(
+  request: SalesCommercialReadRequest,
+): Promise<SalesCommercialReadback> {
+  salesCommercialReadRequestSchema.parse(request);
+  return blockedCommercial(commercialPendingReason);
+}
+
+export function salesCommercialReadScope(scope: SalesCommercialReadScope): SalesCommercialReadScope {
+  return salesCommercialReadScopeSchema.parse(scope);
 }
