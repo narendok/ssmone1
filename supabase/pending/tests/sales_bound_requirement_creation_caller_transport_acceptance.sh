@@ -84,6 +84,22 @@ assert_read() {
         '
     return
   fi
+  if [[ "$assertion" == "reviewer-response-readback" ]]; then
+    jq -cn \
+      --arg reviewId "$REVIEW_ID" \
+      --arg requirementId "$REQUIREMENT_ID" \
+      --arg sourceRevisionId "$SOURCE_REVISION_ID" \
+      --arg masterSpecificationVersionId "$MASTER_VERSION_ID" \
+      --arg requestKey "$REVIEWER_REQUEST_KEY" \
+      '{kind:"sales-reviewer-response-read",assertion:"reviewer-response-readback",scope:{reviewId:$reviewId,requirementId:$requirementId,sourceRevisionId:$sourceRevisionId,masterSpecificationVersionId:$masterSpecificationVersionId,requestKey:$requestKey}}' \
+      | read_assert \
+      | jq -e '
+          if .status == "OBSERVED" and .assertion == "reviewer-response-readback" and .ok == true then .
+          elif .status == "BLOCKED" and (.missingContract | type == "string") and (.missingContract | length > 0) then .
+          else error("invalid read assertion response") end
+        '
+    return
+  fi
   jq -cn \
     --arg assertion "$assertion" \
     --arg opportunityId "$OPPORTUNITY_ID" \

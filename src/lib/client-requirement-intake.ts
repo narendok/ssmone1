@@ -56,6 +56,17 @@ export const salesBaselineReadScopeSchema = z.object({
 
 export type SalesBaselineReadScope = z.infer<typeof salesBaselineReadScopeSchema>;
 
+/** Immutable identifiers required to inspect one assigned-reviewer response receipt graph. */
+export const salesReviewerResponseReadScopeSchema = z.object({
+  reviewId: z.string().uuid(),
+  requirementId: z.string().uuid(),
+  sourceRevisionId: z.string().uuid(),
+  masterSpecificationVersionId: z.string().uuid(),
+  requestKey: z.string().uuid(),
+});
+
+export type SalesReviewerResponseReadScope = z.infer<typeof salesReviewerResponseReadScopeSchema>;
+
 export type ClientRequirementIntake = z.infer<typeof clientRequirementIntakeSchema>;
 export type FeasibilityResponse = z.infer<typeof feasibilityResponseSchema>;
 

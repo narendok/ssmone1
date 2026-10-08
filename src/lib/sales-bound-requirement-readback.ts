@@ -3,9 +3,11 @@ import {
   salesBaselineReadScopeSchema,
   salesCommercialReadScopeSchema,
   salesBoundRequirementReadScopeSchema,
+  salesReviewerResponseReadScopeSchema,
   type SalesBaselineReadScope,
   type SalesCommercialReadScope,
   type SalesBoundRequirementReadScope,
+  type SalesReviewerResponseReadScope,
 } from "./client-requirement-intake";
 
 export const salesBoundRequirementReadAssertionSchema = z.enum([
@@ -283,4 +285,90 @@ export async function observeSalesBaselineReadback(
 
 export function salesBaselineReadScope(scope: SalesBaselineReadScope): SalesBaselineReadScope {
   return salesBaselineReadScopeSchema.parse(scope);
+}
+
+export const salesReviewerResponseReadRequestSchema = z.object({
+  kind: z.literal("sales-reviewer-response-read"),
+  assertion: z.literal("reviewer-response-readback"),
+  scope: salesReviewerResponseReadScopeSchema,
+});
+
+export type SalesReviewerResponseReadRequest = z.infer<typeof salesReviewerResponseReadRequestSchema>;
+
+export type SalesReviewerResponseReadback = {
+  status: "OBSERVED" | "BLOCKED";
+  assertion: "reviewer-response-readback";
+  ok?: true;
+  missingContract?: string;
+};
+
+const reviewerResponsePendingReason = "The scoped caller-RLS reviewer response receipt readback contract is pending isolated acceptance and deployment.";
+
+const reviewerResponseReceiptGraphRowSchema = z.object({
+  request_key: z.string().uuid(),
+  review_id: z.string().uuid(),
+  requirement_id: z.string().uuid(),
+  source_revision_id: z.string().uuid(),
+  master_specification_version_id: z.string().uuid(),
+  audit_id: z.string().uuid(),
+}).strict();
+
+type ReviewerResponseReceiptGraphRow = z.infer<typeof reviewerResponseReceiptGraphRowSchema>;
+
+function blockedReviewerResponse(missingContract: string): SalesReviewerResponseReadback {
+  return { status: "BLOCKED", assertion: "reviewer-response-readback", missingContract };
+}
+
+function validateReviewerResponseReceiptGraph(
+  row: ReviewerResponseReceiptGraphRow,
+  scope: SalesReviewerResponseReadScope,
+): boolean {
+  return row.request_key === scope.requestKey
+    && row.review_id === scope.reviewId
+    && row.requirement_id === scope.requirementId
+    && row.source_revision_id === scope.sourceRevisionId
+    && row.master_specification_version_id === scope.masterSpecificationVersionId;
+}
+
+/**
+ * Concrete caller-RLS binding for the reviewed, positive-only reviewer response receipt RPC.
+ * It stays opt-in until isolated acceptance and deployment separately approve it; it never uses
+ * an admin client and cannot prove response rollback, history, or concurrent persistence.
+ */
+export function createSalesReviewerResponseReadbackAdapter(input: {
+  callerRlsRpc: CallerRlsRpc;
+  enabled: boolean;
+}): { observe: (request: SalesReviewerResponseReadRequest) => Promise<SalesReviewerResponseReadback> } {
+  return {
+    async observe(request) {
+      const validated = salesReviewerResponseReadRequestSchema.parse(request);
+      if (!input.enabled) return blockedReviewerResponse(reviewerResponsePendingReason);
+
+      const response = await input.callerRlsRpc.rpc("read_requirement_feasibility_response_receipt", {
+        p_review_id: validated.scope.reviewId,
+        p_requirement_id: validated.scope.requirementId,
+        p_source_revision_id: validated.scope.sourceRevisionId,
+        p_master_specification_version_id: validated.scope.masterSpecificationVersionId,
+        p_request_key: validated.scope.requestKey,
+      });
+      if (response.error) return blockedReviewerResponse("The scoped positive reviewer response receipt RPC returned unavailable or denied evidence.");
+      const rows = z.array(reviewerResponseReceiptGraphRowSchema).safeParse(response.data);
+      if (!rows.success || rows.data.length !== 1 || !validateReviewerResponseReceiptGraph(rows.data[0], validated.scope)) {
+        return blockedReviewerResponse("The scoped positive reviewer response receipt RPC returned malformed, duplicate, mismatched, or incomplete graph evidence.");
+      }
+      return { status: "OBSERVED", assertion: "reviewer-response-readback", ok: true };
+    },
+  };
+}
+
+/** Production remains disabled until the pending RPC is deployed and isolated acceptance approves this binding. */
+export async function observeSalesReviewerResponseReadback(
+  request: SalesReviewerResponseReadRequest,
+): Promise<SalesReviewerResponseReadback> {
+  salesReviewerResponseReadRequestSchema.parse(request);
+  return blockedReviewerResponse(reviewerResponsePendingReason);
+}
+
+export function salesReviewerResponseReadScope(scope: SalesReviewerResponseReadScope): SalesReviewerResponseReadScope {
+  return salesReviewerResponseReadScopeSchema.parse(scope);
 }

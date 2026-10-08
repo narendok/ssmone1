@@ -474,12 +474,65 @@ $$;
 REVOKE ALL ON FUNCTION public.assign_requirement_feasibility_review(uuid, uuid, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.assign_requirement_feasibility_review(uuid, uuid, uuid) TO authenticated, service_role;
 
-CREATE OR REPLACE FUNCTION public.record_requirement_feasibility_response(
+-- A reviewer response needs its own immutable request receipt before a caller-RLS observer can
+-- prove a positive response graph. Direct receipt access remains denied; the narrow reader below
+-- returns only one actor-bound, exact graph and does not prove rollback, history, or concurrency.
+CREATE TABLE IF NOT EXISTS public.requirement_feasibility_response_requests (
+  request_key uuid PRIMARY KEY,
+  requested_by uuid NOT NULL,
+  review_id uuid NOT NULL UNIQUE REFERENCES public.requirement_feasibility_reviews(id) ON DELETE RESTRICT,
+  requirement_id uuid NOT NULL REFERENCES public.customer_requirements(id) ON DELETE RESTRICT,
+  source_revision_id uuid NOT NULL REFERENCES public.customer_requirement_revisions(id) ON DELETE RESTRICT,
+  master_specification_version_id uuid NOT NULL REFERENCES public.master_specification_versions(id) ON DELETE RESTRICT,
+  payload_hash text NOT NULL,
+  payload_canonical jsonb NOT NULL,
+  CHECK (length(btrim(payload_hash)) > 0),
+  CHECK (jsonb_typeof(payload_canonical) = 'object')
+);
+GRANT ALL ON TABLE public.requirement_feasibility_response_requests TO service_role;
+REVOKE ALL ON TABLE public.requirement_feasibility_response_requests FROM PUBLIC, anon, authenticated;
+ALTER TABLE public.requirement_feasibility_response_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "No direct feasibility response receipt access" ON public.requirement_feasibility_response_requests
+  FOR ALL TO authenticated USING (false) WITH CHECK (false);
+
+CREATE OR REPLACE FUNCTION public.requirement_feasibility_response_canonical_payload(
   p_review_id uuid,
   p_status text,
   p_findings text,
   p_assumptions text,
   p_risks text
+) RETURNS jsonb
+LANGUAGE sql
+IMMUTABLE
+SET search_path = public
+AS $$
+  SELECT jsonb_build_object(
+    'review_id', p_review_id,
+    'status', p_status,
+    'findings', btrim(p_findings),
+    'assumptions', nullif(btrim(coalesce(p_assumptions, '')), ''),
+    'risks', nullif(btrim(coalesce(p_risks, '')), '')
+  )
+$$;
+
+-- PostgreSQL overloads are distinct callable functions. Retire the pre-receipt prototype so a
+-- reviewer cannot bypass replay binding by calling the former five-argument signature.
+DO $$
+BEGIN
+  IF to_regprocedure('public.record_requirement_feasibility_response(uuid,text,text,text,text)') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON FUNCTION public.record_requirement_feasibility_response(uuid,text,text,text,text) FROM PUBLIC, anon, authenticated, service_role';
+    EXECUTE 'DROP FUNCTION public.record_requirement_feasibility_response(uuid,text,text,text,text)';
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.record_requirement_feasibility_response(
+  p_review_id uuid,
+  p_status text,
+  p_findings text,
+  p_assumptions text,
+  p_risks text,
+  p_request_key uuid
 ) RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -490,9 +543,15 @@ DECLARE
   v_requirement public.customer_requirements%ROWTYPE;
   v_revision public.customer_requirement_revisions%ROWTYPE;
   v_master_version public.master_specification_versions%ROWTYPE;
+  v_prior public.requirement_feasibility_response_requests%ROWTYPE;
+  v_payload_canonical jsonb;
+  v_payload_hash text;
 BEGIN
   IF auth.uid() IS NULL OR NOT public.has_permission(auth.uid(), 'engineering.manage') THEN
     RAISE EXCEPTION 'Engineering management permission is required';
+  END IF;
+  IF p_request_key IS NULL THEN
+    RAISE EXCEPTION 'A response request key is required';
   END IF;
   IF p_status IS NULL OR p_status NOT IN ('feasible', 'feasible_with_conditions', 'not_feasible')
      OR NULLIF(btrim(p_findings), '') IS NULL THEN
@@ -537,6 +596,27 @@ BEGIN
     WHERE employee.user_id = auth.uid() AND employee.employment_status = 'ACTIVE'
       AND membership.department_id = v_review.department_id
   ) THEN RAISE EXCEPTION 'The assigned reviewer is not an active member of this review department'; END IF;
+  v_payload_canonical := public.requirement_feasibility_response_canonical_payload(
+    p_review_id, p_status, p_findings, p_assumptions, p_risks
+  );
+  v_payload_hash := md5(v_payload_canonical::text);
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_request_key::text, 0));
+  SELECT * INTO v_prior
+  FROM public.requirement_feasibility_response_requests
+  WHERE request_key = p_request_key
+  FOR UPDATE;
+  IF FOUND THEN
+    IF v_prior.requested_by = auth.uid()
+       AND v_prior.review_id = v_review.id
+       AND v_prior.requirement_id = v_review.requirement_id
+       AND v_prior.source_revision_id = v_review.source_revision_id
+       AND v_prior.master_specification_version_id = v_review.master_specification_version_id
+       AND v_prior.payload_hash = v_payload_hash
+       AND v_prior.payload_canonical = v_payload_canonical THEN
+      RETURN v_prior.review_id;
+    END IF;
+    RAISE EXCEPTION 'Response request key conflicts with a different reviewer, scope, or payload';
+  END IF;
   IF v_review.status NOT IN ('pending', 'in_review') THEN
     RAISE EXCEPTION 'Feasibility review is not open for a response';
   END IF;
@@ -560,12 +640,110 @@ BEGIN
       'status', p_status
     )
   );
+  INSERT INTO public.requirement_feasibility_response_requests (
+    request_key, requested_by, review_id, requirement_id, source_revision_id,
+    master_specification_version_id, payload_hash, payload_canonical
+  ) VALUES (
+    p_request_key, auth.uid(), v_review.id, v_review.requirement_id, v_review.source_revision_id,
+    v_review.master_specification_version_id, v_payload_hash, v_payload_canonical
+  );
   RETURN v_review.id;
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.record_requirement_feasibility_response(uuid, text, text, text, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.record_requirement_feasibility_response(uuid, text, text, text, text) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.record_requirement_feasibility_response(uuid, text, text, text, text, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.record_requirement_feasibility_response(uuid, text, text, text, text, uuid) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.read_requirement_feasibility_response_receipt(
+  p_review_id uuid,
+  p_requirement_id uuid,
+  p_source_revision_id uuid,
+  p_master_specification_version_id uuid,
+  p_request_key uuid
+) RETURNS TABLE (
+  request_key uuid,
+  review_id uuid,
+  requirement_id uuid,
+  source_revision_id uuid,
+  master_specification_version_id uuid,
+  audit_id uuid
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_actor_id uuid := auth.uid();
+  v_receipt public.requirement_feasibility_response_requests%ROWTYPE;
+  v_review public.requirement_feasibility_reviews%ROWTYPE;
+  v_requirement public.customer_requirements%ROWTYPE;
+  v_revision public.customer_requirement_revisions%ROWTYPE;
+  v_master_version public.master_specification_versions%ROWTYPE;
+  v_audit_count bigint;
+  v_audit_id uuid;
+BEGIN
+  IF v_actor_id IS NULL OR NOT public.has_permission(v_actor_id, 'engineering.manage')
+     OR p_review_id IS NULL OR p_requirement_id IS NULL OR p_source_revision_id IS NULL
+     OR p_master_specification_version_id IS NULL OR p_request_key IS NULL THEN
+    RAISE EXCEPTION 'Immutable reviewer response receipt-readback scope is required';
+  END IF;
+  SELECT * INTO v_receipt FROM public.requirement_feasibility_response_requests receipt
+  WHERE receipt.request_key = p_request_key AND receipt.requested_by = v_actor_id
+    AND receipt.review_id = p_review_id AND receipt.requirement_id = p_requirement_id
+    AND receipt.source_revision_id = p_source_revision_id
+    AND receipt.master_specification_version_id = p_master_specification_version_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Positive scoped reviewer response receipt graph is unavailable or incomplete'; END IF;
+  SELECT * INTO v_review FROM public.requirement_feasibility_reviews review
+  WHERE review.id = v_receipt.review_id AND review.reviewer_user_id = v_actor_id
+    AND review.requirement_id = v_receipt.requirement_id
+    AND review.source_revision_id = v_receipt.source_revision_id
+    AND review.master_specification_version_id = v_receipt.master_specification_version_id
+    AND review.status IN ('feasible', 'feasible_with_conditions', 'not_feasible')
+    AND review.reviewed_at IS NOT NULL;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Positive scoped reviewer response receipt graph is unavailable or incomplete'; END IF;
+  SELECT * INTO v_requirement FROM public.customer_requirements requirement
+  WHERE requirement.id = v_review.requirement_id;
+  SELECT * INTO v_revision FROM public.customer_requirement_revisions revision
+  WHERE revision.id = v_review.source_revision_id AND revision.requirement_id = v_requirement.id
+    AND revision.revision_number = v_review.source_revision_number;
+  SELECT version.* INTO v_master_version FROM public.master_specification_versions version
+  JOIN public.master_specifications specification ON specification.id = version.specification_id
+  WHERE version.id = v_review.master_specification_version_id
+    AND version.version_number = v_review.master_specification_version_number
+    AND specification.opportunity_id = v_requirement.opportunity_id
+    AND specification.customer_id = v_requirement.customer_id;
+  IF NOT FOUND
+     OR v_revision.requirement_data #>> '{source,opportunity_id}' IS DISTINCT FROM v_requirement.opportunity_id::text
+     OR v_revision.requirement_data #>> '{source,customer_id}' IS DISTINCT FROM v_requirement.customer_id::text
+     OR v_revision.requirement_data #>> '{source,master_specification_version_id}' IS DISTINCT FROM v_master_version.id::text
+     OR v_revision.requirement_data #>> '{source,master_specification_version_number}' IS DISTINCT FROM v_master_version.version_number::text
+     OR v_receipt.payload_canonical IS DISTINCT FROM public.requirement_feasibility_response_canonical_payload(
+       v_review.id, v_review.status, v_review.findings, v_review.assumptions, v_review.risks
+     )
+     OR v_receipt.payload_hash IS DISTINCT FROM md5(v_receipt.payload_canonical::text) THEN
+    RAISE EXCEPTION 'Positive scoped reviewer response receipt graph is unavailable or incomplete';
+  END IF;
+  SELECT count(*), min(audit.id::text)::uuid INTO v_audit_count, v_audit_id
+  FROM public.activity_log audit
+  WHERE audit.actor_user_id = v_actor_id AND audit.module_key = 'engineering'
+    AND audit.entity_type = 'requirement_feasibility' AND audit.entity_id = v_review.id
+    AND audit.action = 'responded'
+    AND audit.after_data #>> '{requirement_id}' = v_review.requirement_id::text
+    AND audit.after_data #>> '{source_revision_id}' = v_review.source_revision_id::text
+    AND audit.after_data #>> '{master_specification_version_id}' = v_review.master_specification_version_id::text
+    AND audit.after_data #>> '{reviewer_user_id}' = v_actor_id::text
+    AND audit.after_data #>> '{status}' = v_review.status;
+  IF v_audit_count <> 1 THEN
+    RAISE EXCEPTION 'Positive scoped reviewer response receipt graph is unavailable or incomplete';
+  END IF;
+  RETURN QUERY SELECT v_receipt.request_key, v_review.id, v_requirement.id,
+    v_revision.id, v_master_version.id, v_audit_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.read_requirement_feasibility_response_receipt(uuid, uuid, uuid, uuid, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.read_requirement_feasibility_response_receipt(uuid, uuid, uuid, uuid, uuid) TO authenticated, service_role;
+-- Empty results never prove response rollback, previous response history, or concurrency.
 
 -- Direct external table RLS is deliberately unchanged: this routine is the only proposed
 -- external write path. It derives the authenticated actor, contact, party, active/revoked/
