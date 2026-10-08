@@ -30,7 +30,7 @@ function scopedClient(
   return {
     calls,
     from(table: string) {
-      const call = { table, filters: [] as Array<[string, string]> };
+      const call: { table: string; columns?: string; filters: Array<[string, string]> } = { table, filters: [] };
       calls.push(call);
       return {
         select(columns: string) { call.columns = columns; return this; },
