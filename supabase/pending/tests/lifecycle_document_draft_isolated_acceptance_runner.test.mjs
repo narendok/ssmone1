@@ -27,6 +27,21 @@ const readiness = {
   canDiscardLifecycleDocumentObject: true,
   projectDriveUploadDownload: true,
   observabilityReadback: true,
+  deployed: {
+    applicationTransport: "authenticated-server-action",
+    actorGateway: "execute_lifecycle_document_action",
+    serverOperations: [
+      "authorize_lifecycle_document_draft",
+      "register_lifecycle_document_storage_attempt",
+      "find_lifecycle_document_draft_receipt",
+      "commit_lifecycle_document_draft",
+      "can_discard_lifecycle_document_object",
+    ],
+    storageBucket: "project-drive",
+    storageUploadDownload: true,
+    schemaReadback: true,
+    observabilityReadback: true,
+  },
 };
 
 function evidence() {
@@ -59,6 +74,21 @@ describe("isolated lifecycle acceptance runner", () => {
   it("reports incomplete readiness as UNEXECUTED without attempting application transport", () => {
     expect(assessReadiness({ backendRef: ISOLATED_BACKEND_REF })).toEqual(expect.objectContaining({
       mode: "READ_ONLY", status: "UNEXECUTED",
+    }));
+  });
+
+  it("fails closed when readiness supplies declarations instead of deployed gateway, schema, and storage evidence", () => {
+    const declaredOnly = { ...readiness };
+    delete declaredOnly.deployed;
+    expect(assessReadiness(declaredOnly)).toEqual(expect.objectContaining({
+      status: "UNEXECUTED",
+      missing: expect.arrayContaining(["deployedReadinessEvidence"]),
+    }));
+
+    const incompleteDeployment = { ...readiness, deployed: { ...readiness.deployed, storageUploadDownload: false } };
+    expect(assessReadiness(incompleteDeployment)).toEqual(expect.objectContaining({
+      status: "UNEXECUTED",
+      missing: expect.arrayContaining(["deployedProjectDriveStorage"]),
     }));
   });
 
