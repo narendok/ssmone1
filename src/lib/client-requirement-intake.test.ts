@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { mkdtempSync, readFileSync as readTemporaryFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdtempSync, readFileSync as readTemporaryFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -344,6 +344,7 @@ describe("client requirement intake contract", () => {
     writeFileSync(mutationWrapper, `#!/usr/bin/env bash\nprintf '%s\\n' mutation >> "${mutationLog}"\nexit 97\n`);
     writeFileSync(blockedAdapter, "#!/usr/bin/env bash\ncat >/dev/null\nprintf '%s\\n' '{\"status\":\"BLOCKED\",\"missingContract\":\"scoped caller-RLS read adapter unavailable\"}'\n");
     writeFileSync(invalidAdapter, "#!/usr/bin/env bash\ncat >/dev/null\nprintf '%s\\n' '{\"status\":\"OBSERVED\",\"capability\":\"wrong\",\"ok\":true}'\n");
+    for (const executable of [mutationWrapper, blockedAdapter, invalidAdapter]) chmodSync(executable, 0o700);
 
     for (const adapter of [blockedAdapter, invalidAdapter]) {
       try {
@@ -406,6 +407,7 @@ describe("client requirement intake contract", () => {
     writeFileSync(salesWrapper, `#!/usr/bin/env bash\ncat >/dev/null\nprintf '%s\\n' sales >> "${mutationLog}"\nprintf '%s\\n' '{"id":"e5ca7061-aa3d-4d60-a2f4-6e4b1e0a3bae"}'\n`);
     writeFileSync(laterMutationWrapper, `#!/usr/bin/env bash\nprintf '%s\\n' later >> "${mutationLog}"\nexit 97\n`);
     writeFileSync(adapter, `#!/usr/bin/env bash\npayload="$(cat)"\nif jq -e '.kind == "sales-bound-requirement-preflight"' <<<"$payload" >/dev/null; then\n  capability="$(jq -r '.capability' <<<"$payload")"\n  jq -cn --arg capability "$capability" '{status:"OBSERVED",capability:$capability,ok:true,authoritativeTarget:true,authenticatedCaller:true}'\nelif [[ "\${POSTCONDITION_MODE:?}" == "blocked" ]]; then\n  printf '%s\\n' '{"status":"BLOCKED","missingContract":"scoped caller-RLS read adapter unavailable"}'\nelse\n  printf '%s\\n' '{"status":"OBSERVED","assertion":"wrong","ok":true}'\nfi\n`);
+    for (const executable of [salesWrapper, laterMutationWrapper, adapter]) chmodSync(executable, 0o700);
 
     for (const postconditionMode of ["blocked", "malformed"]) {
       try {
