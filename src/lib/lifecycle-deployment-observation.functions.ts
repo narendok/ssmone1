@@ -11,7 +11,6 @@ import {
 import { classifyConfiguredLifecycleBackend } from "./lifecycle-acceptance-diagnostics-state";
 
 const requestSchema = z.object({
-  backendRef: z.string().trim().min(1),
   projectId: z.string().uuid(),
   requestKey: z.string().uuid(),
   expectedSource: z.object({
@@ -46,16 +45,17 @@ export const getLifecycleDeploymentObservation = createServerFn({ method: "POST"
 
     // Strictly validate the target before any database or further logic.
     // We use the environment's SUPABASE_URL to derive the current backend identity.
-    const validation = validateLifecycleTarget(
-      data.backendRef,
-      process.env.SUPABASE_URL
-    );
+    const backendRef = deriveBackendRef(process.env.SUPABASE_URL);
+    if (!backendRef) {
+      throw new Error("Unable to derive current backend identity.");
+    }
+    const validation = validateLifecycleTarget(backendRef, process.env.SUPABASE_URL);
 
     if (!validation.valid) {
       throw new Error(validation.reason);
     }
 
-    const report = blockedLifecycleDeploymentObservation(data.backendRef);
+    const report = blockedLifecycleDeploymentObservation(backendRef);
     const readback = await observeScopedLifecycleReadback(
       context.supabase as unknown as ScopedLifecycleReadClient,
       data,

@@ -47,7 +47,7 @@ export function LifecycleAcceptanceDiagnostics() {
     setBusy(true); setResult(null); setError(null);
     try {
       const response = await observe({ data: {
-        backendRef: configuration.backendRef, projectId: form.projectId.trim(), requestKey: form.requestKey.trim(),
+        projectId: form.projectId.trim(), requestKey: form.requestKey.trim(),
         expectedSource: { templateId: form.templateId.trim(), templateDocumentRevisionId: form.templateDocumentRevisionId.trim(), sourceFingerprint: form.sourceFingerprint.trim() },
       } });
       setResult(response as ObservationResult);
