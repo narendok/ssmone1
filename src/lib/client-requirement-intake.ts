@@ -25,6 +25,17 @@ export const feasibilityResponseSchema = z.object({
   risks: z.string().trim().max(12_000).nullable(),
 });
 
+/** Immutable identifiers required to inspect one protected Sales-create receipt graph. */
+export const salesBoundRequirementReadScopeSchema = z.object({
+  opportunityId: z.string().uuid(),
+  customerId: z.string().uuid(),
+  masterSpecificationVersionId: z.string().uuid(),
+  requestKey: z.string().uuid(),
+  rollbackRequestKey: z.string().uuid().nullable(),
+});
+
+export type SalesBoundRequirementReadScope = z.infer<typeof salesBoundRequirementReadScopeSchema>;
+
 export type ClientRequirementIntake = z.infer<typeof clientRequirementIntakeSchema>;
 export type FeasibilityResponse = z.infer<typeof feasibilityResponseSchema>;
 

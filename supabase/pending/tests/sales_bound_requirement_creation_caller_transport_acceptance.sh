@@ -54,7 +54,14 @@ assert_count() {
 
 assert_read() {
   local assertion="$1"
-  jq -cn --arg assertion "$assertion" '{kind:"sales-bound-requirement-read",assertion:$assertion}' \
+  jq -cn \
+    --arg assertion "$assertion" \
+    --arg opportunityId "$OPPORTUNITY_ID" \
+    --arg customerId "$CUSTOMER_ID" \
+    --arg masterSpecificationVersionId "$MASTER_VERSION_ID" \
+    --arg requestKey "$REQUEST_KEY" \
+    --arg rollbackRequestKey "$ROLLBACK_REQUEST_KEY" \
+    '{kind:"sales-bound-requirement-read",assertion:$assertion,scope:{opportunityId:$opportunityId,customerId:$customerId,masterSpecificationVersionId:$masterSpecificationVersionId,requestKey:$requestKey,rollbackRequestKey:$rollbackRequestKey}}' \
     | read_assert \
     | jq -e --arg assertion "$assertion" '
         if .status == "OBSERVED" and .assertion == $assertion and .ok == true then .
