@@ -272,7 +272,7 @@ describe("client requirement intake contract", () => {
     };
     expect(clientRequirementIntakeSchema.safeParse({ ...valid, description: valid.summary }).success).toBe(true);
     expect(clientRequirementIntakeSchema.safeParse({ ...valid, customerId: "not-a-customer", description: valid.summary }).success).toBe(false);
-    expect(salesBoundTransportHarness).toContain('masterSpecificationVersionId:$version');
+    expect(salesBoundTransportHarness).toContain('masterSpecificationVersionId:$masterSpecificationVersionId');
     expect(salesBoundTransportHarness).toContain('requestKey:$key');
     expect(salesBoundTransportHarness).toContain('.customerId = $customerId');
   });
