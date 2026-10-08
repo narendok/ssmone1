@@ -405,7 +405,7 @@ describe("client requirement intake contract", () => {
     };
     writeFileSync(salesWrapper, `#!/usr/bin/env bash\ncat >/dev/null\nprintf '%s\\n' sales >> "${mutationLog}"\nprintf '%s\\n' '{"id":"e5ca7061-aa3d-4d60-a2f4-6e4b1e0a3bae"}'\n`);
     writeFileSync(laterMutationWrapper, `#!/usr/bin/env bash\nprintf '%s\\n' later >> "${mutationLog}"\nexit 97\n`);
-    writeFileSync(adapter, `#!/usr/bin/env bash\npayload="$(cat)"\nif jq -e '.kind == "sales-bound-requirement-preflight"' <<<"$payload" >/dev/null; then\n  capability="$(jq -r '.capability' <<<"$payload")"\n  jq -cn --arg capability "$capability" '{status:"OBSERVED",capability:$capability,ok:true,authoritativeTarget:true,authenticatedCaller:true}'\nelif [[ "${POSTCONDITION_MODE:?}" == "blocked" ]]; then\n  printf '%s\\n' '{"status":"BLOCKED","missingContract":"scoped caller-RLS read adapter unavailable"}'\nelse\n  printf '%s\\n' '{"status":"OBSERVED","assertion":"wrong","ok":true}'\nfi\n`);
+    writeFileSync(adapter, `#!/usr/bin/env bash\npayload="$(cat)"\nif jq -e '.kind == "sales-bound-requirement-preflight"' <<<"$payload" >/dev/null; then\n  capability="$(jq -r '.capability' <<<"$payload")"\n  jq -cn --arg capability "$capability" '{status:"OBSERVED",capability:$capability,ok:true,authoritativeTarget:true,authenticatedCaller:true}'\nelif [[ "\${POSTCONDITION_MODE:?}" == "blocked" ]]; then\n  printf '%s\\n' '{"status":"BLOCKED","missingContract":"scoped caller-RLS read adapter unavailable"}'\nelse\n  printf '%s\\n' '{"status":"OBSERVED","assertion":"wrong","ok":true}'\nfi\n`);
 
     for (const postconditionMode of ["blocked", "malformed"]) {
       try {
