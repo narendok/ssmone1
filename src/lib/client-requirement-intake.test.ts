@@ -4,8 +4,8 @@ import { chmodSync, mkdtempSync, readFileSync as readTemporaryFileSync, rmSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync, spawnSync } from "node:child_process";
-import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability, salesBaselineReadScopeSchema, salesBoundRequirementReadScopeSchema, salesCommercialReadScopeSchema } from "./client-requirement-intake";
-import { createSalesBaselineReadbackAdapter, createSalesBoundRequirementReadbackAdapter, createSalesCommercialReadbackAdapter, observeSalesBaselineReadback, observeSalesBoundRequirementReadback, observeSalesCommercialReadback, salesBaselineReadRequestSchema, salesBoundRequirementReadRequestSchema, salesCommercialReadRequestSchema } from "./sales-bound-requirement-readback";
+import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability, salesBaselineReadScopeSchema, salesBoundRequirementReadScopeSchema, salesCommercialReadScopeSchema, salesReviewerResponseReadScopeSchema } from "./client-requirement-intake";
+import { createSalesBaselineReadbackAdapter, createSalesBoundRequirementReadbackAdapter, createSalesCommercialReadbackAdapter, createSalesReviewerResponseReadbackAdapter, observeSalesBaselineReadback, observeSalesBoundRequirementReadback, observeSalesCommercialReadback, observeSalesReviewerResponseReadback, salesBaselineReadRequestSchema, salesBoundRequirementReadRequestSchema, salesCommercialReadRequestSchema, salesReviewerResponseReadRequestSchema } from "./sales-bound-requirement-readback";
 
 const pendingSql = readFileSync("supabase/pending/20261005_client_requirement_intake.sql", "utf8");
 const acceptanceSql = readFileSync("supabase/pending/tests/client_requirement_intake_acceptance.sql", "utf8");
@@ -42,8 +42,14 @@ describe("client requirement intake contract", () => {
   });
 
   it("requires a concrete immutable feasibility response and explicit verdict", () => {
-    expect(feasibilityResponseSchema.safeParse({ reviewId: "bad", verdict: "FEASIBLE", findings: "Looks good", assumptions: null, risks: null }).success).toBe(false);
-    expect(feasibilityResponseSchema.parse({ reviewId: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8", verdict: "feasible_with_conditions", findings: "CAN termination is required.", assumptions: null, risks: null }).verdict).toBe("feasible_with_conditions");
+    expect(feasibilityResponseSchema.safeParse({ reviewId: "bad", requestKey: "bad", verdict: "FEASIBLE", findings: "Looks good", assumptions: null, risks: null }).success).toBe(false);
+    expect(feasibilityResponseSchema.parse({ reviewId: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8", requestKey: "9ce5a383-9ebf-430e-9bba-2e550c20fe3e", verdict: "feasible_with_conditions", findings: "CAN termination is required.", assumptions: null, risks: null }).verdict).toBe("feasible_with_conditions");
+  });
+
+  it("forwards the reviewer request key to the pending protected response RPC", () => {
+    const feasibilityFunctions = readFileSync("src/lib/client-requirement-intake.functions.ts", "utf8");
+    expect(feasibilityFunctions).toContain("p_request_key: data.requestKey");
+    expect(feasibilityFunctions).toContain('rpc("record_requirement_feasibility_response"');
   });
 
   it("requires active, unrevoked, explicitly scoped client access", () => {
@@ -429,6 +435,56 @@ describe("client requirement intake contract", () => {
     await expect(observeSalesBaselineReadback(request)).resolves.toMatchObject({ status: "BLOCKED", missingContract: expect.stringContaining("pending isolated acceptance") });
   });
 
+  it("binds only the assigned-reviewer positive response RPC and blocks wrong reviewer, version, malformed, duplicate, absent, and denied evidence", async () => {
+    const scope = {
+      reviewId: "589cfd51-af84-4c8c-b8da-539587c09fe7",
+      requirementId: "e5ca7061-aa3d-4d60-a2f4-6e4b1e0a3bae",
+      sourceRevisionId: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8",
+      masterSpecificationVersionId: "d5ed71c0-4e61-4f00-a3c4-314db2801bed",
+      requestKey: "02f7e4ad-6e1e-4c45-b4a4-724ad0e2e1e7",
+    };
+    expect(salesReviewerResponseReadScopeSchema.safeParse(scope).success).toBe(true);
+    expect(salesReviewerResponseReadScopeSchema.safeParse({ ...scope, requestKey: "bad" }).success).toBe(false);
+    const request = salesReviewerResponseReadRequestSchema.parse({ kind: "sales-reviewer-response-read", assertion: "reviewer-response-readback", scope });
+    const row = {
+      request_key: scope.requestKey,
+      review_id: scope.reviewId,
+      requirement_id: scope.requirementId,
+      source_revision_id: scope.sourceRevisionId,
+      master_specification_version_id: scope.masterSpecificationVersionId,
+      audit_id: "ecfd0f8a-3cb2-497f-8d5b-c6c72003ef36",
+    };
+    const observedAdapter = createSalesReviewerResponseReadbackAdapter({
+      enabled: true,
+      callerRlsRpc: { rpc: async (name, args) => {
+        expect(name).toBe("read_requirement_feasibility_response_receipt");
+        expect(args).toEqual({
+          p_review_id: scope.reviewId,
+          p_requirement_id: scope.requirementId,
+          p_source_revision_id: scope.sourceRevisionId,
+          p_master_specification_version_id: scope.masterSpecificationVersionId,
+          p_request_key: scope.requestKey,
+        });
+        return { data: [row], error: null };
+      } },
+    });
+    await expect(observedAdapter.observe(request)).resolves.toEqual({ status: "OBSERVED", assertion: "reviewer-response-readback", ok: true });
+
+    for (const data of [
+      [],
+      [row, row],
+      [{ ...row, review_id: "2e0f1f6d-bb6a-4bb4-b862-9ab0e8e5c6c3" }],
+      [{ ...row, source_revision_id: "2e0f1f6d-bb6a-4bb4-b862-9ab0e8e5c6c3" }],
+      [{ ...row, extra: true }],
+    ]) {
+      const adapter = createSalesReviewerResponseReadbackAdapter({ enabled: true, callerRlsRpc: { rpc: async () => ({ data, error: null }) } });
+      await expect(adapter.observe(request)).resolves.toMatchObject({ status: "BLOCKED" });
+    }
+    const deniedAdapter = createSalesReviewerResponseReadbackAdapter({ enabled: true, callerRlsRpc: { rpc: async () => ({ data: null, error: { message: "denied" } }) } });
+    await expect(deniedAdapter.observe(request)).resolves.toMatchObject({ status: "BLOCKED" });
+    await expect(observeSalesReviewerResponseReadback(request)).resolves.toMatchObject({ status: "BLOCKED", missingContract: expect.stringContaining("pending isolated acceptance") });
+  });
+
   it("keeps the pending receipt readback narrowly actor-bound and graph-complete without granting receipt SELECT", () => {
     expect(salesBoundSql).toContain("CREATE OR REPLACE FUNCTION public.read_sales_bound_requirement_creation_receipt");
     expect(salesBoundSql).toContain("v_actor_id uuid := auth.uid()");
@@ -515,6 +571,29 @@ describe("client requirement intake contract", () => {
     expect(salesBoundSql).toContain("REVOKE ALL ON TABLE public.sales_baseline_approval_requests FROM PUBLIC, anon, authenticated;");
     expect(salesBoundSql).not.toContain("GRANT SELECT ON TABLE public.sales_baseline_approval_requests TO authenticated");
     expect(salesBoundTransportHarness).toContain('kind:"sales-baseline-read"');
+  });
+
+  it("keeps pending reviewer response readback actor-bound, receipt-bound, positive-only, and direct receipt access denied", () => {
+    expect(pendingSql).toContain("CREATE TABLE IF NOT EXISTS public.requirement_feasibility_response_requests");
+    expect(pendingSql).toContain("request_key uuid PRIMARY KEY");
+    expect(pendingSql).toContain("review_id uuid NOT NULL UNIQUE");
+    expect(pendingSql).toContain("DROP FUNCTION public.record_requirement_feasibility_response(uuid,text,text,text,text)");
+    expect(pendingSql).toContain("p_request_key uuid");
+    expect(pendingSql).toContain("Only the assigned reviewer may submit this feasibility response");
+    expect(pendingSql).toContain("reviewer_user_id IS DISTINCT FROM auth.uid()");
+    expect(pendingSql).toContain("CREATE OR REPLACE FUNCTION public.read_requirement_feasibility_response_receipt");
+    expect(pendingSql).toContain("receipt.requested_by = v_actor_id");
+    expect(pendingSql).toContain("review.reviewer_user_id = v_actor_id");
+    expect(pendingSql).toContain("v_revision.requirement_data #>> '{source,opportunity_id}'");
+    expect(pendingSql).toContain("v_revision.requirement_data #>> '{source,customer_id}'");
+    expect(pendingSql).toContain("v_receipt.payload_canonical IS DISTINCT FROM public.requirement_feasibility_response_canonical_payload");
+    expect(pendingSql).toContain("audit.after_data #>> '{request_key}' = v_receipt.request_key::text");
+    expect(pendingSql).toContain("SELECT count(*), min(audit.id::text)::uuid");
+    expect(pendingSql).toContain("Positive scoped reviewer response receipt graph is unavailable or incomplete");
+    expect(pendingSql).toContain("Empty results never prove response rollback, previous response history, or concurrency.");
+    expect(pendingSql).toContain("REVOKE ALL ON TABLE public.requirement_feasibility_response_requests FROM PUBLIC, anon, authenticated;");
+    expect(pendingSql).not.toContain("GRANT SELECT ON TABLE public.requirement_feasibility_response_requests TO authenticated");
+    expect(salesBoundTransportHarness).toContain('kind:"sales-reviewer-response-read"');
   });
 
   it("requires authoritative scoped preflight before any caller transport mutation wrapper", () => {

@@ -637,7 +637,7 @@ BEGIN
       'applicable_workstreams', v_review.applicable_workstreams,
       'opportunity_id', v_requirement.opportunity_id, 'customer_id', v_requirement.customer_id,
       'department_id', v_review.department_id, 'reviewer_user_id', v_review.reviewer_user_id,
-      'status', p_status
+      'status', p_status, 'request_key', p_request_key
     )
   );
   INSERT INTO public.requirement_feasibility_response_requests (
@@ -732,7 +732,8 @@ BEGIN
     AND audit.after_data #>> '{source_revision_id}' = v_review.source_revision_id::text
     AND audit.after_data #>> '{master_specification_version_id}' = v_review.master_specification_version_id::text
     AND audit.after_data #>> '{reviewer_user_id}' = v_actor_id::text
-    AND audit.after_data #>> '{status}' = v_review.status;
+    AND audit.after_data #>> '{status}' = v_review.status
+    AND audit.after_data #>> '{request_key}' = v_receipt.request_key::text;
   IF v_audit_count <> 1 THEN
     RAISE EXCEPTION 'Positive scoped reviewer response receipt graph is unavailable or incomplete';
   END IF;
