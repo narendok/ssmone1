@@ -6,10 +6,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getLifecycleDeploymentObservation } from "@/lib/lifecycle-deployment-observation.functions";
-import { ISOLATED_LIFECYCLE_ACCEPTANCE_BACKEND, ORIGINAL_LIFECYCLE_BACKEND } from "@/lib/lifecycle-deployment-observation";
+import { ISOLATED_LIFECYCLE_ACCEPTANCE_BACKEND, ORIGINAL_LIFECYCLE_BACKEND, type ObservationCapability } from "@/lib/lifecycle-deployment-observation";
 
 type FormState = { backendRef: string; projectId: string; requestKey: string; templateId: string; templateDocumentRevisionId: string; sourceFingerprint: string };
-type ObservationResult = { status: "BLOCKED"; missingContract: string; backendRef: string; capabilities: Record<string, { status: "OBSERVED" | "BLOCKED"; reason?: string }>; readback?: Record<string, { status: "OBSERVED" | "BLOCKED"; reason?: string }> };
+type DisplayCapability = ObservationCapability | "OBSERVED";
+type ObservationResult = { status: "BLOCKED"; missingContract: string; backendRef: string; capabilities: Record<string, DisplayCapability>; readback?: Record<string, ObservationCapability> };
 
 const initialForm: FormState = { backendRef: ISOLATED_LIFECYCLE_ACCEPTANCE_BACKEND, projectId: "", requestKey: "", templateId: "", templateDocumentRevisionId: "", sourceFingerprint: "" };
 
@@ -65,8 +66,8 @@ function Field({ id, label, value, onChange }: { id: string; label: string; valu
   return <div className="space-y-1"><Label htmlFor={id}>{label}</Label><Input id={id} value={value} onChange={(event) => onChange(event.target.value)} autoComplete="off" spellCheck={false} /></div>;
 }
 
-function CapabilityList({ title, capabilities }: { title: string; capabilities?: Record<string, { status: "OBSERVED" | "BLOCKED"; reason?: string }> }) {
+function CapabilityList({ title, capabilities }: { title: string; capabilities?: Record<string, DisplayCapability> }) {
   const entries = Object.entries(capabilities ?? {});
   if (!entries.length) return null;
-  return <div><h2 className="text-sm font-medium">{title}</h2><ul className="mt-2 space-y-1 text-xs text-muted-foreground">{entries.map(([name, value]) => <li key={name}><span className="font-medium text-foreground">{name}</span>: {value.status}{value.reason ? ` — ${value.reason}` : ""}</li>)}</ul></div>;
+  return <div><h2 className="text-sm font-medium">{title}</h2><ul className="mt-2 space-y-1 text-xs text-muted-foreground">{entries.map(([name, value]) => <li key={name}><span className="font-medium text-foreground">{name}</span>: {typeof value === "string" ? value : value.status}{typeof value === "object" && value.reason ? ` — ${value.reason}` : ""}</li>)}</ul></div>;
 }
