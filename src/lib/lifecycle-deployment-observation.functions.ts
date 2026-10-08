@@ -12,6 +12,11 @@ const requestSchema = z.object({
   backendRef: z.string().trim().min(1),
   projectId: z.string().uuid(),
   requestKey: z.string().uuid(),
+  expectedSource: z.object({
+    templateId: z.string().uuid(),
+    templateDocumentRevisionId: z.string().uuid(),
+    sourceFingerprint: z.string().regex(/^[a-f0-9]{64}$/i),
+  }).optional(),
 });
 
 /**
