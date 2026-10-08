@@ -803,11 +803,11 @@ REVOKE ALL ON FUNCTION public.sales_baseline_approval_payload_hash(uuid, integer
 
 -- PENDING POSITIVE-ONLY BASELINE READBACK CONTRACT — SOURCE-ONLY. This returns no
 -- receipt payload, baseline snapshot, count, or arbitrary filter API. It validates one
--- actor-bound approval receipt graph from immutable receipt and baseline snapshots only.
--- Empty results cannot prove rollback absence, reviewer history, or concurrency, so those
--- assertions remain BLOCKED pending separately scoped contracts. The requirement/source
--- lookup mirrors the deployed global sales.manage caller-RLS scope; no nullable department
--- or ownership field is inferred here.
+-- actor-bound approval receipt graph from immutable receipt, revision, Master-version,
+-- commercial-revision, and baseline snapshots only. Empty results cannot prove rollback
+-- absence, reviewer history, or concurrency, so those assertions remain BLOCKED pending
+-- separately scoped contracts. The requirement/source lookup mirrors the deployed global
+-- sales.manage caller-RLS scope; no nullable department or ownership field is inferred here.
 CREATE OR REPLACE FUNCTION public.read_sales_requirement_baseline_approval_receipt(
   p_requirement_id uuid,
   p_expected_revision_number integer,
@@ -833,7 +833,9 @@ DECLARE
   v_receipt public.sales_baseline_approval_requests%ROWTYPE;
   v_requirement public.customer_requirements%ROWTYPE;
   v_revision public.customer_requirement_revisions%ROWTYPE;
+  v_specification public.master_specifications%ROWTYPE;
   v_master_version public.master_specification_versions%ROWTYPE;
+  v_commercial_revision public.sales_commercial_record_revisions%ROWTYPE;
   v_baseline public.requirement_baselines%ROWTYPE;
   v_audit_id uuid;
   v_audit_count integer;
@@ -885,16 +887,29 @@ BEGIN
   WHERE revision.id = v_receipt.source_revision_id
     AND revision.requirement_id = v_receipt.requirement_id
     AND revision.revision_number = p_expected_revision_number
+    AND revision.requirement_data #>> '{source,opportunity_id}' = v_requirement.opportunity_id::text
+    AND revision.requirement_data #>> '{source,customer_id}' = v_requirement.customer_id::text
     AND revision.requirement_data #>> '{source,master_specification_version_id}' = v_receipt.master_specification_version_id::text;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Positive scoped baseline receipt graph is unavailable or incomplete';
   END IF;
 
-  SELECT * INTO v_master_version
+  SELECT specification.*, version.* INTO v_specification, v_master_version
   FROM public.master_specification_versions version
-  WHERE version.id = v_receipt.master_specification_version_id;
+  JOIN public.master_specifications specification ON specification.id = version.specification_id
+  WHERE version.id = v_receipt.master_specification_version_id
+    AND specification.opportunity_id = v_requirement.opportunity_id
+    AND specification.customer_id = v_requirement.customer_id;
   IF NOT FOUND
-     OR v_revision.requirement_data #>> '{source,master_specification_version_number}' IS DISTINCT FROM v_master_version.version_number::text THEN
+     OR v_revision.requirement_data #>> '{source,master_specification_version_number}' IS DISTINCT FROM v_master_version.version_number::text
+     OR jsonb_typeof(v_master_version.specification_data -> 'workstreams') IS DISTINCT FROM 'array'
+     OR jsonb_array_length(v_master_version.specification_data -> 'workstreams') = 0
+     OR EXISTS (
+       SELECT 1
+       FROM jsonb_array_elements(v_master_version.specification_data -> 'workstreams') AS workstream(value)
+       WHERE jsonb_typeof(workstream.value) <> 'string'
+          OR trim(both '"' FROM workstream.value::text) NOT IN ('HARDWARE', 'FIRMWARE', 'MECHANICAL', 'TEST', 'MANUFACTURING')
+     ) THEN
     RAISE EXCEPTION 'Positive scoped baseline receipt graph is unavailable or incomplete';
   END IF;
 
@@ -909,11 +924,49 @@ BEGIN
     AND baseline.requirement_snapshot #>> '{source_revision_number}' = p_expected_revision_number::text
     AND baseline.requirement_snapshot #>> '{master_specification_version_id}' = v_receipt.master_specification_version_id::text
     AND baseline.requirement_snapshot #>> '{master_specification_version_number}' = v_master_version.version_number::text
+    AND baseline.requirement_snapshot -> 'requirement_data' = v_revision.requirement_data
+    AND baseline.requirement_snapshot -> 'applicable_workstreams' = v_master_version.specification_data -> 'workstreams'
     AND baseline.commercial_snapshot #>> '{requirement_id}' = v_receipt.requirement_id::text
-    AND NULLIF(btrim(coalesce(baseline.commercial_snapshot #>> '{id}', '')), '') IS NOT NULL
+    AND baseline.commercial_snapshot #>> '{id}' IS NOT NULL
     AND baseline.commercial_snapshot #>> '{status}' = 'customer_authorized'
+    AND baseline.commercial_snapshot -> 'customer_authorized_at' IS NOT NULL
+    AND jsonb_typeof(baseline.commercial_snapshot -> 'customer_authorized_at') = 'string'
     AND NULLIF(btrim(coalesce(baseline.commercial_snapshot #>> '{authorization_reference}', '')), '') IS NOT NULL;
   IF NOT FOUND THEN
+    RAISE EXCEPTION 'Positive scoped baseline receipt graph is unavailable or incomplete';
+  END IF;
+
+  -- The baseline snapshot stores no immutable commercial-revision identifier. Its exact
+  -- historical identity is therefore limited to the matching immutable snapshot below;
+  -- if a future snapshot format adds an explicit revision ID, a separately reviewed
+  -- contract may tighten this linkage. Never infer it from the mutable current record.
+  SELECT * INTO v_commercial_revision
+  FROM public.sales_commercial_record_revisions revision
+  WHERE revision.requirement_id = v_receipt.requirement_id
+    AND revision.snapshot #>> '{commercial_record_id}' = v_baseline.commercial_snapshot #>> '{id}'
+    AND revision.snapshot #>> '{requirement_id}' = v_receipt.requirement_id::text
+    AND revision.snapshot -> 'quotation_reference' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'quotation_reference'
+    AND revision.snapshot -> 'currency' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'currency'
+    AND revision.snapshot -> 'quoted_amount' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'quoted_amount'
+    AND revision.snapshot -> 'status' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'status'
+    AND revision.snapshot -> 'customer_authorized_at' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'customer_authorized_at'
+    AND revision.snapshot -> 'authorization_reference' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'authorization_reference'
+    AND revision.snapshot -> 'notes' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'notes';
+  IF NOT FOUND OR EXISTS (
+    SELECT 1
+    FROM public.sales_commercial_record_revisions revision
+    WHERE revision.requirement_id = v_receipt.requirement_id
+      AND revision.snapshot #>> '{commercial_record_id}' = v_baseline.commercial_snapshot #>> '{id}'
+      AND revision.snapshot #>> '{requirement_id}' = v_receipt.requirement_id::text
+      AND revision.snapshot -> 'quotation_reference' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'quotation_reference'
+      AND revision.snapshot -> 'currency' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'currency'
+      AND revision.snapshot -> 'quoted_amount' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'quoted_amount'
+      AND revision.snapshot -> 'status' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'status'
+      AND revision.snapshot -> 'customer_authorized_at' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'customer_authorized_at'
+      AND revision.snapshot -> 'authorization_reference' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'authorization_reference'
+      AND revision.snapshot -> 'notes' IS NOT DISTINCT FROM v_baseline.commercial_snapshot -> 'notes'
+      AND revision.id <> v_commercial_revision.id
+  ) THEN
     RAISE EXCEPTION 'Positive scoped baseline receipt graph is unavailable or incomplete';
   END IF;
 
