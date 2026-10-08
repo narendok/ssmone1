@@ -637,7 +637,8 @@ BEGIN
       'applicable_workstreams', v_review.applicable_workstreams,
       'opportunity_id', v_requirement.opportunity_id, 'customer_id', v_requirement.customer_id,
       'department_id', v_review.department_id, 'reviewer_user_id', v_review.reviewer_user_id,
-      'status', p_status
+      'status', p_status, 'request_key', p_request_key,
+      'response_payload', v_payload_canonical
     )
   );
   INSERT INTO public.requirement_feasibility_response_requests (
@@ -701,11 +702,19 @@ BEGIN
     AND review.status IN ('feasible', 'feasible_with_conditions', 'not_feasible')
     AND review.reviewed_at IS NOT NULL;
   IF NOT FOUND THEN RAISE EXCEPTION 'Positive scoped reviewer response receipt graph is unavailable or incomplete'; END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM public.employees employee
+    JOIN public.employee_departments membership ON membership.employee_id = employee.id
+    WHERE employee.user_id = v_actor_id AND employee.employment_status = 'ACTIVE'
+      AND membership.department_id = v_review.department_id
+  ) THEN RAISE EXCEPTION 'Positive scoped reviewer response receipt graph is unavailable or incomplete'; END IF;
   SELECT * INTO v_requirement FROM public.customer_requirements requirement
   WHERE requirement.id = v_review.requirement_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Positive scoped reviewer response receipt graph is unavailable or incomplete'; END IF;
   SELECT * INTO v_revision FROM public.customer_requirement_revisions revision
   WHERE revision.id = v_review.source_revision_id AND revision.requirement_id = v_requirement.id
     AND revision.revision_number = v_review.source_revision_number;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Positive scoped reviewer response receipt graph is unavailable or incomplete'; END IF;
   SELECT version.* INTO v_master_version FROM public.master_specification_versions version
   JOIN public.master_specifications specification ON specification.id = version.specification_id
   WHERE version.id = v_review.master_specification_version_id
@@ -713,6 +722,7 @@ BEGIN
     AND specification.opportunity_id = v_requirement.opportunity_id
     AND specification.customer_id = v_requirement.customer_id;
   IF NOT FOUND
+     OR v_review.applicable_workstreams IS DISTINCT FROM v_master_version.specification_data -> 'workstreams'
      OR v_revision.requirement_data #>> '{source,opportunity_id}' IS DISTINCT FROM v_requirement.opportunity_id::text
      OR v_revision.requirement_data #>> '{source,customer_id}' IS DISTINCT FROM v_requirement.customer_id::text
      OR v_revision.requirement_data #>> '{source,master_specification_version_id}' IS DISTINCT FROM v_master_version.id::text
@@ -732,7 +742,13 @@ BEGIN
     AND audit.after_data #>> '{source_revision_id}' = v_review.source_revision_id::text
     AND audit.after_data #>> '{master_specification_version_id}' = v_review.master_specification_version_id::text
     AND audit.after_data #>> '{reviewer_user_id}' = v_actor_id::text
-    AND audit.after_data #>> '{status}' = v_review.status;
+    AND audit.after_data #>> '{source_revision_number}' = v_review.source_revision_number::text
+    AND audit.after_data #>> '{master_specification_version_number}' = v_review.master_specification_version_number::text
+    AND audit.after_data #>> '{department_id}' = v_review.department_id::text
+    AND audit.after_data -> 'applicable_workstreams' = v_review.applicable_workstreams
+    AND audit.after_data #>> '{status}' = v_review.status
+    AND audit.after_data #>> '{request_key}' = v_receipt.request_key::text
+    AND audit.after_data -> 'response_payload' = v_receipt.payload_canonical;
   IF v_audit_count <> 1 THEN
     RAISE EXCEPTION 'Positive scoped reviewer response receipt graph is unavailable or incomplete';
   END IF;
