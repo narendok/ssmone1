@@ -722,6 +722,13 @@ BEGIN
     AND specification.opportunity_id = v_requirement.opportunity_id
     AND specification.customer_id = v_requirement.customer_id;
   IF NOT FOUND
+     OR jsonb_typeof(v_master_version.specification_data -> 'workstreams') IS DISTINCT FROM 'array'
+     OR jsonb_array_length(v_master_version.specification_data -> 'workstreams') = 0
+     OR EXISTS (
+       SELECT 1 FROM jsonb_array_elements(v_master_version.specification_data -> 'workstreams') AS workstream(value)
+       WHERE jsonb_typeof(workstream.value) <> 'string'
+          OR workstream.value #>> '{}' NOT IN ('HARDWARE', 'FIRMWARE', 'MECHANICAL', 'TEST', 'MANUFACTURING')
+     )
      OR v_review.applicable_workstreams IS DISTINCT FROM v_master_version.specification_data -> 'workstreams'
      OR v_revision.requirement_data #>> '{source,opportunity_id}' IS DISTINCT FROM v_requirement.opportunity_id::text
      OR v_revision.requirement_data #>> '{source,customer_id}' IS DISTINCT FROM v_requirement.customer_id::text
