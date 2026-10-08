@@ -576,6 +576,114 @@ GRANT EXECUTE ON FUNCTION public.save_sales_commercial_record(uuid, integer, tex
 REVOKE ALL ON FUNCTION public.sales_commercial_save_canonical_payload(uuid, integer, text, text, numeric, text, text, text) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.sales_commercial_save_payload_hash(uuid, integer, text, text, numeric, text, text, text) FROM PUBLIC, anon, authenticated;
 
+-- PENDING POSITIVE-ONLY COMMERCIAL READBACK CONTRACT — SOURCE-ONLY. This exposes no
+-- receipt payload, commercial snapshot, count, or arbitrary filter API. It validates one
+-- exact actor-bound saved graph only. Empty results cannot prove rollback absence, history,
+-- or concurrency, so those assertions remain BLOCKED pending separate scoped contracts.
+-- The requirement/source lookup intentionally mirrors the deployed global sales.manage
+-- caller-RLS read scope; no nullable department or ownership field is inferred here.
+CREATE OR REPLACE FUNCTION public.read_sales_commercial_save_receipt(
+  p_requirement_id uuid,
+  p_expected_revision_number integer,
+  p_request_key uuid
+) RETURNS TABLE(
+  request_key uuid,
+  requirement_id uuid,
+  expected_revision_number integer,
+  commercial_record_id uuid,
+  commercial_revision_id uuid,
+  commercial_revision_number integer,
+  audit_id uuid
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+  v_actor_id uuid := auth.uid();
+  v_receipt public.sales_commercial_save_requests%ROWTYPE;
+  v_requirement public.customer_requirements%ROWTYPE;
+  v_commercial public.sales_commercial_records%ROWTYPE;
+  v_revision public.sales_commercial_record_revisions%ROWTYPE;
+  v_audit_id uuid;
+  v_audit_count integer;
+BEGIN
+  -- Authorize before every receipt lookup so a wrong actor or scope cannot learn existence.
+  IF v_actor_id IS NULL OR NOT public.has_permission(v_actor_id, 'sales.manage') THEN
+    RAISE EXCEPTION 'Sales management permission is required';
+  END IF;
+  IF p_requirement_id IS NULL OR p_expected_revision_number IS NULL
+     OR p_expected_revision_number < 0 OR p_request_key IS NULL THEN
+    RAISE EXCEPTION 'Immutable commercial receipt-readback scope is required';
+  END IF;
+
+  -- This asserts an existing globally Sales-readable requirement before inspecting a receipt.
+  SELECT * INTO v_requirement
+  FROM public.customer_requirements requirement
+  WHERE requirement.id = p_requirement_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Scoped commercial source is unavailable';
+  END IF;
+
+  SELECT * INTO v_receipt
+  FROM public.sales_commercial_save_requests receipt
+  WHERE receipt.request_key = p_request_key
+    AND receipt.requested_by = v_actor_id
+    AND receipt.requirement_id = p_requirement_id
+    AND receipt.expected_revision_number = p_expected_revision_number;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Positive scoped commercial receipt graph is unavailable or incomplete';
+  END IF;
+
+  SELECT * INTO v_commercial
+  FROM public.sales_commercial_records commercial
+  WHERE commercial.id = v_receipt.commercial_record_id
+    AND commercial.requirement_id = v_receipt.requirement_id
+    AND commercial.revision_number = v_receipt.expected_revision_number + 1;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Positive scoped commercial receipt graph is unavailable or incomplete';
+  END IF;
+
+  SELECT * INTO v_revision
+  FROM public.sales_commercial_record_revisions revision
+  WHERE revision.commercial_record_id = v_commercial.id
+    AND revision.requirement_id = v_receipt.requirement_id
+    AND revision.revision_number = v_commercial.revision_number
+    AND revision.created_by = v_receipt.requested_by
+    AND revision.snapshot #>> '{commercial_record_id}' = v_commercial.id::text
+    AND revision.snapshot #>> '{requirement_id}' = v_receipt.requirement_id::text
+    AND revision.snapshot #>> '{revision_number}' = v_commercial.revision_number::text;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Positive scoped commercial receipt graph is unavailable or incomplete';
+  END IF;
+
+  SELECT count(*), min(audit.id::text)::uuid
+  INTO v_audit_count, v_audit_id
+  FROM public.activity_log audit
+  WHERE audit.entity_id = v_commercial.id
+    AND audit.module_key = 'sales'
+    AND audit.entity_type = 'sales_commercial_record'
+    AND audit.action = 'saved'
+    AND audit.actor_user_id = v_receipt.requested_by
+    AND audit.after_data #>> '{requirement_id}' = v_receipt.requirement_id::text
+    AND audit.after_data #>> '{request_key}' = v_receipt.request_key::text;
+  IF v_audit_count <> 1 THEN
+    RAISE EXCEPTION 'Positive scoped commercial receipt graph is unavailable or incomplete';
+  END IF;
+
+  RETURN QUERY SELECT
+    v_receipt.request_key,
+    v_receipt.requirement_id,
+    v_receipt.expected_revision_number,
+    v_commercial.id,
+    v_revision.id,
+    v_commercial.revision_number,
+    v_audit_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.read_sales_commercial_save_receipt(uuid, integer, uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.read_sales_commercial_save_receipt(uuid, integer, uuid) TO authenticated, service_role;
+
 -- The protected save above is the sole pending commercial mutation path. It preserves
 -- existing rows and their history; it does not backfill, infer, or approve customer intent.
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.sales_commercial_records FROM authenticated;
