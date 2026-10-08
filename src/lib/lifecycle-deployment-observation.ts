@@ -39,6 +39,11 @@ export type ObservationCapability = {
 export type ScopedLifecycleObservationInput = {
   projectId: string;
   requestKey: string;
+  expectedSource?: {
+    templateId: string;
+    templateDocumentRevisionId: string;
+    sourceFingerprint: string;
+  };
 };
 
 type QueryResult = {
@@ -69,12 +74,29 @@ export type ScopedLifecycleReadback = {
 const blocked = (reason: string): ObservationCapability => ({ status: "BLOCKED", reason });
 const observed = (): ObservationCapability => ({ status: "OBSERVED" });
 
-function queryError(error: { message?: string } | null, fallback: string) {
-  return error?.message ? `${fallback}: ${error.message}` : fallback;
-}
-
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function isUuid(value: unknown): value is string {
+  return typeof value === "string"
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+function isSha256(value: unknown): value is string {
+  return typeof value === "string" && /^[a-f0-9]{64}$/i.test(value);
+}
+
+function isNonNegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && Number.isInteger(value) && value >= 0;
+}
+
+function invalidInput(input: ScopedLifecycleObservationInput) {
+  if (!isUuid(input.projectId) || !isUuid(input.requestKey)) return true;
+  const expected = input.expectedSource;
+  return expected !== undefined && (!isUuid(expected.templateId)
+    || !isUuid(expected.templateDocumentRevisionId)
+    || !isSha256(expected.sourceFingerprint));
 }
 
 /**
@@ -95,14 +117,20 @@ export async function observeScopedLifecycleReadback(
     audit: blocked("activity_log_has_no_scoped_authenticated_read_contract"),
     storageMetadata: blocked("storage_metadata_not_observed"),
   };
-  const receiptResult = await client
-    .from("project_lifecycle_document_drafts")
-    .select("project_id,request_key,template_id,template_document_revision_id,generated_drive_node_id,generated_revision_id,document_control_register_id,audit_event_id,source_fingerprint,storage_bucket,storage_path,sha256_checksum,size_bytes")
-    .eq("project_id", input.projectId)
-    .eq("request_key", input.requestKey)
-    .maybeSingle();
+  if (invalidInput(input)) return { ...empty, receipt: blocked("invalid_scoped_observation_input") };
+  let receiptResult: QueryResult;
+  try {
+    receiptResult = await client
+      .from("project_lifecycle_document_drafts")
+      .select("project_id,request_key,template_id,template_document_revision_id,generated_drive_node_id,generated_revision_id,document_control_register_id,audit_event_id,source_fingerprint,storage_bucket,storage_path,sha256_checksum,size_bytes")
+      .eq("project_id", input.projectId)
+      .eq("request_key", input.requestKey)
+      .maybeSingle();
+  } catch {
+    return { ...empty, receipt: blocked("receipt_read_transport_failed") };
+  }
   if (receiptResult.error) {
-    return { ...empty, receipt: blocked(queryError(receiptResult.error, "receipt_read_denied_or_failed")) };
+    return { ...empty, receipt: blocked("receipt_read_denied_or_failed") };
   }
   const receipt = receiptResult.data;
   if (!receipt) return { ...empty, receipt: blocked("receipt_not_found_or_hidden_by_rls") };
@@ -110,33 +138,61 @@ export async function observeScopedLifecycleReadback(
   if (required.some((field) => !isNonEmptyString(receipt[field]))) {
     return { ...empty, receipt: blocked("receipt_has_incomplete_linkage") };
   }
+  if (!isSha256(receipt.source_fingerprint) || !isSha256(receipt.sha256_checksum)
+    || receipt.storage_bucket !== "project-drive" || !isNonNegativeInteger(receipt.size_bytes)) {
+    return { ...empty, receipt: blocked("receipt_has_invalid_storage_or_source_evidence") };
+  }
   if (receipt.project_id !== input.projectId || receipt.request_key !== input.requestKey) {
     return { ...empty, receipt: blocked("receipt_scope_mismatch") };
   }
+  if (input.expectedSource && (receipt.template_id !== input.expectedSource.templateId
+    || receipt.template_document_revision_id !== input.expectedSource.templateDocumentRevisionId
+    || receipt.source_fingerprint !== input.expectedSource.sourceFingerprint)) {
+    return { ...empty, receipt: blocked("receipt_source_evidence_mismatch") };
+  }
+  const sourceRevisionId = receipt.template_document_revision_id;
+  const generatedNodeId = receipt.generated_drive_node_id;
+  const generatedRevisionId = receipt.generated_revision_id;
+  const registerId = receipt.document_control_register_id;
+  if (!isNonEmptyString(sourceRevisionId) || !isNonEmptyString(generatedNodeId)
+    || !isNonEmptyString(generatedRevisionId) || !isNonEmptyString(registerId)) {
+    return { ...empty, receipt: blocked("receipt_has_incomplete_linkage") };
+  }
   const linked = (table: string, id: string, columns: string) => client.from(table).select(columns).eq("id", id).maybeSingle();
-  const [sourceResult, nodeResult, revisionResult, registerResult] = await Promise.all([
-    linked("department_process_template_document_revisions", String(receipt.template_document_revision_id), "id,template_id,revision_number,content_sha256"),
-    linked("drive_nodes", String(receipt.generated_drive_node_id), "id,project_id,node_type,is_trashed,storage_bucket,storage_path,sha256_checksum,file_size_bytes"),
-    linked("drive_node_revisions", String(receipt.generated_revision_id), "id,node_id,storage_path,sha256_checksum,file_size_bytes"),
-    linked("document_control_registers", String(receipt.document_control_register_id), "id,project_id,drive_node_id,source_revision_id,document_status"),
-  ]);
-  const source = sourceResult.error ? blocked(queryError(sourceResult.error, "immutable_source_read_denied_or_failed"))
+  let sourceResult: QueryResult;
+  let nodeResult: QueryResult;
+  let revisionResult: QueryResult;
+  let registerResult: QueryResult;
+  try {
+    [sourceResult, nodeResult, revisionResult, registerResult] = await Promise.all([
+      linked("department_process_template_document_revisions", sourceRevisionId, "id,template_id,revision_number,content_sha256"),
+      linked("drive_nodes", generatedNodeId, "id,project_id,node_type,is_trashed,storage_bucket,storage_path,sha256_checksum,file_size_bytes"),
+      linked("drive_node_revisions", generatedRevisionId, "id,node_id,storage_path,sha256_checksum,file_size_bytes"),
+      linked("document_control_registers", registerId, "id,project_id,drive_node_id,source_revision_id,document_status"),
+    ]);
+  } catch {
+    return { ...empty, receipt: observed(), source: blocked("linked_read_transport_failed"), generatedNode: blocked("linked_read_transport_failed"), generatedRevision: blocked("linked_read_transport_failed"), controlledRegister: blocked("linked_read_transport_failed") };
+  }
+  const source = sourceResult.error ? blocked("immutable_source_read_denied_or_failed")
     : !sourceResult.data ? blocked("immutable_source_not_found_or_hidden_by_rls")
-    : sourceResult.data.id !== receipt.template_document_revision_id || sourceResult.data.template_id !== receipt.template_id || !isNonEmptyString(sourceResult.data.content_sha256) ? blocked("immutable_source_link_mismatch") : observed();
-  const generatedNode = nodeResult.error ? blocked(queryError(nodeResult.error, "generated_node_read_denied_or_failed"))
+    : sourceResult.data.id !== receipt.template_document_revision_id || sourceResult.data.template_id !== receipt.template_id || !isSha256(sourceResult.data.content_sha256) ? blocked("immutable_source_link_mismatch") : observed();
+  const generatedNode = nodeResult.error ? blocked("generated_node_read_denied_or_failed")
     : !nodeResult.data ? blocked("generated_node_not_found_or_hidden_by_rls")
     : nodeResult.data.id !== receipt.generated_drive_node_id || nodeResult.data.project_id !== input.projectId || nodeResult.data.node_type !== "FILE" || nodeResult.data.is_trashed === true ? blocked("generated_node_link_mismatch") : observed();
-  const generatedRevision = revisionResult.error ? blocked(queryError(revisionResult.error, "generated_revision_read_denied_or_failed"))
+  const generatedRevision = revisionResult.error ? blocked("generated_revision_read_denied_or_failed")
     : !revisionResult.data ? blocked("generated_revision_not_found_or_hidden_by_rls")
     : revisionResult.data.id !== receipt.generated_revision_id || revisionResult.data.node_id !== receipt.generated_drive_node_id ? blocked("generated_revision_link_mismatch") : observed();
-  const controlledRegister = registerResult.error ? blocked(queryError(registerResult.error, "controlled_register_read_denied_or_failed"))
+  const controlledRegister = registerResult.error ? blocked("controlled_register_read_denied_or_failed")
     : !registerResult.data ? blocked("controlled_register_not_found_or_hidden_by_rls")
     : registerResult.data.id !== receipt.document_control_register_id || registerResult.data.project_id !== input.projectId || registerResult.data.drive_node_id !== receipt.generated_drive_node_id || registerResult.data.source_revision_id !== receipt.generated_revision_id ? blocked("controlled_register_link_mismatch") : observed();
   const storageMetadata = generatedNode.status === "OBSERVED" && generatedRevision.status === "OBSERVED"
     && nodeResult.data?.storage_bucket === receipt.storage_bucket && nodeResult.data?.storage_path === receipt.storage_path
     && nodeResult.data?.sha256_checksum === receipt.sha256_checksum && nodeResult.data?.file_size_bytes === receipt.size_bytes
     && revisionResult.data?.storage_path === receipt.storage_path && revisionResult.data?.sha256_checksum === receipt.sha256_checksum
-    && revisionResult.data?.file_size_bytes === receipt.size_bytes ? observed() : blocked("storage_metadata_link_or_checksum_mismatch");
+    && revisionResult.data?.file_size_bytes === receipt.size_bytes
+    && isSha256(nodeResult.data?.sha256_checksum) && isSha256(revisionResult.data?.sha256_checksum)
+    && isNonNegativeInteger(nodeResult.data?.file_size_bytes) && isNonNegativeInteger(revisionResult.data?.file_size_bytes)
+      ? observed() : blocked("storage_metadata_link_or_checksum_mismatch");
   return { receipt: observed(), source, generatedNode, generatedRevision, controlledRegister, audit: empty.audit, storageMetadata };
 }
 
