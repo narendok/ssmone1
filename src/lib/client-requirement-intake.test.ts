@@ -351,7 +351,7 @@ describe("client requirement intake contract", () => {
     expect(transportHarness).toContain("Refusing original target");
     expect(transportHarness).toContain("request.jwt.claim.* and never connects");
     expect(transportHarness).toContain("never connects with a service-role credential");
-    expect(transportHarness).toContain("Fresh stale version creation unexpectedly succeeded");
+    expect(transportHarness).toContain("Fresh stale-version creation unexpectedly succeeded");
     expect(transportHarness).toContain("protected-create/source-update overlap");
   });
 
