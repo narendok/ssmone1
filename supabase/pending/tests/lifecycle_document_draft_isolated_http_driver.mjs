@@ -138,7 +138,7 @@ export function createIsolatedLifecycleHttpDriver({ backendRef, origin, approved
     } catch (error) {
       throw new IsolatedDriverError('TRANSPORT_FAILURE', 'Authenticated application transport failed.', error)
     }
-    if (response.redirected || new URL(response.url || safeOrigin).origin !== safeOrigin) {
+    if (response.redirected || (response.url && new URL(response.url).origin !== safeOrigin)) {
       throw new IsolatedDriverError('REDIRECT_OR_OFF_ORIGIN', 'Refusing redirected or off-origin authenticated application transport.')
     }
     if (!response.ok) {
