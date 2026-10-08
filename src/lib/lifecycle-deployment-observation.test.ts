@@ -5,9 +5,70 @@ import {
   ORIGINAL_LIFECYCLE_BACKEND,
   blockedLifecycleDeploymentObservation,
   lifecycleDocumentServerOperations,
+  deriveBackendRef,
+  validateLifecycleTarget,
 } from "./lifecycle-deployment-observation";
 
 describe("lifecycle deployment observation boundary", () => {
+  describe("backend identity derivation", () => {
+    it("extracts project ref from standard Supabase URLs", () => {
+      expect(deriveBackendRef("https://egjotuxqguifnvdnflan.supabase.co")).toBe("egjotuxqguifnvdnflan");
+      expect(deriveBackendRef("https://yyrvduosyyaluifqvwkr.supabase.co")).toBe("yyrvduosyyaluifqvwkr");
+    });
+
+    it("returns null for invalid or non-Supabase URLs", () => {
+      expect(deriveBackendRef(undefined)).toBeNull();
+      expect(deriveBackendRef("")).toBeNull();
+      expect(deriveBackendRef("not-a-url")).toBeNull();
+      expect(deriveBackendRef("https://example.com")).toBeNull();
+      expect(deriveBackendRef("https://supabase.co")).toBeNull();
+    });
+  });
+
+  describe("strict target validation", () => {
+    const isolatedUrl = "https://egjotuxqguifnvdnflan.supabase.co";
+    const originalUrl = "https://yyrvduosyyaluifqvwkr.supabase.co";
+
+    it("refuses the original backend even if it matches the current environment", () => {
+      const result = validateLifecycleTarget(ORIGINAL_LIFECYCLE_BACKEND, originalUrl);
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.reason).toBe("Refusing the original backend.");
+      }
+    });
+
+    it("refuses mismatches between target and environment", () => {
+      const result = validateLifecycleTarget(ISOLATED_LIFECYCLE_ACCEPTANCE_BACKEND, originalUrl);
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.reason).toBe("Backend mismatch: target does not match current environment.");
+      }
+    });
+
+    it("refuses unknown backends even if they match the environment", () => {
+      const unknownRef = "unknown-backend-ref";
+      const unknownUrl = `https://${unknownRef}.supabase.co`;
+      const result = validateLifecycleTarget(unknownRef, unknownUrl);
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.reason).toBe("Refusing a backend other than the approved isolated backend.");
+      }
+    });
+
+    it("accepts the isolated backend when it matches the environment", () => {
+      const result = validateLifecycleTarget(ISOLATED_LIFECYCLE_ACCEPTANCE_BACKEND, isolatedUrl);
+      expect(result.valid).toBe(true);
+    });
+
+    it("fails safely if environment URL is missing", () => {
+      const result = validateLifecycleTarget(ISOLATED_LIFECYCLE_ACCEPTANCE_BACKEND, undefined);
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.reason).toBe("Unable to derive current backend identity.");
+      }
+    });
+  });
+
   it("keeps all deployment-specific evidence blocked until a reviewed observer exists", () => {
     expect(blockedLifecycleDeploymentObservation(ISOLATED_LIFECYCLE_ACCEPTANCE_BACKEND)).toEqual({
       status: "BLOCKED",
@@ -33,15 +94,13 @@ describe("lifecycle deployment observation boundary", () => {
     ]);
   });
 
-  it("keeps the server facade authenticated, read-only, and original-target denying", () => {
+  it("keeps the server facade authenticated and uses strict validation", () => {
     const facade = readFileSync("src/lib/lifecycle-deployment-observation.functions.ts", "utf8");
     expect(facade).toContain("requireSupabaseAuth");
-    expect(facade).toContain("ORIGINAL_LIFECYCLE_BACKEND");
-    expect(facade).toContain("Refusing the original backend.");
-    expect(facade).not.toContain("client.server");
-    expect(facade).not.toContain(".rpc(");
-    expect(facade).not.toContain(".insert(");
-    expect(facade).not.toContain(".update(");
-    expect(ORIGINAL_LIFECYCLE_BACKEND).not.toBe(ISOLATED_LIFECYCLE_ACCEPTANCE_BACKEND);
+    expect(facade).toContain("validateLifecycleTarget");
+    expect(facade).toContain("process.env.SUPABASE_URL");
+    // Ensure it doesn't do database calls
+    expect(facade).not.toContain("supabase.from(");
+    expect(facade).not.toContain("supabase.rpc(");
   });
 });
