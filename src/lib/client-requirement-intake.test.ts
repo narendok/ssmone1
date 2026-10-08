@@ -244,6 +244,39 @@ describe("client requirement intake contract", () => {
     expect(transportHarness).toContain("protected-create/source-update overlap");
   });
 
+  it("uses only receipt-bound scoped read assertions and separates caller from source-pair denial", () => {
+    expect(salesBoundTransportHarness).toContain('kind:"sales-bound-requirement-read"');
+    expect(salesBoundTransportHarness).toContain('assert_observed "requirement-create-replay-graph"');
+    expect(salesBoundTransportHarness).toContain('assert_observed "requirement-create-rollback-graph-absent"');
+    expect(salesBoundTransportHarness).toContain('assert_blocked "commercial-receipt-readback"');
+    expect(salesBoundTransportHarness).toContain('assert_blocked "baseline-receipt-readback"');
+    expect(salesBoundTransportHarness).toContain('assert_blocked "requirement-create-concurrency-persisted-barrier"');
+    expect(salesBoundTransportHarness).toContain("receipt.request_key -> receipt.requirement_id -> requirement.id -> revision.requirement_id");
+    expect(salesBoundTransportHarness).toContain("activity_log.after_data.request_key");
+    expect(salesBoundTransportHarness).not.toContain('"customer_requirements" 1 "request_key=$REQUEST_KEY"');
+    expect(salesBoundTransportHarness).not.toContain('"customer_requirement_revisions" 0 "request_key=$ROLLBACK_REQUEST_KEY"');
+    expect(salesBoundTransportHarness).toContain('"Different actor replay unexpectedly succeeded"');
+    expect(salesBoundTransportHarness).toContain('"Mismatched customer source pair unexpectedly succeeded"');
+    expect(salesBoundTransportHarness).toContain('"${MISMATCHED_CUSTOMER_ID:?A real customer UUID that does not match OPPORTUNITY_ID}"');
+  });
+
+  it("keeps caller transport payloads source-bound and rejects malformed scoped identifiers before a future live run", () => {
+    const valid = {
+      opportunityId: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8",
+      customerId: "dfd5f3f8-0caf-46cb-bf16-436a1c063650",
+      masterSpecificationVersionId: "9ce5a383-9ebf-430e-9bba-2e550c20fe3e",
+      requestKey: "0741a6a9-8f32-4e68-bdd4-d1a56250e603",
+      title: "Transport acceptance requirement",
+      customerReference: "TRANSPORT-ACCEPT",
+      summary: "Isolated acceptance only.",
+    };
+    expect(clientRequirementIntakeSchema.safeParse({ ...valid, description: valid.summary }).success).toBe(true);
+    expect(clientRequirementIntakeSchema.safeParse({ ...valid, customerId: "not-a-customer", description: valid.summary }).success).toBe(false);
+    expect(salesBoundTransportHarness).toContain('masterSpecificationVersionId:$masterSpecificationVersionId');
+    expect(salesBoundTransportHarness).toContain('requestKey:$requestKey');
+    expect(salesBoundTransportHarness).toContain('.customerId = $customerId');
+  });
+
   it("keeps the pending Sales facade unavailable instead of falling back to legacy writes", () => {
     const facade = readFileSync("src/lib/sales-bound-requirement.functions.ts", "utf8");
     expect(facade).toContain("requireSupabaseAuth");
