@@ -832,7 +832,6 @@ DECLARE
   v_receipt public.sales_baseline_approval_requests%ROWTYPE;
   v_requirement public.customer_requirements%ROWTYPE;
   v_revision public.customer_requirement_revisions%ROWTYPE;
-  v_specification public.master_specifications%ROWTYPE;
   v_master_version public.master_specification_versions%ROWTYPE;
   v_commercial_revision public.sales_commercial_record_revisions%ROWTYPE;
   v_baseline public.requirement_baselines%ROWTYPE;
@@ -893,7 +892,7 @@ BEGIN
     RAISE EXCEPTION 'Positive scoped baseline receipt graph is unavailable or incomplete';
   END IF;
 
-  SELECT specification.*, version.* INTO v_specification, v_master_version
+  SELECT version.* INTO v_master_version
   FROM public.master_specification_versions version
   JOIN public.master_specifications specification ON specification.id = version.specification_id
   WHERE version.id = v_receipt.master_specification_version_id
