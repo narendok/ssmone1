@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync as readTemporaryFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { clientRequirementIntakeSchema, clientRequirementRequestKey, clientRequirementState, controlledRequirementAvailability, feasibilityResponseSchema, mayExposeClientRequirement, mayRecordFeasibility, protectedIntakeAvailability } from "./client-requirement-intake";
 
 const pendingSql = readFileSync("supabase/pending/20261005_client_requirement_intake.sql", "utf8");
@@ -275,6 +279,91 @@ describe("client requirement intake contract", () => {
     expect(salesBoundTransportHarness).toContain('masterSpecificationVersionId:$masterSpecificationVersionId');
     expect(salesBoundTransportHarness).toContain('requestKey:$requestKey');
     expect(salesBoundTransportHarness).toContain('.customerId = $customerId');
+  });
+
+  it("requires authoritative scoped preflight before any caller transport mutation wrapper", () => {
+    const preflightIndex = salesBoundTransportHarness.indexOf("require_preflight\n\nfirst=");
+    expect(preflightIndex).toBeGreaterThan(-1);
+    expect(preflightIndex).toBeLessThan(salesBoundTransportHarness.indexOf("| call_sales)"));
+    expect(salesBoundTransportHarness).toContain('kind:"sales-bound-requirement-preflight"');
+    expect(salesBoundTransportHarness).toContain('"authoritative-isolated-target"');
+    expect(salesBoundTransportHarness).toContain('"authenticated-caller-availability"');
+    expect(salesBoundTransportHarness).toContain('"requirement-create-replay-graph"');
+    expect(salesBoundTransportHarness).toContain('"requirement-create-source-version-graph"');
+    expect(salesBoundTransportHarness).toContain('"requirement-create-rollback-graph-absent"');
+    expect(salesBoundTransportHarness).toContain('"commercial-receipt-readback"');
+    expect(salesBoundTransportHarness).toContain('"reviewer-response-readback"');
+    expect(salesBoundTransportHarness).toContain('"baseline-receipt-readback"');
+    expect(salesBoundTransportHarness).toContain('"requirement-create-concurrency-persisted-barrier"');
+    expect(salesBoundTransportHarness).toContain(".authoritativeTarget == true and .authenticatedCaller == true");
+    expect(salesBoundTransportHarness).toContain("Unknown, invalid, denied, or unsupported scope is BLOCKED.");
+  });
+
+  it("documents that a BLOCKED or invalid scoped preflight performs zero mutation-wrapper calls", () => {
+    expect(salesBoundTransportHarness).toContain("exit 69");
+    expect(salesBoundTransportHarness).toContain("# Verify every planned persisted-state proof before the first create, editor,");
+  });
+
+  it("stops before all mutation wrappers when mocked preflight is BLOCKED or malformed", () => {
+    const temporaryDirectory = mkdtempSync(join(tmpdir(), "sales-preflight-"));
+    const mutationLog = join(temporaryDirectory, "mutations.log");
+    const blockedAdapter = join(temporaryDirectory, "blocked-adapter.sh");
+    const invalidAdapter = join(temporaryDirectory, "invalid-adapter.sh");
+    const mutationWrapper = join(temporaryDirectory, "mutation-wrapper.sh");
+    const environment = {
+      ISOLATED_TARGET_NAME: "approved-isolated",
+      APPROVED_ISOLATED_TARGET_NAME: "approved-isolated",
+      ORIGINAL_TARGET_NAME: "original-backend",
+      OPPORTUNITY_ID: "b0c80d22-1007-4a60-b8cf-9c20a6c4f1a8",
+      CUSTOMER_ID: "dfd5f3f8-0caf-46cb-bf16-436a1c063650",
+      MASTER_VERSION_ID: "9ce5a383-9ebf-430e-9bba-2e550c20fe3e",
+      SPECIFICATION_ID: "e56a52f2-ffef-4abc-b8f8-2944b2e7ae71",
+      MISMATCHED_CUSTOMER_ID: "5e9252c9-f470-4f48-9540-8edc4e78b599",
+      REQUEST_KEY: "0741a6a9-8f32-4e68-bdd4-d1a56250e603",
+      REQUEST_KEY_B: "53fea4ad-d0dc-4d4a-aeec-952befc3a26a",
+      ROLLBACK_REQUEST_KEY: "2639f63b-dc03-44a8-8cbd-b3c56f06f447",
+      EXPECTED_VERSION: "1",
+      FAILURE_INJECTION_TOKEN: "test-only",
+      REQUEST_KEY_COMMERCIAL: "38f3ba86-06ec-4270-a1ba-876673f02901",
+      REQUEST_KEY_COMMERCIAL_B: "e8f94679-ff2d-4557-b94f-529b488ad09e",
+      REQUIREMENT_ID: "e5ca7061-aa3d-4d60-a2f4-6e4b1e0a3bae",
+      COMMERCIAL_EXPECTED_REVISION: "1",
+      REVIEW_ID: "589cfd51-af84-4c8c-b8da-539587c09fe7",
+      REVIEWER_REQUEST_KEY: "02f7e4ad-6e1e-4c45-b4a4-724ad0e2e1e7",
+      BASELINE_REQUEST_KEY: "64b23f18-060f-43e7-b06f-a2cbe1975376",
+      CONCURRENCY_BARRIER_ID: "preflight-only",
+      CONCURRENT_REQUEST_KEY: "3a6a30cc-c729-4375-96c3-9b84ce7c7edc",
+      CONCURRENT_REQUEST_KEY_B: "1adf62e7-2c9f-4df4-bb23-2b052b6edbf8",
+    };
+    writeFileSync(mutationWrapper, `#!/usr/bin/env bash\nprintf '%s\\n' mutation >> "${mutationLog}"\nexit 97\n`);
+    writeFileSync(blockedAdapter, "#!/usr/bin/env bash\ncat >/dev/null\nprintf '%s\\n' '{\"status\":\"BLOCKED\",\"missingContract\":\"scoped caller-RLS read adapter unavailable\"}'\n");
+    writeFileSync(invalidAdapter, "#!/usr/bin/env bash\ncat >/dev/null\nprintf '%s\\n' '{\"status\":\"OBSERVED\",\"capability\":\"wrong\",\"ok\":true}'\n");
+
+    for (const adapter of [blockedAdapter, invalidAdapter]) {
+      try {
+        execFileSync("bash", ["supabase/pending/tests/sales_bound_requirement_creation_caller_transport_acceptance.sh"], {
+          cwd: process.cwd(),
+          env: {
+            ...process.env,
+            ...environment,
+            READ_ASSERT_TRANSPORT: adapter,
+            SALES_CALLER_TRANSPORT: mutationWrapper,
+            SALES_SECOND_CALLER_TRANSPORT: mutationWrapper,
+            SOURCE_EDITOR_TRANSPORT: mutationWrapper,
+            BASELINE_CALLER_TRANSPORT: mutationWrapper,
+            COMMERCIAL_EDITOR_TRANSPORT: mutationWrapper,
+            REVIEW_TRANSITION_TRANSPORT: mutationWrapper,
+            REVIEWER_CALLER_TRANSPORT: mutationWrapper,
+          },
+          stdio: "pipe",
+        });
+        throw new Error("preflight unexpectedly succeeded");
+      } catch (error) {
+        expect((error as { status?: number }).status).toBe(69);
+      }
+      expect(() => readTemporaryFileSync(mutationLog, "utf8")).toThrow();
+    }
+    rmSync(temporaryDirectory, { recursive: true, force: true });
   });
 
   it("keeps the pending Sales facade unavailable instead of falling back to legacy writes", () => {
